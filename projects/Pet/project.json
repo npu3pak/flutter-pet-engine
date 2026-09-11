@@ -1,0 +1,180 @@
+{
+  "format": "project_v1",
+  "name": "Pet",
+  "created": "2026-09-08T04:32:11.811677Z",
+  "resources": [
+    {
+      "id": "curtain_blue",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "curtain_green",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "curtain_orange",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "curtain_red",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_beige",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_brown",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_fuchsia",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_green",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_olive",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_orange",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "fabric_red",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "floor_1",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "floor_2",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "floor_3",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "furniture_texture_1",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "furniture_texture_2",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "furniture_texture_3",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "furniture_texture_4",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "wallpaper_beige",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "wallpaper_blue",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "wallpaper_green",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "wallpaper_orange",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "wallpaper_yellow",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "cat_bowl_blue_empty",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "cat_bowl_blue_with_food",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "cat_bowl_red_empty",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "cat_bowl_red_with_food",
+      "family": "sprite",
+      "tolerance": 28.999999999999996
+    },
+    {
+      "id": "window_1",
+      "family": "sprite",
+      "tolerance": 24.0
+    },
+    {
+      "id": "window_2",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "window_3",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "window_4",
+      "family": "sprite",
+      "tolerance": 30.0
+    },
+    {
+      "id": "skybox_1",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "skybox_5",
+      "family": "texture",
+      "tolerance": 30.0
+    },
+    {
+      "id": "skybox_3",
+      "family": "texture",
+      "tolerance": 30.0
+    }
+  ],
+  "settings": {
+    "lastModelId": "model_2"
+  }
+}

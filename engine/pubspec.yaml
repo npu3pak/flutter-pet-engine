@@ -1,0 +1,29 @@
+name: pet_engine_v2
+description: "Pet engine v2: Flutter-friendly 3D runtime (SceneViewport/SceneController/SceneNode) for model_v1/project_v1 scenes — the next generation of pet_engine."
+publish_to: 'none'
+
+version: 0.1.0-dev.1
+
+environment:
+  sdk: ^3.13.0-275.0.dev
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_scene:
+    path: ../../flutter_scene/packages/flutter_scene
+  hooks: ^2.0.0
+  path: ^1.9.1
+  vector_math: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  image: ^4.5.0
+
+flutter:
+  assets:
+    - assets/particles/

@@ -1,0 +1,32 @@
+{
+  "format": "chunk_v3",
+  "id": "chunk_2",
+  "name": "chunk_2",
+  "size": {
+    "w": 3,
+    "l": 3,
+    "h": 3
+  },
+  "objects": [
+    {
+      "id": "obj_1",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "material": {
+        "type": "sprite",
+        "key": "fungus.png"
+      }
+    }
+  ]
+}

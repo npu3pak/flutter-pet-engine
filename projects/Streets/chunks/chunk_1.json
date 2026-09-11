@@ -1,0 +1,235 @@
+{
+  "format": "chunk_v3",
+  "id": "chunk_1",
+  "name": "Деревья",
+  "size": {
+    "w": 5,
+    "l": 4,
+    "h": 3
+  },
+  "entries": [
+    "north",
+    "east",
+    "south",
+    "west"
+  ],
+  "front": "south",
+  "blocked": [
+    "1,2",
+    "3,1"
+  ],
+  "objects": [
+    {
+      "id": "obj_1",
+      "name": "Tree 1",
+      "kind": "sprite",
+      "pos": [
+        1.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 2.0,
+        "h": 3.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "tree1.png"
+      }
+    },
+    {
+      "id": "obj_2",
+      "name": "Tree 2",
+      "kind": "sprite",
+      "pos": [
+        3.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.75,
+        "h": 2.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "tree1.png"
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "Grass",
+      "kind": "sprite",
+      "pos": [
+        0.5,
+        0.0,
+        1.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "Grass_2",
+      "kind": "sprite",
+      "pos": [
+        1.5,
+        0.0,
+        1.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "Grass_2_2",
+      "kind": "sprite",
+      "pos": [
+        1.5,
+        0.0,
+        2.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_6",
+      "name": "Grass_2_2_2",
+      "kind": "sprite",
+      "pos": [
+        0.5,
+        0.0,
+        2.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_7",
+      "name": "Grass_3",
+      "kind": "sprite",
+      "pos": [
+        2.5,
+        0.0,
+        0.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_8",
+      "name": "Grass_2_3",
+      "kind": "sprite",
+      "pos": [
+        3.5,
+        0.0,
+        0.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_9",
+      "name": "Grass_2_2_3",
+      "kind": "sprite",
+      "pos": [
+        3.5,
+        0.0,
+        1.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    },
+    {
+      "id": "obj_10",
+      "name": "Grass_2_2_2_2",
+      "kind": "sprite",
+      "pos": [
+        2.5,
+        0.0,
+        1.5
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "material": {
+        "type": "sprite",
+        "key": "grass.png"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1",
+      "name": "Grass block",
+      "members": [
+        "obj_3",
+        "obj_4",
+        "obj_5",
+        "obj_6"
+      ]
+    },
+    {
+      "id": "group_2",
+      "name": "Grass block_копия",
+      "members": [
+        "obj_7",
+        "obj_8",
+        "obj_9",
+        "obj_10"
+      ]
+    }
+  ]
+}

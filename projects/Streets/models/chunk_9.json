@@ -1,0 +1,314 @@
+{
+  "format": "model_v1",
+  "id": "chunk_9",
+  "name": "Бочки",
+  "size": {
+    "w": 5,
+    "l": 4,
+    "h": 3
+  },
+  "objects": [
+    {
+      "id": "obj_3",
+      "name": "Barrel",
+      "kind": "sprite",
+      "pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "Barrel",
+      "kind": "sprite",
+      "pos": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "Barrel",
+      "kind": "sprite",
+      "pos": [
+        1.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_6",
+      "name": "Barrel",
+      "kind": "sprite",
+      "pos": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_1",
+      "name": "Barrel_2",
+      "kind": "sprite",
+      "pos": [
+        2.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_2",
+      "name": "Barrel_3",
+      "kind": "sprite",
+      "pos": [
+        3.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_7",
+      "name": "Barrel_4",
+      "kind": "sprite",
+      "pos": [
+        3.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    },
+    {
+      "id": "obj_8",
+      "name": "Barrel_5",
+      "kind": "sprite",
+      "pos": [
+        2.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.75,
+        "h": 0.75
+      },
+      "material": {
+        "type": "sprite",
+        "key": "barrel.png"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1",
+      "name": "Barrels block",
+      "members": [
+        "obj_4",
+        "obj_5",
+        "obj_6"
+      ]
+    },
+    {
+      "id": "group_2",
+      "name": "Barrels block",
+      "members": [
+        "obj_1",
+        "obj_2",
+        "obj_7",
+        "obj_8"
+      ]
+    }
+  ],
+  "meta": [
+    {
+      "id": "meta_1",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_2",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_3",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_4",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        1.0,
+        0.0,
+        1.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_5",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        2.0,
+        0.0,
+        1.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_6",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        3.0,
+        0.0,
+        1.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_7",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        2.0,
+        0.0,
+        2.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    },
+    {
+      "id": "meta_8",
+      "kind": "box",
+      "name": "unpassable",
+      "pos": [
+        3.0,
+        0.0,
+        2.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    }
+  ],
+  "entries": [
+    "north",
+    "east",
+    "south",
+    "west"
+  ],
+  "front": "south"
+}

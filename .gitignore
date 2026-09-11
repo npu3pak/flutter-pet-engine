@@ -1,0 +1,14 @@
+# Временные файлы (конвенция: только temp/ внутри репозитория)
+temp/
+
+# Сборочные артефакты
+build/
+.dart_tool/
+.fvm/
+
+# Staging-бандл ресурсов приложения demo (генерируется scripts/stage_app_assets.dart)
+demo/assets/pet_project/
+
+.DS_Store
+*.iml
+.idea/

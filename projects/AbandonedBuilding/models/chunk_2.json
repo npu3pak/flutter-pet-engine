@@ -1,0 +1,258 @@
+{
+  "format": "model_v1",
+  "id": "chunk_2",
+  "name": "Комната 1×5",
+  "size": {
+    "w": 1,
+    "l": 5,
+    "h": 3
+  },
+  "objects": [
+    {
+      "id": "obj_1",
+      "name": "Стена Север",
+      "kind": "cuboid",
+      "pos": [
+        -0.438,
+        0.0,
+        -0.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.125,
+        2.2,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_2",
+      "name": "Стена Север",
+      "kind": "cuboid",
+      "pos": [
+        0.438,
+        0.0,
+        -0.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.125,
+        2.2,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "Стена Север",
+      "kind": "cuboid",
+      "pos": [
+        0.0,
+        0.0,
+        -0.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.75,
+        0.5,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "Стена Север",
+      "kind": "cuboid",
+      "pos": [
+        0.0,
+        1.2,
+        -0.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.75,
+        1.0,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "Окно Север",
+      "kind": "plane",
+      "pos": [
+        0.0,
+        0.5,
+        -0.4
+      ],
+      "rotY": 180.0,
+      "size": {
+        "w": 0.75,
+        "d": 0.7,
+        "vertical": 1
+      },
+      "material": {
+        "type": "sprite",
+        "flipX": true,
+        "side": "both",
+        "key": "window.png"
+      }
+    },
+    {
+      "id": "obj_6",
+      "name": "Стена Юг",
+      "kind": "cuboid",
+      "pos": [
+        0.0,
+        1.2,
+        4.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        1.0,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_8",
+      "name": "Стена Запад",
+      "kind": "cuboid",
+      "pos": [
+        -0.4,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.2,
+        2.2,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_9",
+      "name": "Стена Восток",
+      "kind": "cuboid",
+      "pos": [
+        0.4,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.2,
+        2.2,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_10",
+      "name": "Пол",
+      "kind": "cuboid",
+      "pos": [
+        0.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        0.06,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "floor.png"
+      }
+    },
+    {
+      "id": "obj_11",
+      "name": "Потолок",
+      "kind": "cuboid",
+      "pos": [
+        0.0,
+        2.2,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        0.15,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "ceiling.png"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1",
+      "name": "Окна",
+      "members": [
+        "obj_5"
+      ]
+    },
+    {
+      "id": "group_2",
+      "name": "Проходы",
+      "members": []
+    }
+  ],
+  "meta": [
+    {
+      "id": "meta_1",
+      "kind": "box",
+      "name": "door",
+      "pos": [
+        0.0,
+        0.0,
+        4.0
+      ],
+      "size": {
+        "w": 1,
+        "h": 1,
+        "d": 1
+      }
+    }
+  ],
+  "entries": [
+    "south"
+  ],
+  "front": "south"
+}

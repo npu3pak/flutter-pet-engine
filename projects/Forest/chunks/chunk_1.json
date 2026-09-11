@@ -1,0 +1,169 @@
+{
+  "format": "chunk_v3",
+  "id": "chunk_1",
+  "name": "chunk_1",
+  "size": {
+    "w": 3,
+    "l": 3,
+    "h": 3
+  },
+  "entries": [
+    "east",
+    "south",
+    "west"
+  ],
+  "blocked": [
+    "0,0",
+    "1,0",
+    "2,0",
+    "2,1"
+  ],
+  "objects": [
+    {
+      "id": "obj_1",
+      "name": "floor",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        3.0,
+        0.05,
+        3.0
+      ]
+    },
+    {
+      "id": "obj_2",
+      "name": "cone",
+      "kind": "cylinder",
+      "pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "bottomR": 0.25,
+        "topR": 0.0,
+        "h": 1.0,
+        "segments": 16
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "cylinder",
+      "kind": "cylinder",
+      "pos": [
+        2.0,
+        0.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "bottomR": 0.25,
+        "topR": 0.25,
+        "h": 1.0,
+        "segments": 16
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "trapezoid",
+      "kind": "trapezoid",
+      "pos": [
+        2.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "bottomW": 1.0,
+        "bottomD": 1.0,
+        "topW": 0.5,
+        "topD": 0.5,
+        "h": 0.5
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "material": {
+        "type": "texture",
+        "key": "bush_secret.png"
+      }
+    },
+    {
+      "id": "obj_6",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        1.0,
+        0.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "obj_7",
+      "name": "sprite",
+      "kind": "sprite",
+      "pos": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 2.0,
+        "h": 2.0
+      },
+      "faces": {
+        "*": {
+          "type": "sprite",
+          "key": "flower.png"
+        }
+      }
+    },
+    {
+      "id": "obj_8",
+      "name": "sprite_2",
+      "kind": "sprite",
+      "pos": [
+        1.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 3.0,
+        "h": 3.0
+      },
+      "faces": {
+        "*": {
+          "type": "sprite",
+          "key": "flower.png"
+        }
+      }
+    }
+  ]
+}
