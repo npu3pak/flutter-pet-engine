@@ -940,3 +940,34 @@ demo; редактор показывает свой — с той же мате
 Проверки: `engine` — analyze чист, 556 тестов; `demo` — 164;
 `scene_editor` — 345; снимки `gizmo_move`/`gizmo_rot2`/`gizmo_light2`/
 `gizmo_light_rot`, `sprite_fix`.
+
+### Луч выделения: инверсия позы камеры (13 сентября 2026)
+
+Владелец: выделение в редакторе «всё ещё ненадёжно» (bug_8). Найденная
+причина — `SceneController.screenPointToRay` умножал camera-local
+направление луча на **обратную** позу камеры
+(`view = globalTransform⁻¹; view.rotate3(dir)`). Это верно только для
+самообратных поворотов (yaw = 0/π): модели кадрируются с yaw = π, поэтому
+«фронтальный» пикинг работал, а после орбиты или фокуса двойным кликом
+(`fly.lookAt` даёт произвольный yaw) луч уезжал — вплоть до зеркального
+отражения по вертикали, и клики попадали не туда или мимо. Тесты пикинга
+использовали только yaw = π/identity, а pet-лучи кастовались вручную
+(`raycastRay`), минуя `screenPointToRay`, поэтому регрессия не ловилась.
+
+Исправлено:
+
+- направление поворачивается позой камеры
+  (`cameraNode.globalTransform.rotate3`), а не её обратной матрицей;
+- `SceneViewport._screenRay` сведён к `controller.screenPointToRay` — одна
+  математика для тапов (`SceneTapEvent.ray`) и пикинга, без дубля;
+- размер вьюпорта сообщается контроллеру синхронно в layout (без
+  post-frame), чтобы между ресайзом и кликом не было кадра устаревшей
+  геометрии.
+
+Регрессии: roundtrip `worldToScreen`↔`screenPointToRay` и пикинг с
+наклонённой камеры (`engine/test/api/picking_test.dart`,
+`engine/test/api/scene_viewport_test.dart`,
+`scene_editor/test/editor_scene_test.dart`).
+
+Проверки: `engine` — analyze чист, 560 тестов; `demo` — 164;
+`scene_editor` — 346.

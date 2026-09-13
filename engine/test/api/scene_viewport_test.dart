@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:vector_math/vector_math.dart' as vm;
 
 class _FakeBackend extends SceneViewportBackend {
   int builds = 0;
@@ -217,6 +218,46 @@ void main() {
       await tester.tapAt(point);
       await tester.pump(const Duration(milliseconds: 50));
       expect(doubles, hasLength(1));
+      controller.dispose();
+    });
+
+    testWidgets('tap ray passes through the projected world point', (
+      tester,
+    ) async {
+      final controller = SceneController();
+      final fly = FlyCameraController();
+      controller.camera = fly;
+      fly.eye = vm.Vector3(3, 2, 3);
+      fly.lookAt(vm.Vector3(0.2, 0.3, -0.1));
+      final taps = <SceneTapEvent>[];
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: SceneViewport(
+              controller: controller,
+              backend: _FakeBackend(),
+              onTap: taps.add,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final target = vm.Vector3(0.2, 0.3, -0.1);
+      final screen = controller.worldToScreen(target)!;
+      final topLeft = tester.getTopLeft(find.byType(SceneViewport));
+      await tester.tapAt(topLeft + screen);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(taps, hasLength(1));
+
+      final ray = taps.first.ray;
+      final toTarget = target - ray.origin;
+      final along = toTarget.dot(ray.direction);
+      expect(along, greaterThan(0), reason: 'точка должна быть перед камерой');
+      final offAxis = (toTarget - ray.direction * along).length;
+      expect(offAxis, lessThan(1e-6));
       controller.dispose();
     });
 

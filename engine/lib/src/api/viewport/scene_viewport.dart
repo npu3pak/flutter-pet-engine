@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
@@ -8,7 +7,6 @@ import 'package:flutter_scene/scene.dart' as fs;
 import 'package:vector_math/vector_math.dart' as vm;
 
 import '../../visual/screenshot.dart';
-import '../controllers/camera_controller.dart';
 import '../geometry/line_geometry.dart';
 import '../input/camera_input.dart';
 import '../input/scene_input.dart';
@@ -314,10 +312,11 @@ class SceneViewportState extends State<SceneViewport>
         _size = constraints.biggest;
         _pixelRatio =
             widget.pixelRatio ?? MediaQuery.devicePixelRatioOf(context);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          widget.controller.setViewport(_size, _pixelRatio);
-        });
+        // Reported synchronously: `setViewport` only stores the values (no
+        // notifications), and deferring it to a post-frame callback left the
+        // controller with the previous size for a frame — a ray cast in
+        // between used stale viewport geometry.
+        widget.controller.setViewport(_size, _pixelRatio);
 
         final status = widget.controller.status;
         final showLoading =
@@ -416,20 +415,9 @@ class SceneViewportState extends State<SceneViewport>
     }
   }
 
-  vm.Ray _screenRay(Offset position) {
-    final camera = widget.controller.camera;
-    if (camera is MatrixCameraController && _size.height > 0) {
-      final origin = camera.matrix.getTranslation();
-      final view = camera.matrix.clone()..invert();
-      final aspect = _size.width / _size.height;
-      final ndcX = 2 * position.dx / _size.width - 1;
-      final ndcY = 1 - 2 * position.dy / _size.height;
-      final tanHalf = math.tan(camera.projection.fovY / 2);
-      final direction = vm.Vector3(ndcX * tanHalf * aspect, ndcY * tanHalf, 1);
-      view.rotate3(direction);
-      if (direction.length2 > 1e-18) direction.normalize();
-      return vm.Ray.originDirection(origin, direction);
-    }
-    return vm.Ray.originDirection(vm.Vector3.zero(), vm.Vector3(0, 0, -1));
-  }
+  /// The tap ray: the controller owns the screen→world math (camera pose,
+  /// viewport size), so taps and `SceneController.screenPointToRay` can never
+  /// drift apart.
+  vm.Ray _screenRay(Offset position) =>
+      widget.controller.screenPointToRay(position);
 }

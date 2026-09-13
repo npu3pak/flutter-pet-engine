@@ -1097,17 +1097,21 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   /// The world ray from the camera through a viewport point.
   vm.Ray screenPointToRay(Offset screenPoint) {
     final size = _viewportSize;
-    final origin = cameraNode.globalTransform.getTranslation();
+    final cameraWorld = cameraNode.globalTransform;
+    final origin = cameraWorld.getTranslation();
     if (size.width <= 0 || size.height <= 0) {
       return vm.Ray.originDirection(origin, _camera.forwardH);
     }
-    final view = cameraNode.globalTransform.clone()..invert();
     final aspect = size.width / size.height;
     final ndcX = 2 * screenPoint.dx / size.width - 1;
     final ndcY = 1 - 2 * screenPoint.dy / size.height;
     final tanHalf = math.tan(_camera.projection.fovY / 2);
+    // Camera-local direction (local +Z is the view direction), rotated into
+    // the world by the camera's pose. `globalTransform` IS the pose — using
+    // its inverse here mirrors the ray for every orientation whose rotation
+    // is not self-inverse (yaw ≠ 0/π), so clicks miss after the camera turns.
     final direction = vm.Vector3(ndcX * tanHalf * aspect, ndcY * tanHalf, 1);
-    view.rotate3(direction);
+    cameraWorld.rotate3(direction);
     if (direction.length2 > 1e-18) direction.normalize();
     return vm.Ray.originDirection(origin, direction);
   }

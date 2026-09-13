@@ -28,6 +28,51 @@ void main() {
       expect(ray.direction.z, greaterThan(0));
       controller.dispose();
     });
+
+    test('center ray follows the camera forward at any orientation', () {
+      final controller = _controller();
+      final fly = FlyCameraController();
+      controller.camera = fly;
+      fly.yaw = 1.9;
+      fly.pitch = 0.33;
+      final ray = controller.screenPointToRay(const Offset(100, 50));
+      final forward = fly.forward;
+      expect(ray.direction.x, closeTo(forward.x, 1e-9));
+      expect(ray.direction.y, closeTo(forward.y, 1e-9));
+      expect(ray.direction.z, closeTo(forward.z, 1e-9));
+      controller.dispose();
+    });
+
+    test('ray through a projected point passes through it', () {
+      final controller = _controller();
+      final fly = FlyCameraController();
+      controller.camera = fly;
+      fly.eye = vm.Vector3(3.2, 4.1, 5.3);
+      fly.yaw = 2.1;
+      fly.pitch = 0.37;
+      final target = vm.Vector3(0.4, 0.8, -0.6);
+      final screen = controller.worldToScreen(target);
+      expect(screen, isNotNull);
+      final ray = controller.screenPointToRay(screen!);
+      final toTarget = target - ray.origin;
+      final along = toTarget.dot(ray.direction);
+      expect(along, greaterThan(0), reason: 'точка должна быть перед камерой');
+      final offAxis = (toTarget - ray.direction * along).length;
+      expect(offAxis, lessThan(1e-6));
+      controller.dispose();
+    });
+
+    test('screen-space raycast hits a box from a rotated camera', () {
+      final controller = _controller();
+      final fly = FlyCameraController();
+      controller.camera = fly;
+      fly.eye = vm.Vector3(4, 3, 4);
+      fly.lookAt(vm.Vector3.zero());
+      final box = controller.add(BoxNode(id: 'box', size: vm.Vector3(1, 1, 1)));
+      final hit = controller.raycast(const Offset(100, 50));
+      expect(hit?.node, same(box));
+      controller.dispose();
+    });
   });
 
   group('worldToScreen', () {

@@ -1065,6 +1065,33 @@ void main() {
       controller.dispose();
     });
 
+    testWidgets('pick works from a rotated camera (side view)', (tester) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model();
+      model.objects.add(_cuboid());
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      // Смотрим на куб с world −X строго горизонтально: луч входит в грань
+      // −x (world x = −0.5) в её центре.
+      editor.eye = vm.Vector3(-4, 0.5, 0.5);
+      editor.fly.lookAt(vm.Vector3(0.5, 0.5, 0.5));
+      await _pumpViewport(tester, controller);
+      const size = Size(200, 200);
+
+      final screen = controller.worldToScreen(vm.Vector3(0.5, 0.5, 0.5))!;
+      final face = editor.pickFace(screen, size);
+      expect(face, isNotNull);
+      expect(face!.$1, 'obj_1');
+      expect(face.$2, '-x');
+      expect(face.$3.x, closeTo(-0.5, 1e-3));
+      expect(face.$3.y, closeTo(0.5, 1e-3));
+      expect(face.$3.z, closeTo(0.5, 1e-3));
+
+      editor.dispose();
+      controller.dispose();
+    });
+
     testWidgets('skipObjectIds passes the selected object through to the face '
         'behind', (tester) async {
       final controller = SceneController(mergeStatic: false);
