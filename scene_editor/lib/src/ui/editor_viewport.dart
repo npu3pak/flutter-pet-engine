@@ -88,14 +88,22 @@ class _EditorViewportState extends State<EditorViewport> {
       if (model != null) {
         editor.rebuild(model);
         editor.frameModel(model);
+      } else {
+        editor.rebuildOverlays();
       }
     } else if (revision != _lastRevision) {
       _lastRevision = revision;
-      if (model != null) editor.rebuild(model);
+      if (model != null) editor.syncDocument(model);
     }
-    editor.textureMode = app.mode == EditorMode.texture;
-    editor.markupMode = app.mode == EditorMode.markup;
-    editor.lightingMode = app.mode == EditorMode.lighting;
+    final texture = app.mode == EditorMode.texture;
+    final markup = app.mode == EditorMode.markup;
+    final lighting = app.mode == EditorMode.lighting;
+    final modeChanged = editor.textureMode != texture ||
+        editor.markupMode != markup ||
+        editor.lightingMode != lighting;
+    editor.textureMode = texture;
+    editor.markupMode = markup;
+    editor.lightingMode = lighting;
     editor.setMetaSelection(
         app.mode == EditorMode.markup ? app.selectedMetaId : null);
     editor.setLightSelection(
@@ -106,7 +114,15 @@ class _EditorViewportState extends State<EditorViewport> {
     editor.syncFaces(app.selectedFaces);
     editor.cursor = vm.Vector3(app.cursorX, app.cursorY, app.cursorZ);
     editor.cellCursor = app.cellBrushArmed;
-    editor.rebuildOverlays();
+    // Mode changes swap whole layers (meta/light/texture gizmos): rebuild.
+    // Everything else is a cheap incremental sync — the drag paths already
+    // refreshed the overlays for their revision ([EditorScene.syncDocument]
+    // no-ops when the revision was handled).
+    if (modeChanged) {
+      editor.rebuildOverlays();
+    } else {
+      editor.syncUiState();
+    }
   }
 
   void _onPointerDown(PointerDownEvent e) {
@@ -443,7 +459,9 @@ class _EditorViewportState extends State<EditorViewport> {
     _dragGizmo(e);
   }
 
-  /// Shared gizmo drag logic (mouse and touch).
+  /// Shared gizmo drag logic (mouse and touch). The position is queued and
+  /// applied once per frame ([EditorScene.flushGizmoDrag]) — high-frequency
+  /// pointer events collapse into one transform step per frame.
   void _dragGizmo(PointerMoveEvent e) {
     if (!editor.gizmoDragging || _dragStart == null) return;
     final free =
@@ -451,7 +469,7 @@ class _EditorViewportState extends State<EditorViewport> {
         HardwareKeyboard.instance.isControlPressed;
     editor.gizmoSnap = free ? 0 : app.snapStep;
     editor.gizmoSnapDeg = free ? 0 : kRotateSnapDeg;
-    app.controller.updateGizmoDrag(e.localPosition);
+    editor.queueGizmoDrag(e.localPosition);
     _lastPointer = e.position;
   }
 
@@ -480,6 +498,8 @@ class _EditorViewportState extends State<EditorViewport> {
   }
 
   void _endGizmoDrag() {
+    // Apply the final queued pointer position before closing the drag.
+    editor.flushGizmoDrag();
     app.controller.endGizmoDrag();
     if (_lightDrag) {
       app.endLightGizmoDrag(action: _dragRotate ? 'Поворот' : 'Перенос');
@@ -490,6 +510,31 @@ class _EditorViewportState extends State<EditorViewport> {
     }
     editor.endGizmoDrag();
     editor.rebuildOverlays();
+    _dragStart = null;
+    _dragRotate = false;
+    _metaDrag = false;
+    _lightDrag = false;
+  }
+
+  void _onPointerCancel(PointerCancelEvent e) {
+    // The OS can cancel the pointer stream (window deactivation, gesture
+    // preemption): close whatever the pointer started.
+    if (e.kind == PointerDeviceKind.touch) {
+      _touches.clear();
+      _pinchLastDist = 0;
+      _touchTapPending = false;
+    }
+    if (_brushPainting) {
+      app.endCellStroke();
+      _brushPainting = false;
+    }
+    if (editor.flying) {
+      editor.stopFly();
+      app.flying.value = false;
+    }
+    if (editor.orbiting) editor.stopOrbit();
+    if (editor.gizmoDragging) _endGizmoDrag();
+    _lastPointer = null;
     _dragStart = null;
     _dragRotate = false;
     _metaDrag = false;
@@ -688,6 +733,7 @@ class _EditorViewportState extends State<EditorViewport> {
           onPointerDown: _onPointerDown,
           onPointerMove: _onPointerMove,
           onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
           onPointerSignal: _onPointerSignal,
           child: Stack(
             fit: StackFit.expand,

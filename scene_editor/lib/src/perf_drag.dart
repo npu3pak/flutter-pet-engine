@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
@@ -11,8 +12,9 @@ import 'state/app_state.dart';
 /// Включается `--dart-define=pet.perf.drag=true`: открывает `projects/Pet`,
 /// модель `model_2`, и для каждого вида объекта (куб, вставка, CSG, спрайт,
 /// glTF) шлёт настоящие pointer-события и тянет ось X гизмо 60 шагов.
-/// Печатает sync (сам обработчик) и frame (до конца кадра) p50/p95. Строки
-/// `renderer: rebuild ... (Nms)` в общем логе дают стоимость пересборки.
+/// Печатает sync (сам обработчик) и frame (до конца кадра) p50/p95, а также
+/// число полных пересборок за драг. Строки `renderer: rebuild ... (Nms)` в
+/// общем логе дают стоимость пересборки.
 const bool kPerfDragEnabled = bool.fromEnvironment('pet.perf.drag');
 
 const String _projectPath = '../projects/Pet';
@@ -22,6 +24,13 @@ const List<String> _ids = [
   'obj_13', // вставка модели (кресло)
   'csg_1', // CSG-результат
   'obj_4', // спрайт
+  'obj_14', // glTF (кот)
+];
+
+/// Объекты для замера поворота (спрайт и CSG поворачивать нельзя).
+const List<String> _rotateIds = [
+  'obj_6', // куб (стена)
+  'obj_13', // вставка модели (кресло)
   'obj_14', // glTF (кот)
 ];
 
@@ -62,6 +71,18 @@ Future<void> runDragPerf(AppState app) async {
     await Future<void>.delayed(const Duration(milliseconds: 600));
     await _benchDrag(app, id);
   }
+
+  // Поворот гизмо: объекты, для которых поворот разрешён (без спрайта и
+  // CSG). Раньше каждый шаг уходил в полную пересборку сцены.
+  app.setRotateMode(true);
+  await _frames(3);
+  for (final id in _rotateIds) {
+    if (model.objectById(id) == null) continue;
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await _benchRotate(app, id);
+  }
+  app.setRotateMode(false);
+  await _frames(3);
 
   debugPrint('PERF: готово');
   await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -106,6 +127,7 @@ Future<void> _benchDrag(AppState app, String id) async {
   final moved = model.moveExpansion({id});
   final subject = moved.isEmpty ? object : moved.first;
   final x0 = subject.x;
+  final rebuilds0 = controller.rebuildCount;
   await _capture('before_$id');
   debugPrint('PERF-BEGIN $id');
   debugPrint('PERF $id: selectedIds=${app.selectedIds}');
@@ -163,9 +185,131 @@ Future<void> _benchDrag(AppState app, String id) async {
     'PERF $id: сдвиг x=${(subject.x - x0).toStringAsFixed(3)} '
     'sync p50=${_p50(syncSamples).toStringAsFixed(2)} '
     'p95=${_p95(syncSamples).toStringAsFixed(2)} '
-    'frame p50=${_p50(frameSamples).toStringAsFixed(2)}',
+    'frame p50=${_p50(frameSamples).toStringAsFixed(2)} '
+    'rebuilds=${controller.rebuildCount - rebuilds0}',
   );
   debugPrint('PERF-END $id');
+
+  app.selectObject(null);
+  await _frames(2);
+}
+
+/// Поворот вокруг кольца гизмо 60 шагов по экранной окружности.
+Future<void> _benchRotate(AppState app, String id) async {
+  final controller = app.controller;
+  final model = app.currentModel!;
+  final object = model.objectById(id)!;
+  app.selectObject(id);
+  await _frames(3);
+
+  final gizmo =
+      controller.gizmos.firstWhere((g) => g.mode == GizmoMode.rotate);
+  if (!gizmo.visible) {
+    debugPrint('PERF-ROT $id: гизмо поворота скрыто — пропуск');
+    return;
+  }
+  final anchorScreen = controller.worldToScreen(gizmo.anchor);
+  if (anchorScreen == null) {
+    debugPrint('PERF-ROT $id: гизмо за кадром — пропуск');
+    return;
+  }
+  // Точка на кольце: перебираем окружности вокруг якоря и спрашиваем
+  // экранный hit-тест гизмо (кольца — постоянного пиксельного радиуса).
+  Offset? ringPoint;
+  for (var radius = 40.0; radius <= 160.0 && ringPoint == null; radius += 2) {
+    for (var i = 0; i < 64; i++) {
+      final a = 2 * math.pi * i / 64;
+      final p = anchorScreen + Offset(math.cos(a), math.sin(a)) * radius;
+      if (gizmo.hitTest(p) != null) {
+        ringPoint = p;
+        break;
+      }
+    }
+  }
+  if (ringPoint == null) {
+    debugPrint('PERF-ROT $id: кольцо не найдено');
+    return;
+  }
+
+  final box = _viewportBox();
+  if (box == null) {
+    debugPrint('PERF-ROT $id: вьюпорт не найден');
+    return;
+  }
+  final origin = box.localToGlobal(Offset.zero);
+  final center = origin + anchorScreen;
+  final ring = origin + ringPoint;
+  final radius = (ring - center).distance;
+  final startAngle =
+      math.atan2(ringPoint.dy - anchorScreen.dy, ringPoint.dx - anchorScreen.dx);
+
+  final r0 = (object.rotX, object.rotY, object.rotZ);
+  final rebuilds0 = controller.rebuildCount;
+  await _capture('rot_before_$id');
+  debugPrint('PERF-ROT-BEGIN $id');
+  final binding = GestureBinding.instance;
+  const pointer = 9;
+  binding.handlePointerEvent(
+    PointerDownEvent(
+      pointer: pointer,
+      position: ring,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryButton,
+    ),
+  );
+  await _frames(1);
+  debugPrint('PERF-ROT $id: dragging=${gizmo.dragging}');
+  if (!gizmo.dragging) {
+    debugPrint('PERF-ROT $id: драг не начался');
+    binding.handlePointerEvent(
+      PointerUpEvent(pointer: pointer, position: ring),
+    );
+    return;
+  }
+
+  final syncSamples = <double>[];
+  final frameSamples = <double>[];
+  const steps = 60;
+  var position = ring;
+  for (var i = 0; i < steps; i++) {
+    final a = startAngle + (i + 1) * 0.06;
+    final next =
+        center + Offset(math.cos(a), math.sin(a)) * radius;
+    final delta = next - position;
+    position = next;
+    final sw = Stopwatch()..start();
+    binding.handlePointerEvent(
+      PointerMoveEvent(
+        pointer: pointer,
+        position: position,
+        delta: delta,
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      ),
+    );
+    syncSamples.add(sw.elapsedMicroseconds / 1000);
+    sw.reset();
+    await WidgetsBinding.instance.endOfFrame;
+    frameSamples.add(sw.elapsedMicroseconds / 1000);
+  }
+
+  binding.handlePointerEvent(
+    PointerUpEvent(pointer: pointer, position: position),
+  );
+  await _frames(2);
+  await _capture('rot_after_$id');
+
+  debugPrint(
+    'PERF-ROT $id: поворот '
+    'd=(${(object.rotX - r0.$1).toStringAsFixed(1)},'
+    '${(object.rotY - r0.$2).toStringAsFixed(1)},'
+    '${(object.rotZ - r0.$3).toStringAsFixed(1)}) '
+    'sync p50=${_p50(syncSamples).toStringAsFixed(2)} '
+    'p95=${_p95(syncSamples).toStringAsFixed(2)} '
+    'frame p50=${_p50(frameSamples).toStringAsFixed(2)} '
+    'rebuilds=${controller.rebuildCount - rebuilds0}',
+  );
+  debugPrint('PERF-ROT-END $id');
 
   app.selectObject(null);
   await _frames(2);

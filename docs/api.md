@@ -148,13 +148,17 @@ class SceneController extends ChangeNotifier {
   void unloadModel();
   void reloadResources();                        // сброс кэшей текстур/glTF
   void rebuild();                                // пересборка контента, ++revision
-  void refreshObjectTransforms({Map<String, Vector3>? translated});
+  void refreshObjectTransforms({Map<String, Vector3>? translated,
+                                Map<String, Matrix4>? rotated});
                                                  // быстрый путь драга: солидные
                                                  // объекты пересчитываются, узлы
                                                  // элементов из translated
-                                                 // сдвигаются на мировой шаг без
-                                                 // пересборки (вставки, CSG, glTF,
-                                                 // скругления, спрайты)
+                                                 // сдвигаются на мировой шаг,
+                                                 // из rotated — поворачиваются
+                                                 // на шаг R_new·R_old⁻¹ в
+                                                 // модельном кадре вокруг якоря
+                                                 // (вставки, CSG, glTF,
+                                                 // скругления), без пересборки
   SceneLoadStatus get status;
   SceneResources? get resources;
   ProjectStore get project;                      // модели проекта (создание и т.п.)

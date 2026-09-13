@@ -149,6 +149,47 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('отмена указателя завершает драг гизмо', (tester) async {
+    await pumpViewport(tester);
+    final model = app.currentModel!;
+    final object = model.objects.first;
+    app.selectObject(object.id);
+    await tester.pump();
+
+    final fly = app.controller.camera as FlyCameraController;
+    fly.frameModel(model);
+    await tester.pump();
+    final moveGizmo = app.controller.gizmos
+        .firstWhere((g) => g.mode == GizmoMode.translate);
+    moveGizmo.applyScreenScale(1.0);
+    await tester.pump();
+
+    final handle = app.controller.worldToScreen(
+      moveGizmo.anchor + gizmoAxisDirection(GizmoAxis.x),
+    )!;
+    final x0 = object.x;
+    final gesture = await tester.startGesture(
+      handle,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryButton,
+    );
+    await tester.pump();
+
+    // Два события до кадра: шаг ещё не применён — позиция копится в очереди.
+    await gesture.moveBy(const Offset(30, 0));
+    await gesture.moveBy(const Offset(30, 0));
+    expect(moveGizmo.dragging, isTrue);
+    expect(object.x, closeTo(x0, 1e-6), reason: 'коалесинг ждёт кадр/отпускание');
+
+    await gesture.cancel();
+    await tester.pump();
+    expect(object.x, isNot(closeTo(x0, 1e-6)),
+        reason: 'отмена применяет последнюю точку и завершает драг');
+    expect(moveGizmo.dragging, isFalse, reason: 'отмена завершает драг');
+
+    await unmount(tester);
+  });
+
   testWidgets('повторная пересборка оверлеев не ломает слой выделения',
       (tester) async {
     await pumpViewport(tester);

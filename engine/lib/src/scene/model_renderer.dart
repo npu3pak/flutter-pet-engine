@@ -715,9 +715,21 @@ class ModelRenderer {
   /// baked content: model instances, CSG results, rounded cuboids and gltf
   /// wrappers. The caller passes the actual (snapped) step per element, so
   /// snapping stays consistent with the document.
+  ///
+  /// [rotated] maps element ids to a MODEL-space rotation step (the change
+  /// of `objectRotation` since the previous call, i.e. `R_new · R_old⁻¹`).
+  /// It is converted to a world prefix about the element anchor
+  /// ([_rotationStepAbout]) and prepended to the nodes — again without
+  /// geometry work. Instance/gltf content carries the document rotation in
+  /// its chain (the X-mirror lives only in the anchor translation), while
+  /// top-level csg/rounded geometry bakes the mirror, so the prefix is
+  /// mirror-conjugated for it. Solid objects keep the recompute path (the
+  /// document already carries their new rotation). When both arguments name
+  /// the same element, the translation wins.
   bool updateObjectTransforms(
     ModelData model, {
     Map<String, vm.Vector3>? translated,
+    Map<String, vm.Matrix4>? rotated,
   }) {
     _model = model;
     var updated = false;
@@ -734,13 +746,17 @@ class ModelRenderer {
         // Billboard sprites nested in an instance re-orient every frame from
         // a chain snapshotted at build: shift the chain too, otherwise the
         // per-frame reorient would snap them back to the old placement.
-        if (instanceBillboards.isNotEmpty) {
-          for (var i = 0; i < instanceBillboards.length; i++) {
-            final (node, chain) = instanceBillboards[i];
-            if (elementOfNode[node] != entry.key) continue;
-            instanceBillboards[i] = (node, step * chain);
-          }
+        _shiftInstanceBillboardChains(entry.key, step);
+        continue;
+      }
+      final rotation = rotated?[entry.key];
+      if (rotation != null) {
+        final step = _rotationStepAbout(obj, rotation);
+        for (final node in entry.value) {
+          node.localTransform = step * node.localTransform;
+          updated = true;
         }
+        _shiftInstanceBillboardChains(entry.key, step);
         continue;
       }
       if (obj.isCsg ||
@@ -758,6 +774,35 @@ class ModelRenderer {
       }
     }
     return updated;
+  }
+
+  /// The world-space prefix rotating [obj] by the MODEL-space step [delta]
+  /// about its own anchor. Content that bakes the model→world X-mirror into
+  /// its vertices (top-level csg/rounded geometry) requires the conjugated
+  /// step `M · delta · M`; instance/gltf chains apply the document rotation
+  /// after the mirrored anchor, so they take the step as is.
+  vm.Matrix4 _rotationStepAbout(ModelObject obj, vm.Matrix4 delta) {
+    final anchor = _anchorWorld(obj);
+    final step = _bakesMirror(obj) ? _kMirrorX * delta * _kMirrorX : delta;
+    return vm.Matrix4.translation(anchor) *
+        step *
+        vm.Matrix4.translation(-anchor);
+  }
+
+  /// Whether [obj]'s rendered geometry bakes the model→world X-mirror into
+  /// its vertices (top-level csg results and rounded cuboids).
+  bool _bakesMirror(ModelObject obj) =>
+      obj.isCsg || (obj.kind == 'cuboid' && isRoundedCuboid(obj));
+
+  /// Prepends [step] to the persistent per-frame chains of the billboard
+  /// sprites owned by [elementId] (see [instanceBillboards]).
+  void _shiftInstanceBillboardChains(String elementId, vm.Matrix4 step) {
+    if (instanceBillboards.isEmpty) return;
+    for (var i = 0; i < instanceBillboards.length; i++) {
+      final (node, chain) = instanceBillboards[i];
+      if (elementOfNode[node] != elementId) continue;
+      instanceBillboards[i] = (node, step * chain);
+    }
   }
 
   void _buildObjects(ModelData model) {

@@ -233,25 +233,39 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   /// [refreshObjectTransforms]).
   int get rebuildCount => _rebuildCount;
 
-  /// Refreshes the render transforms of the document's solid objects without
-  /// rebuilding their geometry — the fast path for move/rotate drags. Baked
-  /// content (csg, rounded cuboids, model/gltf instances, sprites) keeps its
-  /// old placement until the next [rebuild]; callers that may drag such
-  /// objects should call [rebuild] instead. Bumps [revision].
+  /// Refreshes the render transforms of the document's objects without
+  /// rebuilding their geometry — the fast path for move/rotate drags. Solid
+  /// objects recompute their base transform from the document; baked content
+  /// (csg, rounded cuboids, model/gltf instances, sprites) needs an explicit
+  /// step.
   ///
   /// [translated] maps element ids to a WORLD translation applied since the
   /// previous call (one drag step): the nodes of those elements move by the
   /// translation without any geometry/CSG/material work, so baked content
   /// (model instances, CSG results, gltf wrappers, sprites) can be dragged
   /// live. The caller passes the actual snapped step per element.
-  void refreshObjectTransforms({Map<String, vm.Vector3>? translated}) {
+  ///
+  /// [rotated] maps element ids to a MODEL-space rotation step (`R_new ·
+  /// R_old⁻¹`, the change of `objectRotation` since the previous call) and
+  /// rotates every node of those elements about the element anchor — the
+  /// rotate-drag fast path for solids, model instances, gltf wrappers and
+  /// rounded cuboids. Bumps [revision].
+  void refreshObjectTransforms({
+    Map<String, vm.Vector3>? translated,
+    Map<String, vm.Matrix4>? rotated,
+  }) {
     final model = _model;
     final renderer = _renderer;
     if (model == null || renderer == null) return;
-    renderer.updateObjectTransforms(model, translated: translated);
-    // Wireframes are built in world space: they must follow the moved
-    // objects too. Only the moved elements are refreshed.
-    _refreshWireframes(only: translated?.keys);
+    renderer.updateObjectTransforms(
+      model,
+      translated: translated,
+      rotated: rotated,
+    );
+    // Wireframes are built in world space: they must follow the moved and
+    // rotated objects too. Only the changed elements are refreshed.
+    final changed = <String>{...?translated?.keys, ...?rotated?.keys};
+    _refreshWireframes(only: changed.isEmpty ? null : changed);
     _revision++;
     notifyListeners();
   }

@@ -256,7 +256,7 @@ enum TexSubmode { objects, faces }
 class EditorScene {
   EditorScene(this.controller) {
     controller.add(overlays);
-    controller.add(selectionOverlay);
+    overlays.add(selectionOverlay);
     controller.add(metaOverlay.root);
     controller.add(lightGizmoRoot);
     metaOverlay.root.layer = SceneLayer.overlay;
@@ -465,9 +465,14 @@ class EditorScene {
 
   void scrollZoom(double delta) => fly.scrollZoom(delta, focus: _zoomFocus());
 
-  /// Per-frame upkeep after the controller's own frame: meta bubbles and
-  /// occlusion ghosts, plus the billboard selection outline.
+  /// Per-frame upkeep after the controller's own frame: deduplicated gizmo
+  /// drag, meta bubbles and occlusion ghosts, plus the billboard selection
+  /// outline.
   void update(double dt) {
+    // Apply the coalesced gizmo drag once per frame (pointer events arrive
+    // much faster than frames; the gizmo computes absolute deltas from the
+    // drag start, so only the last position matters).
+    flushGizmoDrag();
     if (dt > 0.05) {
       logStage(
         'editor',
@@ -482,12 +487,16 @@ class EditorScene {
       metaOverlay.tick(model, f.x, f.z, eye, cameraMoved: moved);
     }
     // Billboard sprites face the camera per frame, so their selection
-    // outline must be rebuilt per frame too (with the current yaw).
-    if (_selectionHasBillboard) {
+    // outline must follow the yaw while the camera turns. The selection is
+    // cached: the outline is only rebuilt when the yaw actually changed.
+    if (_selectionBillboards) {
+      final model = controller.model;
       if (model != null) {
-        final objs = selectedObjects(model);
-        selectionOverlay.removeAll();
-        if (objs.isNotEmpty) _buildSelection(model, objs);
+        final yaw = screenParallelYaw(forwardH.x, forwardH.z);
+        if ((yaw - _selectionYaw).abs() > 1e-6) {
+          _selectionDirty = true;
+          _refreshSelection(model, force: true);
+        }
       }
     }
   }
@@ -515,6 +524,22 @@ class EditorScene {
   /// Re-probes the meta occlusion on the next tick (after any structural
   /// change: a meta or object move can cover/uncover another meta).
   void armMetaProbe() => _probeArmed = true;
+
+  // ── coalesced gizmo drag ─────────────────────────────────────────────
+
+  ui.Offset? _pendingGizmoDrag;
+
+  /// Queues the latest gizmo pointer position; the drag is applied once per
+  /// frame by [flushGizmoDrag].
+  void queueGizmoDrag(ui.Offset point) => _pendingGizmoDrag = point;
+
+  /// Applies the queued gizmo drag immediately (frame tick and drag end).
+  void flushGizmoDrag() {
+    final point = _pendingGizmoDrag;
+    if (point == null) return;
+    _pendingGizmoDrag = null;
+    controller.updateGizmoDrag(point);
+  }
 
   bool get _selectionHasBillboard {
     final model = controller.model;
@@ -651,6 +676,7 @@ class EditorScene {
     selectedIds
       ..clear()
       ..addAll(objectId == null ? const [] : [objectId]);
+    _selectionDirty = true;
     onChanged?.call();
   }
 
@@ -658,6 +684,7 @@ class EditorScene {
     selectedIds
       ..clear()
       ..addAll(ids);
+    _selectionDirty = true;
     onChanged?.call();
   }
 
@@ -665,6 +692,7 @@ class EditorScene {
     faceSelection
       ..clear()
       ..addAll(faces);
+    _selectionDirty = true;
     onChanged?.call();
   }
 
@@ -796,10 +824,11 @@ class EditorScene {
       ]);
   }
 
-  /// Starts an object rotate drag: snapshots the selected objects.
+  /// Starts an object rotate drag: snapshots the expanded selection (csg
+  /// results rotate their leaves; hidden operands fall back to a rebuild).
   void beginRotateDrag() {
     final model = controller.model;
-    final objs = model == null ? null : selectedObjects(model);
+    final objs = model?.moveExpansion(selectedIds);
     if (model == null || objs == null || objs.isEmpty) return;
     _gizmoTarget = 'object';
     _gizmoStartRotations
@@ -916,18 +945,39 @@ class EditorScene {
       final step = translated[leaves.first.id];
       if (step != null) translated[id] = step;
     }
+    if (translated.isEmpty) return; // snapped back to the same spot
+    vm.Vector3? common;
+    var mixed = false;
+    for (final step in translated.values) {
+      if (common == null) {
+        common = step;
+      } else if ((common - step).length2 > 1e-18) {
+        mixed = true;
+        break;
+      }
+    }
     controller.refreshObjectTransforms(translated: translated);
-    rebuildOverlays();
+    _syncAfterObjectTransform(uniformStep: mixed ? null : common);
   }
 
+  /// Rotates the selected objects by the gizmo angle. The document gets the
+  /// snapped absolute rotation; the render nodes then receive the ACTUAL
+  /// model-space step per element (`R_new · R_old⁻¹`) without a scene
+  /// rebuild — solids, model/gltf instances and rounded cuboids all rotate
+  /// live. A hidden csg operand has no nodes of its own, so a selection that
+  /// expands to one falls back to a full rebuild.
   void _rotateObjects(ModelData model, GizmoAxis axis, double deg) {
     // World +X = model −x: a positive world-X rotation is a negative model
     // rotX (the old editor's X handle pointed world −X).
     final signed = axis == GizmoAxis.x ? -deg : deg;
-    for (final o in selectedObjects(model)) {
+    final rotated = <String, vm.Matrix4>{};
+    var needsRebuild = false;
+    for (final o in model.moveExpansion(selectedIds)) {
       if (o.kind == 'sprite') continue;
       final start = _gizmoStartRotations[o.id];
       if (start == null) continue;
+      if (model.csgParentOf(o.id) != null) needsRebuild = true;
+      final before = objectRotation(o);
       switch (axis) {
         case GizmoAxis.x:
           o.rotX = (start.$1 + signed) % 360;
@@ -936,8 +986,15 @@ class EditorScene {
         case GizmoAxis.z:
           o.rotZ = (start.$3 + signed) % 360;
       }
+      rotated[o.id] = objectRotation(o) * (before.clone()..invert());
     }
-    _refreshAfterTransform();
+    if (needsRebuild) {
+      rebuildObjects();
+      return;
+    }
+    controller.refreshObjectTransforms(rotated: rotated);
+    _selectionDirty = true;
+    _syncAfterObjectTransform();
   }
 
   void _moveMeta(ModelData model, vm.Vector3 delta) {
@@ -947,7 +1004,7 @@ class EditorScene {
     meta.x = _snapV(start.x + delta.x);
     meta.y = _snapV(start.y + delta.y).clamp(0.0, 64.0);
     meta.z = _snapV(start.z + delta.z);
-    rebuildOverlays();
+    _syncAfterMetaMove();
   }
 
   void _moveLight(ModelData model, vm.Vector3 delta) {
@@ -958,7 +1015,7 @@ class EditorScene {
     light.y = _snapV(start.y + delta.y).clamp(0.0, 64.0);
     light.z = _snapV(start.z + delta.z);
     _updateLightNode(model, light.id);
-    rebuildOverlays();
+    _syncAfterLightMove(model);
   }
 
   void _aimLight(ModelData model, GizmoAxis axis, double deg) {
@@ -973,7 +1030,7 @@ class EditorScene {
     light.dirY = dir.y;
     light.dirZ = dir.z;
     _updateLightNode(model, light.id);
-    rebuildOverlays();
+    _syncAfterLightMove(model);
   }
 
   vm.Vector3 _anchorWorld(ModelObject obj, ModelData model) {
@@ -1053,61 +1110,213 @@ class EditorScene {
     rebuildOverlays();
   }
 
-  /// Refreshes the scene after a move/rotate drag: the transform-only path
-  /// for solid objects (no geometry rebuild), a full rebuild when the
-  /// selection contains baked content (csg, rounded cuboids, model/gltf
-  /// instances, sprites).
-  void _refreshAfterTransform() {
-    final model = controller.model;
-    if (model == null) {
-      rebuildObjects();
-      return;
-    }
-    final baked = model.moveExpansion(selectedIds).any(
-      (o) =>
-          o.isCsg ||
-          o.isModelRef ||
-          o.isGltfRef ||
-          o.kind == 'sprite' ||
-          (o.kind == 'cuboid' && o.dim('roundR', 0) > 0),
-    );
-    if (baked) {
-      rebuildObjects();
-      return;
-    }
-    controller.refreshObjectTransforms();
-    rebuildOverlays();
-  }
-
   void rebuild(ModelData model) {
     armMetaProbe();
     _applyLighting(model);
     rebuildOverlays();
   }
 
-  /// Public overlay rebuild (grid, frame, arrows, selection, cursor, gizmo).
+  /// Public overlay rebuild (grid, frame, arrows, selection, cursor, gizmo):
+  /// the slow path for model/mode changes. Drags use the targeted syncs.
   void rebuildOverlays() => _rebuildOverlays();
 
+  /// The controller revision already reflected by the overlays; lets the
+  /// viewport skip the full rebuild when a drag path synced it itself.
+  int _overlayRevision = -1;
+
+  /// Full overlay refresh after an external scene revision (undo, resource
+  /// reload, property edit). No-op when the drag syncs already handled it.
+  void syncDocument(ModelData model) {
+    if (controller.revision == _overlayRevision) return;
+    rebuild(model);
+  }
+
+  /// Cheap UI-state sync for AppState notifications that do not change the
+  /// scene revision (selection, cursor, brush, gizmo mode): the cursor, the
+  /// dirty selection outline and the gizmo anchor. The grid, frame, meta and
+  /// light layers stay untouched.
+  void syncUiState() {
+    final model = controller.model;
+    if (model == null) return;
+    _syncCursor(model);
+    _refreshSelection(model);
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+  }
+
   void _rebuildOverlays() {
-    // The selection layer is a child of [overlays]: clear its children while
-    // it is still attached (after `overlays.removeAll()` the layer is
-    // detached from the host, and stale outline/face-highlight nodes would
-    // survive the re-add). Clearing first also keeps the engine mirror in
-    // sync — see the detach invariant in `SceneController.onNodeDetached`.
-    selectionOverlay.removeAll();
-    overlays.removeAll();
-    overlays.add(selectionOverlay);
     final model = controller.model;
     if (model == null) {
+      _removeOverlayNode(_gridNode);
+      _gridNode = null;
+      _removeOverlayNode(_frameNode);
+      _frameNode = null;
+      _removeOverlayNode(_cursorCross);
+      _cursorCross = null;
+      _removeOverlayNode(_cursorCell);
+      _cursorCell = null;
+      final stale = _outlineNode;
+      if (stale != null) selectionOverlay.remove(stale);
+      _outlineNode = null;
+      _selectionDirty = true;
       metaOverlay.rebuild(null);
       lightGizmoRoot.removeAll();
+      moveGizmo.visible = false;
+      rotateGizmo.visible = false;
+      _overlayRevision = controller.revision;
       return;
     }
-    _buildGrid(model);
-    _buildFrame(model);
-    _buildCursor(model);
+    _syncGrid(model);
+    _syncFrame(model);
+    _syncCursor(model);
+    _selectionDirty = true;
+    _refreshSelection(model, force: true);
     // Markup meta-objects are visible only in the «Разметка» mode.
     metaOverlay.rebuild(markupMode ? model : null);
+    _rebuildLightGizmos(model);
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+    _overlayRevision = controller.revision;
+  }
+
+  // ── incremental overlay syncs ────────────────────────────────────────
+
+  /// Cached overlay nodes; rebuilt only when their model/size key changes.
+  GridNode? _gridNode;
+  int? _gridW;
+  int? _gridL;
+  LineNode? _frameNode;
+  int? _frameW;
+  int? _frameH;
+  int? _frameL;
+  LineNode? _cursorCross;
+  LineNode? _cursorCell;
+  int? _cursorW;
+  int? _cursorL;
+
+  /// The persistent selection outline node (null when nothing is selected).
+  LineNode? _outlineNode;
+
+  /// Whether the outline/selection metadata must be rebuilt on the next sync.
+  bool _selectionDirty = true;
+
+  /// Whether the current selection contains billboards (their outline yaw
+  /// follows the camera per frame). Recomputed on selection changes only.
+  bool _selectionBillboards = false;
+
+  /// Camera yaw the current outline was built with.
+  double _selectionYaw = double.nan;
+
+  void _removeOverlayNode(SceneNode? node) {
+    if (node != null) overlays.remove(node);
+  }
+
+  void _syncGrid(ModelData model) {
+    if (_gridNode != null && _gridW == model.size.w && _gridL == model.size.l) {
+      return;
+    }
+    _removeOverlayNode(_gridNode);
+    // The engine grid: constant screen-pixel lines on the overlay layer.
+    final node = GridNode(
+      width: model.size.w.toDouble(),
+      depth: model.size.l.toDouble(),
+      cell: 1,
+      lineWidthPx: 1.5,
+      color: const Color(0xFF737380),
+    );
+    node.layer = SceneLayer.overlay;
+    overlays.add(node);
+    _gridNode = node;
+    _gridW = model.size.w;
+    _gridL = model.size.l;
+  }
+
+  void _syncFrame(ModelData model) {
+    final w = model.size.w, l = model.size.l, h = model.size.h;
+    if (_frameNode != null && _frameW == w && _frameL == l && _frameH == h) {
+      return;
+    }
+    _removeOverlayNode(_frameNode);
+    // Origin is the model center: the frame box is centered at world (0,0,0).
+    final node = wireframeBox(
+      vm.Vector3(0, h / 2, 0),
+      vm.Vector3(w.toDouble(), h.toDouble(), l.toDouble()),
+      width: 0.02,
+      color: vm.Vector4(1, 0.85, 0.35, 1),
+    );
+    node.layer = SceneLayer.overlay;
+    overlays.add(node);
+    _frameNode = node;
+    _frameW = w;
+    _frameH = h;
+    _frameL = l;
+  }
+
+  void _syncCursor(ModelData model) {
+    if (_cursorCross == null ||
+        _cursorW != model.size.w ||
+        _cursorL != model.size.l) {
+      _removeOverlayNode(_cursorCross);
+      _removeOverlayNode(_cursorCell);
+      _cursorCross = null;
+      _cursorCell = null;
+      // Local geometry; the node transform carries the world position.
+      const r = 0.35;
+      final cross = <(double, double, double)>[
+        (-r, 0, 0), (r, 0, 0),
+        (0, 0, -r), (0, 0, r),
+        (0, 0, 0), (0, r, 0),
+      ];
+      final crossNode = LineNode(
+        geometry: lineSegments(cross, width: 0.012),
+        color: const Color(0xFF66CCFF),
+      );
+      crossNode.layer = SceneLayer.overlay;
+      overlays.add(crossNode);
+      _cursorCross = crossNode;
+      _cursorW = model.size.w;
+      _cursorL = model.size.l;
+    }
+    // The cell brush highlight exists only while the brush is armed.
+    if (cellCursor && _cursorCell == null) {
+      const h = 0.5;
+      final square = <(double, double, double)>[
+        (-h, 0, -h), (h, 0, -h),
+        (h, 0, -h), (h, 0, h),
+        (h, 0, h), (-h, 0, h),
+        (-h, 0, h), (-h, 0, -h),
+      ];
+      final cellNode = LineNode(
+        geometry: lineSegments(square, width: 0.02),
+        color: const Color(0xFF66CCFF),
+      );
+      cellNode.layer = SceneLayer.overlay;
+      overlays.add(cellNode);
+      _cursorCell = cellNode;
+    } else if (!cellCursor && _cursorCell != null) {
+      overlays.remove(_cursorCell!);
+      _cursorCell = null;
+    }
+    final p = chunkWorld(cursor.x, cursor.z, model.size.w, model.size.l);
+    _cursorCross!.transform =
+        vm.Matrix4.translation(vm.Vector3(p.x, cursor.y, p.z));
+    if (cellCursor && _cursorCell != null) {
+      final cx = cursor.x.roundToDouble(), cz = cursor.z.roundToDouble();
+      final c = chunkWorld(cx, cz, model.size.w, model.size.l);
+      _cursorCell!.transform =
+          vm.Matrix4.translation(vm.Vector3(c.x, cursor.y + 0.02, c.z));
+    }
+  }
+
+  void _rebuildLightGizmos(ModelData model) {
     // Light-source gizmos are visible only in the «Освещение» mode (and
     // while its scene knob «показывать гизмо» is on).
     if (lightingMode && model.lighting.gizmos) {
@@ -1116,25 +1325,79 @@ class EditorScene {
     } else {
       lightGizmoRoot.removeAll();
     }
-    final metaSel = selectedMeta(model);
-    final lightSel = selectedLight(model);
+  }
+
+  /// Rebuilds the selection outline when it is dirty (selection, mode,
+  /// rotation) or forced. A pure translation drag shifts the cached node
+  /// instead (see [_syncAfterObjectTransform]).
+  void _refreshSelection(ModelData model, {bool force = false}) {
+    if (!force && !_selectionDirty) return;
+    final recomputeBillboards = _selectionDirty;
     final objs = selectedObjects(model);
+    final stale = _outlineNode;
+    if (stale != null) selectionOverlay.remove(stale);
+    _outlineNode = null;
     if (objs.isNotEmpty) {
-      // The outline shows real edges: csg results outline their evaluated
-      // geometry, while every other selected object expands through groups
-      // (and never through the hidden csg operands).
-      _buildSelectionInto(model, [
-        for (final o in model.moveExpansion(selectedIds))
-          if (!o.isCsg && model.csgParentOf(o.id) == null) o,
-        for (final o in objs)
-          if (o.isCsg) o,
-      ]);
+      final node = _buildOutlineNode(model, objs);
+      if (node != null) {
+        selectionOverlay.add(node);
+        _outlineNode = node;
+      }
     }
-    // The gizmo is compose/markup/lighting-only: texturing has its own
-    // interaction. A selected meta (markup) or light source (lighting) gets
-    // the gizmo on its anchor; the rotate gizmo never applies to metas —
-    // it aims directional lights instead.
-    _syncGizmo(model, objs, metaSel, lightSel);
+    if (recomputeBillboards) _selectionBillboards = _selectionHasBillboard;
+    _selectionDirty = false;
+    _selectionYaw = screenParallelYaw(forwardH.x, forwardH.z);
+  }
+
+  /// Syncs the overlays after a move/rotate drag step: the outline shifts
+  /// with a uniform translation (rebuilt otherwise) and the gizmo follows
+  /// the group anchor. The grid/frame/cursor/meta/light layers are untouched.
+  void _syncAfterObjectTransform({vm.Vector3? uniformStep}) {
+    final model = controller.model;
+    if (model == null) return;
+    final outline = _outlineNode;
+    if (!_selectionDirty && outline != null && uniformStep != null) {
+      outline.transform =
+          vm.Matrix4.translation(uniformStep) * outline.transform;
+    } else {
+      _selectionDirty = true;
+      _refreshSelection(model, force: true);
+    }
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+    _overlayRevision = controller.revision;
+  }
+
+  /// Syncs the meta layer after a meta drag step (the whole layer is
+  /// re-diffed, but the grid/frame/selection/light overlays stay cached).
+  void _syncAfterMetaMove() {
+    final model = controller.model;
+    if (model == null) return;
+    armMetaProbe();
+    metaOverlay.rebuild(markupMode ? model : null);
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+    _overlayRevision = controller.revision;
+  }
+
+  /// Syncs the light-source gizmos after a light drag step.
+  void _syncAfterLightMove(ModelData model) {
+    _rebuildLightGizmos(model);
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+    _overlayRevision = controller.revision;
   }
 
   /// Shows the engine gizmos on the current selection: objects in compose
@@ -1168,79 +1431,12 @@ class EditorScene {
     }
   }
 
-  /// Rebuilds the selection layer (outline + face highlight) with the
-  /// current camera yaw.
-  void _buildSelectionInto(ModelData model, List<ModelObject> objs) {
-    selectionOverlay.removeAll();
-    _buildSelection(model, objs);
-  }
-
-  void _buildGrid(ModelData model) {
-    // The engine grid: constant screen-pixel lines on the overlay layer.
-    final node = GridNode(
-      width: model.size.w.toDouble(),
-      depth: model.size.l.toDouble(),
-      cell: 1,
-      lineWidthPx: 1.5,
-      color: const Color(0xFF737380),
-    );
-    node.layer = SceneLayer.overlay;
-    overlays.add(node);
-  }
-
-  void _buildFrame(ModelData model) {
-    final w = model.size.w, l = model.size.l, h = model.size.h;
-    // Origin is the model center: the frame box is centered at world (0,0,0).
-    final node = wireframeBox(
-      vm.Vector3(0, h / 2, 0),
-      vm.Vector3(w.toDouble(), h.toDouble(), l.toDouble()),
-      width: 0.02,
-      color: vm.Vector4(1, 0.85, 0.35, 1),
-    );
-    node.layer = SceneLayer.overlay;
-    overlays.add(node);
-  }
-
-  void _buildCursor(ModelData model) {
-    final p = chunkWorld(cursor.x, cursor.z, model.size.w, model.size.l);
-    final o = vm.Vector3(p.x, cursor.y, p.z);
-    final r = 0.35;
-    final pts = <(double, double, double)>[
-      (o.x - r, o.y, o.z), (o.x + r, o.y, o.z),
-      (o.x, o.y, o.z - r), (o.x, o.y, o.z + r),
-      (o.x, o.y, o.z), (o.x, o.y + r, o.z),
-    ];
-    final cross = LineNode(
-      geometry: lineSegments(pts, width: 0.012),
-      color: const Color(0xFF66CCFF),
-    );
-    cross.layer = SceneLayer.overlay;
-    overlays.add(cross);
-    // The cell brush highlight: the 1×1 cell square under the cursor.
-    if (cellCursor) {
-      final cx = cursor.x.roundToDouble(), cz = cursor.z.roundToDouble();
-      final c = chunkWorld(cx, cz, model.size.w, model.size.l);
-      final y = cursor.y + 0.02;
-      const h = 0.5;
-      final square = <(double, double, double)>[
-        (c.x - h, y, c.z - h), (c.x + h, y, c.z - h),
-        (c.x + h, y, c.z - h), (c.x + h, y, c.z + h),
-        (c.x + h, y, c.z + h), (c.x - h, y, c.z + h),
-        (c.x - h, y, c.z + h), (c.x - h, y, c.z - h),
-      ];
-      final cell = LineNode(
-        geometry: lineSegments(square, width: 0.02),
-        color: const Color(0xFF66CCFF),
-      );
-      cell.layer = SceneLayer.overlay;
-      overlays.add(cell);
-    }
-  }
-
-  void _buildSelection(ModelData model, List<ModelObject> objs) {
-    // Real edges (rotY-aware, per kind) for EVERY selected object, drawn on
-    // the overlay layer so they show through other objects' geometry. A
-    // model instance outlines its resolved content (recursively).
+  /// Builds the selection outline node: real edges (rotY-aware, per kind)
+  /// for EVERY selected object, drawn on the overlay layer so they show
+  /// through other objects' geometry. A model instance outlines its resolved
+  /// content (recursively); a csg result outlines its evaluated geometry.
+  /// Face submode outlines every selected face's edges instead.
+  LineNode? _buildOutlineNode(ModelData model, List<ModelObject> objs) {
     final yaw = screenParallelYaw(forwardH.x, forwardH.z);
     final originX = (model.size.w - 1) / 2;
     final originZ = (model.size.l - 1) / 2;
@@ -1288,12 +1484,13 @@ class EditorScene {
         }
       }
     }
+    if (pts.isEmpty) return null;
     final outline = LineNode(
       geometry: lineSegments(pts, width: 0.02),
       color: const Color(0xFFFFD91A),
     );
     outline.layer = SceneLayer.overlay;
-    selectionOverlay.add(outline);
+    return outline;
   }
 
   void dispose() {

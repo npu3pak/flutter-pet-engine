@@ -1001,6 +1001,7 @@ void main() {
       const scale = 1.0;
       editor.moveGizmo.applyScreenScale(scale);
       expect(editor.moveGizmo.visible, isTrue);
+      final outlineBefore = editor.selectionOverlay.children.single;
 
       final anchor = editor.groupAnchor(model);
       final handle = controller.worldToScreen(
@@ -1017,6 +1018,11 @@ void main() {
       controller.endGizmoDrag();
       editor.endGizmoDrag();
       expect(obj.x, greaterThan(startX));
+      expect(
+        editor.selectionOverlay.children.single,
+        same(outlineBefore),
+        reason: 'перенос сдвигает контур, не пересобирая его',
+      );
 
       // Snap: the position rounds to the nearest multiple of the step.
       obj.x = 0.37;
@@ -1085,6 +1091,116 @@ void main() {
       // Полная пересборка (например, конец драга в AppState) счётчик растит.
       controller.rebuild();
       expect(controller.rebuildCount, rebuildsBefore + 1);
+
+      editor.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('rotating a model instance does not rebuild the scene', (
+      tester,
+    ) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model();
+      final inst = ModelObject(
+        id: 'inst',
+        name: 'inst',
+        kind: modelRefKind,
+        x: 1,
+        y: 0,
+        z: 2,
+        refModelId: 'src',
+        refSize: ModelSize(w: 2, l: 2, h: 2),
+      );
+      model.objects.add(inst);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0.5, 5, 0.5);
+      editor.yaw = math.pi;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setRotateMode(true);
+      editor.setSelection(inst.id);
+      editor.rebuildOverlays();
+      editor.rotateGizmo.applyScreenScale(1.0);
+      expect(editor.rotateGizmo.visible, isTrue);
+
+      // Top-down view: the Y ring lies in the horizontal plane. The grip is
+      // the projected world +X offset; dragging to world +Z is a quarter turn.
+      final anchor = editor.groupAnchor(model);
+      final grip = controller.worldToScreen(anchor + vm.Vector3(1, 0, 0))!;
+      final quarter = controller.worldToScreen(anchor + vm.Vector3(0, 0, 1))!;
+      expect(controller.beginGizmoDrag(grip), isNotNull);
+
+      final rebuildsBefore = controller.rebuildCount;
+      final startRotY = inst.rotY;
+      editor.gizmoSnapDeg = 0;
+      editor.beginRotateDrag();
+      controller.updateGizmoDrag(quarter);
+      controller.endGizmoDrag();
+      editor.endGizmoDrag();
+
+      final turned = (inst.rotY - startRotY).abs();
+      expect(
+        turned == 270 ? 90 : turned,
+        closeTo(90, 1e-3),
+        reason: 'вставка должна повернуться на четверть оборота',
+      );
+      expect(
+        controller.rebuildCount,
+        rebuildsBefore,
+        reason: 'поворот вставки идёт трансформами, без пересборки сцены',
+      );
+
+      editor.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('overlay caches survive rebuilds and follow the cursor', (
+      tester,
+    ) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model();
+      final obj = _cuboid();
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0.5, 5, 0.5);
+      editor.yaw = math.pi;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setSelection(obj.id);
+      editor.rebuildOverlays();
+      final overlayNodes = editor.overlays.children.toList();
+
+      // A second rebuild reuses the very same grid/frame/cursor nodes.
+      editor.rebuildOverlays();
+      expect(editor.overlays.children.toList(), overlayNodes);
+      final outline = editor.selectionOverlay.children.single;
+
+      // Cursor/selection syncs are transform-only: the cached outline node
+      // stays, and no new grid/frame/cursor nodes appear.
+      editor.cursor = vm.Vector3(1, 0, 1);
+      editor.cellCursor = true;
+      editor.syncUiState();
+      expect(
+        editor.overlays.children.toList(),
+        containsAll(overlayNodes),
+        reason: 'синк курсора не пересобирает сетку/рамку',
+      );
+      expect(editor.selectionOverlay.children.single, same(outline));
+
+      // Hiding the brush removes only its cell highlight.
+      editor.cellCursor = false;
+      editor.syncUiState();
+      expect(
+        editor.overlays.children.toList(),
+        overlayNodes,
+        reason: 'клетка кисти убирается из слоя',
+      );
 
       editor.dispose();
       controller.dispose();
