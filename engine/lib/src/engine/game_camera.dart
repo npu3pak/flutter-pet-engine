@@ -127,7 +127,9 @@ class GameCamera {
     if (!_flying && _keys.isEmpty) return;
     final s = shift ? 2.5 : 1.0;
     final step = speed * s;
-    if (_keys.isEmpty || _keys.contains(0x57)) eye.add(forward.scaled(step)); // W
+    // Полёт включается кнопкой мыши, но движение — только клавишами: без них
+    // камера не уезжает вперёд сама (ПКМ = обзор + готовность к WASD/QE).
+    if (_keys.contains(0x57)) eye.add(forward.scaled(step)); // W
     if (_keys.contains(0x53)) eye.sub(forward.scaled(step)); // S
     if (_keys.contains(0x44)) eye.add(rightH.scaled(step)); // D
     if (_keys.contains(0x41)) eye.sub(rightH.scaled(step)); // A

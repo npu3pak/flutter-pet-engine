@@ -85,7 +85,10 @@ class LevelBakeStats {
 /// look of rain biomes, tinting). [tags] are the element tags that resolved
 /// to this material (empty when the element carries none), [sprite] is true
 /// only when every contributing element is a billboard sprite.
-typedef BakedMaterialHook = void Function(
+///
+/// Internal engine-material hook; the public `BakedMaterialHook` of the API
+/// wraps it with `SceneMaterial`.
+typedef LevelMaterialHook = void Function(
   EngineMaterial material, {
   required bool sprite,
   required Set<String> tags,
@@ -209,7 +212,7 @@ class LevelBaker {
     ConstructionModel model, {
     bool collectStats = false,
     void Function()? onGeometryBuilt,
-    BakedMaterialHook? onMaterial,
+    LevelMaterialHook? onMaterial,
   }) {
     final sw = Stopwatch()..start();
     final plan = this.plan(model);
@@ -327,7 +330,7 @@ class LevelBaker {
 
   /// Calls [hook] once per unique material of the current rebuild, with the
   /// tags of the elements using it and whether it belongs to sprites only.
-  void _emitMaterials(ConstructionModel model, BakedMaterialHook hook) {
+  void _emitMaterials(ConstructionModel model, LevelMaterialHook hook) {
     final tags = <Material, Set<String>>{};
     final sprites = <Material, bool>{};
     for (final node in _renderer.root.children) {

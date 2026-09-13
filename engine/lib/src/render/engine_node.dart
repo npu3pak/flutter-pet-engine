@@ -60,7 +60,13 @@ class EngineNode {
 
   void add(EngineNode child) => raw.add(child.raw);
 
-  void remove(EngineNode child) => raw.remove(child.raw);
+  /// Removes [child] from this node. Tolerant to a desynced mirror: when the
+  /// child's engine node is already detached (a subtree detach that kept the
+  /// API parent), the call is a no-op instead of throwing.
+  void remove(EngineNode child) {
+    if (child.raw.parent != raw) return;
+    raw.remove(child.raw);
+  }
 
   void removeAll() => raw.removeAll();
 

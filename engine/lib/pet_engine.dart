@@ -34,6 +34,7 @@ export 'src/level/level_grid.dart';
 export 'src/level/level_loader.dart';
 export 'src/level/level_resources.dart';
 export 'src/level/level_validator.dart';
+export 'src/level/load_status.dart';
 export 'src/level/scene_placement.dart';
 export 'src/materials/fmat_manager.dart';
 export 'src/models/legacy_chunk_converter.dart';

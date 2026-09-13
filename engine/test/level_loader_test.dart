@@ -6,15 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/pet_engine.dart';
 
 ModelObject cuboid(String id, {ModelMaterial? material}) => ModelObject(
-      id: id,
-      name: id,
-      kind: 'cuboid',
-      x: 0,
-      y: 0,
-      z: 0,
-      dims: const {'w': 1, 'h': 1, 'd': 1},
-      material: material,
-    );
+  id: id,
+  name: id,
+  kind: 'cuboid',
+  x: 0,
+  y: 0,
+  z: 0,
+  dims: const {'w': 1, 'h': 1, 'd': 1},
+  material: material,
+);
 
 ModelMaterial textureMat(String key) =>
     ModelMaterial(type: MaterialType.texture, key: key);
@@ -75,7 +75,7 @@ class _FakeBaker extends LevelBaker {
     ConstructionModel model, {
     bool collectStats = false,
     void Function()? onGeometryBuilt,
-    BakedMaterialHook? onMaterial,
+    LevelMaterialHook? onMaterial,
   }) {
     onGeometryBuilt?.call();
     return LevelBakeResult(
@@ -100,15 +100,14 @@ LevelLoader loaderFor(
   bool openProject = true,
   List<LevelExtraResource> extraResources = const [],
   void Function(LevelLoadEvent event)? onEvent,
-}) =>
-    LevelLoader(
-      resources: manager,
-      model: model,
-      openProject: openProject,
-      extraResources: extraResources,
-      onEvent: onEvent,
-      baker: _FakeBaker(manager.textures),
-    );
+}) => LevelLoader(
+  resources: manager,
+  model: model,
+  openProject: openProject,
+  extraResources: extraResources,
+  onEvent: onEvent,
+  baker: _FakeBaker(manager.textures),
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -122,8 +121,7 @@ void main() {
       expect(closure.spriteKeys, {'window.png'});
     });
 
-    test('walks model references recursively and records the missing ones',
-        () {
+    test('walks model references recursively and records the missing ones', () {
       final leaf = cuboid('leaf', material: textureMat('leaf.png'));
       final mid = ModelObject(
         id: 'mid',
@@ -189,60 +187,76 @@ void main() {
   });
 
   group('LevelLoader', () {
-    test('runs the five stages, reports progress and bakes the level',
-        () async {
-      final manager = openManager({
-        'project.json': '{"format":"project_v1","name":"Тест"}',
-        'models/a.json': '{"format":"model_v1","id":"a"}',
-      });
-      final events = <LevelLoadEvent>[];
-      final loader = loaderFor(
-        manager,
-        modelWith([cuboid('cube')]),
-        onEvent: events.add,
-      );
-      final result = await loader.load();
+    test(
+      'runs the five stages, reports progress and bakes the level',
+      () async {
+        final manager = openManager({
+          'project.json': '{"format":"project_v1","name":"Тест"}',
+          'models/a.json': '{"format":"model_v1","id":"a"}',
+        });
+        final events = <LevelLoadEvent>[];
+        final loader = loaderFor(
+          manager,
+          modelWith([cuboid('cube')]),
+          onEvent: events.add,
+        );
+        final result = await loader.load();
 
-      expect(result.baked, isNotNull);
-      expect(result.errors, isEmpty);
-      expect(manager.name, 'Тест');
-      expect(events.first.kind, LevelLoadEventKind.started);
-      expect(events.last.kind, LevelLoadEventKind.finished);
-      expect(events.last.result, same(result));
-      final stages = events
-          .where((e) => e.kind == LevelLoadEventKind.progress)
-          .map((e) => e.stage!)
-          .toSet();
-      expect(stages, LevelLoadStage.values.toSet());
-      for (final event in events) {
-        expect(event.fraction, inInclusiveRange(0, 1));
-      }
-      // The final progress of every stage is 1.
-      for (final stage in LevelLoadStage.values) {
-        final stageEvents = events.where((e) =>
-            e.kind == LevelLoadEventKind.progress && e.stage == stage);
-        expect(stageEvents.last.fraction, 1, reason: stage.name);
-      }
-    });
+        expect(result.baked, isNotNull);
+        expect(result.errors, isEmpty);
+        expect(manager.name, 'Тест');
+        expect(events.first.kind, LevelLoadEventKind.started);
+        expect(events.last.kind, LevelLoadEventKind.finished);
+        expect(events.last.result, same(result));
+        final stages = events
+            .where((e) => e.kind == LevelLoadEventKind.progress)
+            .map((e) => e.phase!)
+            .toSet();
+        const loadPhases = [
+          SceneLoadPhase.project,
+          SceneLoadPhase.models,
+          SceneLoadPhase.resources,
+          SceneLoadPhase.geometry,
+          SceneLoadPhase.bake,
+        ];
+        expect(stages, loadPhases.toSet());
+        for (final event in events) {
+          expect(event.fraction, inInclusiveRange(0, 1));
+        }
+        // The final progress of every stage is 1.
+        for (final stage in loadPhases) {
+          final stageEvents = events.where(
+            (e) => e.kind == LevelLoadEventKind.progress && e.phase == stage,
+          );
+          expect(stageEvents.last.fraction, 1, reason: stage.name);
+        }
+      },
+    );
 
-    test('a missing texture is reported and the level is still baked',
-        () async {
-      final manager = openManager({
-        'project.json': '{"format":"project_v1","name":"Тест"}',
-      });
-      final loader = loaderFor(
-        manager,
-        modelWith([cuboid('wall', material: textureMat('nope.png'))]),
-      );
-      final result = await loader.load();
-      expect(result.baked, isNotNull, reason: 'уровень показывается с заглушкой');
-      expect(result.hasErrors, isTrue);
-      expect(
-        result.errors.map((e) => e.resource),
-        contains('textures/nope.png'),
-      );
-      expect(result.errors.first.reason, isNotEmpty);
-    });
+    test(
+      'a missing texture is reported and the level is still baked',
+      () async {
+        final manager = openManager({
+          'project.json': '{"format":"project_v1","name":"Тест"}',
+        });
+        final loader = loaderFor(
+          manager,
+          modelWith([cuboid('wall', material: textureMat('nope.png'))]),
+        );
+        final result = await loader.load();
+        expect(
+          result.baked,
+          isNotNull,
+          reason: 'уровень показывается с заглушкой',
+        );
+        expect(result.hasErrors, isTrue);
+        expect(
+          result.errors.map((e) => e.resource),
+          contains('textures/nope.png'),
+        );
+        expect(result.errors.first.reason, isNotEmpty);
+      },
+    );
 
     test('a missing sprite is reported', () async {
       final manager = openManager({
@@ -253,8 +267,10 @@ void main() {
         modelWith([cuboid('w', material: spriteMat('ghost.png'))]),
       );
       final result = await loader.load();
-      expect(result.errors.map((e) => e.resource),
-          contains('sprites/ghost.png'));
+      expect(
+        result.errors.map((e) => e.resource),
+        contains('sprites/ghost.png'),
+      );
       expect(result.baked, isNotNull);
     });
 
@@ -270,8 +286,10 @@ void main() {
       );
       final loader = loaderFor(manager, modelWith([ref]));
       final result = await loader.load();
-      expect(result.errors.map((e) => e.resource),
-          contains('models/ghost_house.json'));
+      expect(
+        result.errors.map((e) => e.resource),
+        contains('models/ghost_house.json'),
+      );
       expect(result.baked, isNotNull);
     });
 
@@ -282,9 +300,7 @@ void main() {
       final loader = loaderFor(
         manager,
         modelWith([cuboid('cube')]),
-        extraResources: [
-          const LevelExtraResource('небо', _fail),
-        ],
+        extraResources: [const LevelExtraResource('небо', _fail)],
       );
       final result = await loader.load();
       expect(result.errors.map((e) => e.resource), contains('небо'));
@@ -306,8 +322,10 @@ void main() {
       final result = await loader.load();
       expect(result.baked, isNotNull);
       final projectEvents = events.where(
-          (e) => e.kind == LevelLoadEventKind.progress &&
-              e.stage == LevelLoadStage.project);
+        (e) =>
+            e.kind == LevelLoadEventKind.progress &&
+            e.phase == SceneLoadPhase.project,
+      );
       expect(projectEvents.map((e) => e.fraction), [0, 1]);
     });
   });

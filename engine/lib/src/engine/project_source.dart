@@ -41,8 +41,19 @@ abstract class ProjectSource {
       writeBytes(relPath, Uint8List.fromList(utf8.encode(text)));
 }
 
+/// Optional capability of a writable [ProjectSource]: deleting and renaming
+/// files. Kept separate so custom sources stay source-compatible.
+abstract interface class MutableProjectSource {
+  /// Deletes one file (no-op when it does not exist).
+  Future<void> deleteBytes(String relPath);
+
+  /// Renames a file inside the source.
+  Future<void> renameBytes(String from, String to);
+}
+
 /// Local-folder backing: every path resolves under [root].
-class DirectoryProjectSource extends ProjectSource {
+class DirectoryProjectSource extends ProjectSource
+    implements MutableProjectSource {
   final Directory root;
 
   DirectoryProjectSource(this.root);
@@ -87,6 +98,22 @@ class DirectoryProjectSource extends ProjectSource {
     final f = File(_abs(relPath));
     f.parent.createSync(recursive: true);
     await f.writeAsBytes(bytes, flush: true);
+  }
+
+  @override
+  Future<void> deleteBytes(String relPath) async {
+    final f = File(_abs(relPath));
+    if (f.existsSync()) await f.delete();
+  }
+
+  @override
+  Future<void> renameBytes(String from, String to) async {
+    final source = File(_abs(from));
+    final target = File(_abs(to));
+    target.parent.createSync(recursive: true);
+    if (source.existsSync()) {
+      await source.rename(target.path);
+    }
   }
 }
 

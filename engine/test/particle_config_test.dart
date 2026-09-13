@@ -22,7 +22,10 @@ void main() {
           expect(def.weight, greaterThan(0));
           expect(def.width, greaterThan(0));
           expect(def.height, greaterThan(0));
-          expect(def.assetPath, startsWith('packages/pet_engine/assets/particles/'));
+          expect(
+            def.assetPath,
+            startsWith('packages/pet_engine_v2/assets/particles/'),
+          );
         }
       }
     });
@@ -50,11 +53,11 @@ void main() {
     test('scales density and clamps to the caps', () {
       final base = ParticlePresets.streetRain;
       expect(base.withIntensity(0).maxPerCell, 0);
-      expect(base.withIntensity(0.5).maxPerCell, (base.maxPerCell * 0.5).round());
       expect(
-        base.withIntensity(100).maxPerCell,
-        ParticleConfig.maxPerCellCap,
+        base.withIntensity(0.5).maxPerCell,
+        (base.maxPerCell * 0.5).round(),
       );
+      expect(base.withIntensity(100).maxPerCell, ParticleConfig.maxPerCellCap);
     });
 
     test('keeps the other fields untouched', () {
@@ -69,10 +72,7 @@ void main() {
     });
 
     test('maxSpriteHeight is the tallest sprite', () {
-      expect(
-        ParticlePresets.passSnow.maxSpriteHeight,
-        closeTo(0.10, 1e-12),
-      );
+      expect(ParticlePresets.passSnow.maxSpriteHeight, closeTo(0.10, 1e-12));
     });
   });
 

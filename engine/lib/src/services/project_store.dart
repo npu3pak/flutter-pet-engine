@@ -4,42 +4,17 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../models/model_scene.dart';
+import '../models/project_meta.dart';
 import '../models/scene_loader.dart';
 import 'app_log.dart';
 
-const projectFormatV1 = 'project_v1';
+export '../models/project_meta.dart' show ResourceMeta;
 
 /// Errors reported per-file during a project load.
 class LoadError {
   final String fileName;
   final String message;
   LoadError(this.fileName, this.message);
-}
-
-/// A resource entry in the project index (`project.json` → `resources[]`).
-class ResourceMeta {
-  String id; // file name without extension
-  String family; // 'texture' | 'sprite'
-  double tolerance; // last-used background removal tolerance (0..100)
-
-  ResourceMeta({
-    required this.id,
-    required this.family,
-    this.tolerance = 30,
-  });
-
-  Map<String, Object> toJson() =>
-      {'id': id, 'family': family, 'tolerance': tolerance};
-
-  factory ResourceMeta.fromJson(Object? json) {
-    final m = (json as Map?) ?? {};
-    final tol = m['tolerance'];
-    return ResourceMeta(
-      id: (m['id'] as String?) ?? '',
-      family: (m['family'] as String?) ?? 'texture',
-      tolerance: tol is num ? tol.toDouble() : 30,
-    );
-  }
 }
 
 class ProjectStore {

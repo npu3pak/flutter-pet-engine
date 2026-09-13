@@ -115,6 +115,10 @@ class GameResourceManager {
   /// The `3d_models/` entry by catalog name, or null (deleted/unknown).
   Model3dEntry? gltfEntry(String name) => _gltfCatalog[name];
 
+  /// Every `3d_models/` entry, sorted by name (the editor's catalog panel).
+  List<Model3dEntry> get gltfEntries =>
+      _gltfCatalog.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+
   /// Writes [model] back to `models/<id>.json` (read-only sources throw).
   Future<void> saveModel(ModelData model) async {
     final json = const JsonEncoder.withIndent('  ').convert(model.toJson());

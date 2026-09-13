@@ -28,6 +28,18 @@ vm.Matrix4 objectRotation(ModelObject obj, {double extraY = 0}) {
   return vm.Matrix4.rotationZ(rz) * vm.Matrix4.rotationX(rx) * vm.Matrix4.rotationY(ry);
 }
 
+/// The screen-parallel billboard rotation: the −X mirror (so the texture is
+/// not reflected) followed by the yaw around Y. The sacred convention from
+/// `docs/conventions.md`; the renderer, the pick geometry and the editor
+/// outline all share it.
+vm.Matrix4 spriteBillboardRotation(double yaw) =>
+    vm.Matrix4.diagonal3Values(-1, 1, 1) * vm.Matrix4.rotationY(yaw);
+
+/// The full billboard transform of a document sprite: [spriteBillboardRotation]
+/// about the anchor.
+vm.Matrix4 spriteBillboardMatrix(vm.Vector3 anchor, double yaw) =>
+    vm.Matrix4.translation(anchor) * spriteBillboardRotation(yaw);
+
 /// The effective face side for a part: face override first, then the object
 /// material, defaulting to 'outer'. Applies to every face key, including
 /// the cylinder side and the sprite ('side'/'*').
@@ -107,6 +119,30 @@ ModelObject modelRefCubeProxy(ModelObject ref) {
     z: (l - 1) / 2,
     dims: {'w': w, 'h': h, 'd': l},
     material: ModelMaterial(type: MaterialType.color, color: const [255, 0, 255]),
+  );
+}
+
+/// The world-frame footprint box of a model instance's source content: a
+/// cuboid CENTERED on the instance anchor with the cached source grid
+/// dimensions. This is where the referenced model's standalone content
+/// actually lands (anchored by [sourceAnchor]), so picking, wireframe edges
+/// and the missing-source placeholder all agree with the render.
+///
+/// [modelRefCubeProxy] stays the authoring-cell variant (its cells are
+/// offset to the source grid centre) used by [unionAabbResolved] and the
+/// legacy nested-missing branch.
+ModelObject modelRefFootprintBox(ModelObject ref) {
+  final w = (ref.refSize?.w ?? 1).toDouble();
+  final l = (ref.refSize?.l ?? 1).toDouble();
+  final h = (ref.refSize?.h ?? 1).toDouble();
+  return ModelObject(
+    id: ref.id,
+    name: ref.name,
+    kind: 'cuboid',
+    x: 0,
+    y: 0,
+    z: 0,
+    dims: {'w': w, 'h': h, 'd': l},
   );
 }
 
@@ -574,6 +610,11 @@ class ModelRenderer {
   /// keyed — nested parts share node names and would collide in a name map.
   final Map<Node, String> elementOfNode = {};
 
+  /// The local part offset applied after the object's base transform
+  /// (solid primitives with per-face parts); used by
+  /// [updateObjectTransforms] to refresh a moved object without rebuilding.
+  final Map<Node, vm.Matrix4> _nodePartOffset = {};
+
   /// Whole-object wrapper nodes of attached gltf instances, by object id
   /// (kind 'gltf'). A gltf instance is the only object kind whose content
   /// mounts under ONE node — games move/rotate it live without a rebuild
@@ -602,6 +643,7 @@ class ModelRenderer {
     instanceBillboards.clear();
     elementNodes.clear();
     elementOfNode.clear();
+    _nodePartOffset.clear();
     gltfWrappers.clear();
     _pendingCounts.clear();
     _mergeCandidates.clear();
@@ -630,6 +672,35 @@ class ModelRenderer {
   }
 
   // ── objects ──────────────────────────────────────────────────────────
+
+  /// Refreshes the local transforms of the already-built nodes of [model]'s
+  /// solid objects (cuboid, trapezoid, cylinder, plane) without touching
+  /// their geometry — the fast path for move/rotate drags. Content whose
+  /// vertices bake the placement (csg, rounded cuboids, model/gltf
+  /// instances, sprites) is left to a full [rebuild]; returns true when at
+  /// least one node was refreshed.
+  bool updateObjectTransforms(ModelData model) {
+    _model = model;
+    var updated = false;
+    for (final entry in elementNodes.entries) {
+      final obj = model.objectById(entry.key);
+      if (obj == null) continue;
+      if (obj.isCsg ||
+          obj.isModelRef ||
+          obj.isGltfRef ||
+          obj.kind == 'sprite' ||
+          (obj.kind == 'cuboid' && isRoundedCuboid(obj))) {
+        continue;
+      }
+      final base = _objTransform(obj);
+      for (final node in entry.value) {
+        final offset = _nodePartOffset[node];
+        node.localTransform = offset == null ? base : base * offset;
+        updated = true;
+      }
+    }
+    return updated;
+  }
 
   void _buildObjects(ModelData model) {
     // Hidden csg operands render through their result nodes only.
@@ -713,7 +784,9 @@ class ModelRenderer {
     final target = _resolveModel(ref.refModelId);
     final chain = _modelRefWorld(model, ref);
     if (target == null) {
-      _emitInstanceObject(ref.id, modelRefCubeProxy(ref), chain);
+      // The placeholder covers exactly where the source content would land:
+      // centered on the instance anchor.
+      _emitInstanceObject(ref.id, modelRefFootprintBox(ref), chain);
       return;
     }
     _buildNestedScene(
@@ -764,12 +837,18 @@ class ModelRenderer {
       if (obj.isModelRef) {
         final inner = _resolveModel(obj.refModelId);
         if (inner == null) {
-          // Legacy corner (kept unchanged): a missing inner source renders
-          // its fuchsia cube under the raw cell chain — deep-nesting
-          // semantics are out of scope until instance-in-instance gets a
-          // dedicated pass.
+          // A missing inner source renders its fuchsia footprint cube where
+          // the nested content would land (the source-frame anchor).
           _emitInstanceObject(
-              ownerId, modelRefCubeProxy(obj), localToWorld * instanceTransformOf(obj));
+            ownerId,
+            modelRefFootprintBox(obj),
+            localToWorld *
+                vm.Matrix4.translation(
+                  sourceAnchor(src.size.w, src.size.l, obj),
+                ) *
+                objectRotation(obj) *
+                vm.Matrix4.diagonal3Values(obj.scale, obj.scale, obj.scale),
+          );
         } else if (guard.add(inner.id)) {
           final chain = localToWorld *
               vm.Matrix4.translation(sourceAnchor(src.size.w, src.size.l, obj)) *
@@ -1206,6 +1285,9 @@ class ModelRenderer {
         mesh: Mesh(part.geometry, material),
         localTransform: transform,
       )..shadowStatic = obj.kind != 'sprite';
+      if (part.offset != null) {
+        _nodePartOffset[node] = vm.Matrix4.translation(part.offset!);
+      }
       root.add(node);
       nodeObjectId[name] = obj.id;
       nodeFaceKey[name] = part.faceKey;
@@ -1372,15 +1454,12 @@ class ModelRenderer {
       final node = allNodes[entry.key];
       if (node == null) continue;
       final anchor = _anchorWorld(obj);
-      node.localTransform = vm.Matrix4.translation(anchor) *
-          vm.Matrix4.diagonal3Values(-1, 1, 1) *
-          vm.Matrix4.rotationY(yaw);
+      node.localTransform = spriteBillboardMatrix(anchor, yaw);
     }
     // Sprites inside model instances: the same billboard orientation applied
     // after their instance chain (the chain never carries the mirror — the
     // instance content keeps its own local frame).
-    final mirrorYaw = vm.Matrix4.diagonal3Values(-1, 1, 1) *
-        vm.Matrix4.rotationY(yaw);
+    final mirrorYaw = spriteBillboardRotation(yaw);
     for (final (node, chain) in instanceBillboards) {
       node.localTransform = chain * mirrorYaw;
     }
@@ -1755,7 +1834,17 @@ class ModelRenderer {
   /// that tags parts with different material recipes (wall directions, skin)
   /// gets one material instance per tag, so a post-bake material hook can
   /// customize each variant independently. Untagged objects share as before.
+  /// Runtime material overrides: `'<objId>:<faceKey>'` for one face or
+  /// `'<objId>:*'` for the whole object. Consulted before the document
+  /// material, so games/editors can repaint live nodes without touching the
+  /// saved document. Cleared by the owner when a rebuild should forget them.
+  final Map<String, Material> materialOverrides = {};
+
+  /// Resolves the material of one face (or the whole object).
   Material? resolveMaterial(ModelObject obj, String faceKey) {
+    final override = materialOverrides['${obj.id}:$faceKey'] ??
+        materialOverrides['${obj.id}:*'];
+    if (override != null) return override;
     // The per-face material overrides the object material for EVERY face
     // key — including the cylinder side ('side') and the sprite ('*').
     ModelMaterial? spec = obj.faces[faceKey] ?? obj.material;

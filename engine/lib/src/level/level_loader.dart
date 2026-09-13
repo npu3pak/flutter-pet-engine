@@ -2,38 +2,10 @@ import '../engine/game_resource_manager.dart';
 import 'construction_model.dart';
 import 'level_baker.dart';
 import 'level_resources.dart';
-
-/// Stages of the level loader (подшаг 5.3): project → models → resources →
-/// geometry → bake. Progress within a stage may pause — that is allowed.
-enum LevelLoadStage { project, models, resources, geometry, bake }
-
-extension LevelLoadStageLabel on LevelLoadStage {
-  /// Human-readable stage name for the loading UI.
-  String get label => switch (this) {
-        LevelLoadStage.project => 'Проект',
-        LevelLoadStage.models => 'Модели',
-        LevelLoadStage.resources => 'Ресурсы',
-        LevelLoadStage.geometry => 'Геометрия',
-        LevelLoadStage.bake => 'Запекание',
-      };
-}
+import 'load_status.dart';
 
 /// Kind of a [LevelLoadEvent].
 enum LevelLoadEventKind { started, progress, finished }
-
-/// One thing that could not be loaded: the file or key and the reason.
-class LevelLoadError {
-  const LevelLoadError(this.resource, this.reason);
-
-  /// File path or resource key (e.g. `textures/wall.png`, `models/house.json`).
-  final String resource;
-
-  /// Why it could not be loaded.
-  final String reason;
-
-  @override
-  String toString() => '$resource: $reason';
-}
 
 /// Outcome of a level load: the baked level (null when building failed
 /// catastrophically), the error list and the elapsed time. A non-empty error
@@ -46,23 +18,23 @@ class LevelLoadResult {
   });
 
   final LevelBakeResult? baked;
-  final List<LevelLoadError> errors;
+  final List<SceneLoadError> errors;
   final Duration elapsed;
 
   bool get hasErrors => errors.isNotEmpty;
 }
 
-/// A loader event: started / progress (stage, fraction, label) / finished.
+/// A loader event: started / progress (phase, fraction, label) / finished.
 class LevelLoadEvent {
   const LevelLoadEvent._(
-      this.kind, this.stage, this.fraction, this.label, this.result);
+      this.kind, this.phase, this.fraction, this.label, this.result);
 
   const LevelLoadEvent.started()
       : this._(LevelLoadEventKind.started, null, 0, '', null);
 
   const LevelLoadEvent.progress(
-      LevelLoadStage stage, double fraction, String label)
-      : this._(LevelLoadEventKind.progress, stage, fraction, label, null);
+      SceneLoadPhase phase, double fraction, String label)
+      : this._(LevelLoadEventKind.progress, phase, fraction, label, null);
 
   const LevelLoadEvent.finished(LevelLoadResult result)
       : this._(LevelLoadEventKind.finished, null, 1, '', result);
@@ -70,7 +42,7 @@ class LevelLoadEvent {
   final LevelLoadEventKind kind;
 
   /// Set for [LevelLoadEventKind.progress].
-  final LevelLoadStage? stage;
+  final SceneLoadPhase? phase;
 
   /// Stage-local progress, 0..1.
   final double fraction;
@@ -121,10 +93,10 @@ class LevelLoader {
   /// GPU-free fake). Null — the loader creates its own over the resources.
   final LevelBaker? baker;
 
-  /// Material recipe hook forwarded to the baker ([BakedMaterialHook]): the
+  /// Material recipe hook forwarded to the baker ([LevelMaterialHook]): the
   /// game applies its wet look/tinting to every unique material after the
   /// geometry pass.
-  final BakedMaterialHook? onMaterial;
+  final LevelMaterialHook? onMaterial;
 
   /// When true, the loader opens the project and re-reads the models itself
   /// (the game creates a fresh [GameResourceManager] per level). When false,
@@ -145,38 +117,39 @@ class LevelLoader {
   /// failure finishes with `baked == null` and the reason in the error list.
   Future<LevelLoadResult> load() async {
     final sw = Stopwatch()..start();
-    final errors = <LevelLoadError>[];
+    final errors = <SceneLoadError>[];
     _emit(const LevelLoadEvent.started());
 
     try {
       // ── 1. проект ─────────────────────────────────────────────────────
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.project, 0, 'Проект'));
+          SceneLoadPhase.project, 0, 'Проект'));
       if (openProject) await resources.openProject();
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.project, 1, 'Проект'));
+          SceneLoadPhase.project, 1, 'Проект'));
 
       // ── 2. модели ─────────────────────────────────────────────────────
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.models, 0, 'Модели'));
+          SceneLoadPhase.models, 0, 'Модели'));
       if (openProject) await resources.openModels();
       for (final line in resources.loadErrors) {
         final sep = line.indexOf(': ');
         if (sep > 0) {
-          errors.add(LevelLoadError(line.substring(0, sep),
-              line.substring(sep + 2)));
+          errors.add(SceneLoadError(
+              resource: line.substring(0, sep), reason: line.substring(sep + 2)));
         } else {
-          errors.add(LevelLoadError('models', line));
+          errors.add(SceneLoadError(resource: 'models', reason: line));
         }
       }
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.models, 1, 'Модели'));
+          SceneLoadPhase.models, 1, 'Модели'));
 
       // ── 3. ресурсы ────────────────────────────────────────────────────
       final closure =
           collectModelResources(model.data, modelCatalog: resources.model);
       for (final id in closure.missingModelIds) {
-        errors.add(LevelLoadError('models/$id.json', 'модель не найдена'));
+        errors.add(SceneLoadError(
+            resource: 'models/$id.json', reason: 'модель не найдена'));
       }
       final textureKeys = <String>{...closure.textureKeys};
       final spriteKeys = <String>{...closure.spriteKeys};
@@ -189,40 +162,45 @@ class LevelLoader {
       void step(String label) {
         done++;
         _emit(LevelLoadEvent.progress(
-            LevelLoadStage.resources, total == 0 ? 1 : done / total, label));
+            SceneLoadPhase.resources, total == 0 ? 1 : done / total, label));
       }
 
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.resources, 0, 'Ресурсы'));
+          SceneLoadPhase.resources, 0, 'Ресурсы'));
       for (final key in textureKeys) {
         final tex = await resources.textures.texture(key);
         if (tex == null) {
-          errors.add(LevelLoadError(
-              'textures/$key', 'не найдено или не удалось декодировать'));
+          errors.add(SceneLoadError(
+              resource: 'textures/$key',
+              reason: 'не найдено или не удалось декодировать'));
         }
         step('textures/$key');
       }
       for (final key in spriteKeys) {
         final tex = await resources.textures.sprite(key);
         if (tex == null) {
-          errors.add(LevelLoadError(
-              'sprites/$key', 'не найдено или не удалось декодировать'));
+          errors.add(SceneLoadError(
+              resource: 'sprites/$key',
+              reason: 'не найдено или не удалось декодировать'));
         }
         step('sprites/$key');
       }
       for (final name in gltfNames) {
         final entry = resources.gltfEntry(name);
         if (entry == null) {
-          errors.add(
-              LevelLoadError('3d_models/$name', 'модель не найдена в каталоге'));
+          errors.add(SceneLoadError(
+              resource: '3d_models/$name',
+              reason: 'модель не найдена в каталоге'));
         } else {
           try {
             await resources.gltfAssets.load(entry);
             if (resources.gltfAssets.failed(name)) {
-              errors.add(LevelLoadError('3d_models/$name', 'ошибка импорта'));
+              errors.add(SceneLoadError(
+                  resource: '3d_models/$name', reason: 'ошибка импорта'));
             }
           } catch (e) {
-            errors.add(LevelLoadError('3d_models/$name', '$e'));
+            errors.add(
+                SceneLoadError(resource: '3d_models/$name', reason: '$e'));
           }
         }
         step('3d_models/$name');
@@ -231,16 +209,16 @@ class LevelLoader {
         try {
           await resource.load();
         } catch (e) {
-          errors.add(LevelLoadError(resource.label, '$e'));
+          errors.add(SceneLoadError(resource: resource.label, reason: '$e'));
         }
         step(resource.label);
       }
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.resources, 1, 'Ресурсы'));
+          SceneLoadPhase.resources, 1, 'Ресурсы'));
 
       // ── 4–5. геометрия и запекание ────────────────────────────────────
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.geometry, 0, 'Геометрия'));
+          SceneLoadPhase.geometry, 0, 'Геометрия'));
       final baker = this.baker ??
           LevelBaker(
             resources.textures,
@@ -257,19 +235,19 @@ class LevelLoader {
         onGeometryBuilt: () {
           geometryReported = true;
           _emit(const LevelLoadEvent.progress(
-              LevelLoadStage.geometry, 1, 'Геометрия'));
+              SceneLoadPhase.geometry, 1, 'Геометрия'));
           _emit(const LevelLoadEvent.progress(
-              LevelLoadStage.bake, 0, 'Запекание'));
+              SceneLoadPhase.bake, 0, 'Запекание'));
         },
       );
       if (!geometryReported) {
         _emit(const LevelLoadEvent.progress(
-            LevelLoadStage.geometry, 1, 'Геометрия'));
+            SceneLoadPhase.geometry, 1, 'Геометрия'));
         _emit(const LevelLoadEvent.progress(
-            LevelLoadStage.bake, 0, 'Запекание'));
+            SceneLoadPhase.bake, 0, 'Запекание'));
       }
       _emit(const LevelLoadEvent.progress(
-          LevelLoadStage.bake, 1, 'Запекание'));
+          SceneLoadPhase.bake, 1, 'Запекание'));
 
       sw.stop();
       final result = LevelLoadResult(
@@ -284,7 +262,7 @@ class LevelLoader {
       final result = LevelLoadResult(
         baked: null,
         errors: List.unmodifiable(
-            [...errors, LevelLoadError('уровень', '$e')]),
+            [...errors, SceneLoadError(resource: 'уровень', reason: '$e')]),
         elapsed: sw.elapsed,
       );
       _emit(LevelLoadEvent.finished(result));

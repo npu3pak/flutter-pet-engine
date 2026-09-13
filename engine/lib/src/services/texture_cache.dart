@@ -26,6 +26,10 @@ class TextureCache {
   /// for the async ready callback a baked level would keep gray.
   final Set<String> _missing = {};
 
+  /// Decoded pixel sizes of successfully loaded textures/sprites, keyed by
+  /// `'t:<name>'`/`'s:<name>'` (the editor's resource panels read them).
+  final Map<String, (int, int)> _sizes = {};
+
   String? _dir;
 
   /// [texturesDir] and [spritesDir] — absolute paths; empty string means
@@ -50,6 +54,7 @@ class TextureCache {
     _futures.clear();
     _ready.clear();
     _missing.clear();
+    _sizes.clear();
   }
 
   /// Drops every cached texture — call after importing/renaming/deleting a
@@ -58,6 +63,7 @@ class TextureCache {
     _futures.clear();
     _ready.clear();
     _missing.clear();
+    _sizes.clear();
   }
 
   /// Loads a texture by file name from [texturesDir].
@@ -79,6 +85,12 @@ class TextureCache {
 
   /// Whether the sprite already settled as missing — synchronous.
   bool isSpriteMissing(String key) => _missing.contains('s:$key');
+
+  /// Decoded pixel size of a loaded texture, or null (unknown/not loaded).
+  (int, int)? textureSize(String key) => _sizes['t:$key'];
+
+  /// Decoded pixel size of a loaded sprite, or null (unknown/not loaded).
+  (int, int)? spriteSize(String key) => _sizes['s:$key'];
 
   /// Marks a texture as ready before the first build (the level loader marks
   /// decoded textures so no frame ever shows the gray placeholder).
@@ -136,9 +148,11 @@ class TextureCache {
       final frame = await codec.getNextFrame();
       final decodeMs = sw.elapsedMilliseconds;
       final image = frame.image;
+      final size = (image.width, image.height);
       final tex = await Texture2D.fromImage(image, sampling: pixelatedSampler);
       image.dispose();
       _ready['$family:$key'] = tex;
+      _sizes['$family:$key'] = size;
       _missing.remove('$family:$key');
       logStage(
         'textures',
