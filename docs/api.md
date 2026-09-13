@@ -148,8 +148,13 @@ class SceneController extends ChangeNotifier {
   void unloadModel();
   void reloadResources();                        // сброс кэшей текстур/glTF
   void rebuild();                                // пересборка контента, ++revision
-  void refreshObjectTransforms();                // быстрый путь драга: только трансформы
-                                                 // солидных объектов, без пересборки геометрии
+  void refreshObjectTransforms({Map<String, Vector3>? translated});
+                                                 // быстрый путь драга: солидные
+                                                 // объекты пересчитываются, узлы
+                                                 // элементов из translated
+                                                 // сдвигаются на мировой шаг без
+                                                 // пересборки (вставки, CSG, glTF,
+                                                 // скругления, спрайты)
   SceneLoadStatus get status;
   SceneResources? get resources;
   ProjectStore get project;                      // модели проекта (создание и т.п.)
@@ -157,6 +162,7 @@ class SceneController extends ChangeNotifier {
   ModelData? get model;
   String? get modelId;
   int get revision;                              // растёт при каждой пересборке
+  int get rebuildCount;                          // число полных пересборок (диагностика)
   bool get mergeStatic;
 
   // ── документ ────────────────────────────────────────────────────────

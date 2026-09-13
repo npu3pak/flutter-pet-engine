@@ -9,6 +9,7 @@ import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'src/app_info.dart';
 import 'src/deeplink.dart';
 import 'src/paths.dart';
+import 'src/perf_drag.dart';
 import 'src/scene/editor_scene.dart' show EditorMode;
 import 'src/screenshot_saver.dart';
 import 'src/state/app_state.dart';
@@ -78,6 +79,9 @@ class SceneEditorAppState extends State<SceneEditorApp> {
     _deeplink = DeeplinkController(onLog: _logDeeplink)
       ..onCommand = _handleDeeplink;
     _deeplink.start();
+    if (kPerfDragEnabled) {
+      unawaited(runDragPerf(app));
+    }
   }
 
   @override

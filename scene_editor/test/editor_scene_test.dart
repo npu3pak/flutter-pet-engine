@@ -1033,6 +1033,62 @@ void main() {
       editor.dispose();
       controller.dispose();
     });
+
+    testWidgets('moving a model instance does not rebuild the scene', (
+      tester,
+    ) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model();
+      final inst = ModelObject(
+        id: 'inst',
+        name: 'inst',
+        kind: modelRefKind,
+        x: 1,
+        y: 0,
+        z: 2,
+        refModelId: 'src',
+        refSize: ModelSize(w: 2, l: 2, h: 2),
+      );
+      model.objects.add(inst);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0.5, 5, 0.5);
+      editor.yaw = math.pi;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setSelection(inst.id);
+      editor.rebuildOverlays();
+      editor.moveGizmo.applyScreenScale(1.0);
+      final anchor = editor.groupAnchor(model);
+      final handle = controller.worldToScreen(
+        anchor + gizmoAxisDirection(GizmoAxis.x),
+      )!;
+
+      final startX = inst.x;
+      final rebuildsBefore = controller.rebuildCount;
+      editor.gizmoSnap = 0;
+      expect(controller.beginGizmoDrag(handle), isNotNull);
+      editor.beginGizmoDrag();
+      controller.updateGizmoDrag(handle + const Offset(40, 0));
+      controller.endGizmoDrag();
+      editor.endGizmoDrag();
+
+      expect(inst.x, greaterThan(startX), reason: 'вставка должна сдвинуться');
+      expect(
+        controller.rebuildCount,
+        rebuildsBefore,
+        reason: 'перенос вставки идёт трансформами, без пересборки сцены',
+      );
+
+      // Полная пересборка (например, конец драга в AppState) счётчик растит.
+      controller.rebuild();
+      expect(controller.rebuildCount, rebuildsBefore + 1);
+
+      editor.dispose();
+      controller.dispose();
+    });
   });
 
   group('picking (headless raycast)', () {

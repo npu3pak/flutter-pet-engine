@@ -214,25 +214,39 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
     if (model != null && renderer != null) {
       renderer.rebuild(model);
     }
+    _rebuildCount++;
     _syncDocumentNodes();
     _refreshWireframes();
     _revision++;
     notifyListeners();
   }
 
+  int _rebuildCount = 0;
+
+  /// The number of full scene rebuilds since creation. Diagnostics for perf
+  /// work: a translation-only drag must not grow it (see
+  /// [refreshObjectTransforms]).
+  int get rebuildCount => _rebuildCount;
+
   /// Refreshes the render transforms of the document's solid objects without
   /// rebuilding their geometry — the fast path for move/rotate drags. Baked
   /// content (csg, rounded cuboids, model/gltf instances, sprites) keeps its
   /// old placement until the next [rebuild]; callers that may drag such
   /// objects should call [rebuild] instead. Bumps [revision].
-  void refreshObjectTransforms() {
+  ///
+  /// [translated] maps element ids to a WORLD translation applied since the
+  /// previous call (one drag step): the nodes of those elements move by the
+  /// translation without any geometry/CSG/material work, so baked content
+  /// (model instances, CSG results, gltf wrappers, sprites) can be dragged
+  /// live. The caller passes the actual snapped step per element.
+  void refreshObjectTransforms({Map<String, vm.Vector3>? translated}) {
     final model = _model;
     final renderer = _renderer;
     if (model == null || renderer == null) return;
-    renderer.updateObjectTransforms(model);
+    renderer.updateObjectTransforms(model, translated: translated);
     // Wireframes are built in world space: they must follow the moved
-    // objects too.
-    _refreshWireframes();
+    // objects too. Only the moved elements are refreshed.
+    _refreshWireframes(only: translated?.keys);
     _revision++;
     notifyListeners();
   }
@@ -356,7 +370,20 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   bool _isWireframeNode(SceneNode node) =>
       node.id.startsWith(_wireframeNodePrefix);
 
-  void _refreshWireframes() {
+  /// Refreshes the wireframe overlays. With [only] only those element ids are
+  /// refreshed (the moved ones during a drag) — the full pass over every node
+  /// stays for rebuilds. Pruning of stale ids always runs (cheap: an empty map
+  /// in the common case).
+  void _refreshWireframes({Iterable<String>? only}) {
+    if (only != null) {
+      for (final id in only) {
+        final node = byId(id);
+        if (node == null || _isWireframeNode(node)) continue;
+        _refreshNodeWireframe(node);
+      }
+      _pruneWireframeRoot();
+      return;
+    }
     // Document `ModelNode`s are virtual (no host), so their disposal never
     // reaches `_dropNodeWireframe`; prune every tracked id that is not part
     // of the current scene here — otherwise wireframes of objects from
@@ -467,9 +494,12 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
 
   /// The gizmo handle under [screenPoint], or null. Gizmos take priority
   /// over every scene object: the test is screen-space and depth-independent,
-  /// so an object in front of the gizmo never steals the tap.
+  /// so an object in front of the gizmo never steals the tap. Hidden gizmos
+  /// never take the hit (the editor keeps the rotate gizmo mounted but
+  /// invisible in the translate mode).
   GizmoHit? hitGizmo(Offset screenPoint) {
     for (final gizmo in _gizmos.reversed) {
+      if (!gizmo.visible) continue;
       final hit = gizmo.hitTest(screenPoint);
       if (hit != null) return hit;
     }
@@ -694,14 +724,24 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
 
   final List<LightNode> _documentLights = [];
 
+  /// The signature of the lighting config applied last (see [applyLighting]).
+  String? _appliedLightingSignature;
+
   /// Builds the scene light from the document's `ModelLighting`: the authored
   /// sources, or the default engine rig (key sun + camera lamp) when the
   /// document has none. Replaces the light built by a previous call; lights
-  /// added by the application are not touched.
+  /// added by the application are not touched. Idempotent: a call with the
+  /// same document config while the lights are built is a no-op (the editor
+  /// calls it on every scene revision).
   void applyLighting() {
     final model = _model;
     if (model == null) return;
+    final signature = model.lighting.toJson().toString();
+    if (signature == _appliedLightingSignature && _documentLights.isNotEmpty) {
+      return;
+    }
     clearLighting();
+    _appliedLightingSignature = signature;
     final cfg = model.lighting;
     if (!cfg.isDefault) {
       _environmentIntensity = cfg.ambient;
@@ -722,6 +762,7 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
 
   /// Removes the light built by [applyLighting].
   void clearLighting() {
+    _appliedLightingSignature = null;
     if (_documentLights.isEmpty) return;
     final lights = List.of(_documentLights);
     _documentLights.clear();
@@ -985,12 +1026,16 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   }
 
   /// Toggles shadows through [QualitySettings] (the document is not touched).
-  void setShadows(bool enabled) =>
-      applySettings(_settings.copyWith(shadows: enabled));
+  void setShadows(bool enabled) {
+    if (_settings.shadows == enabled) return;
+    applySettings(_settings.copyWith(shadows: enabled));
+  }
 
   /// Toggles SSAO through [QualitySettings].
-  void setSsao(bool enabled) =>
-      applySettings(_settings.copyWith(ssao: enabled));
+  void setSsao(bool enabled) {
+    if (_settings.ssao == enabled) return;
+    applySettings(_settings.copyWith(ssao: enabled));
+  }
 
   /// Sets the number of shadow cascades.
   void setShadowCascades(int count) =>
@@ -1012,6 +1057,7 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
 
   /// Sets the environment (IBL) intensity.
   void setEnvironmentIntensity(double value) {
+    if (_environmentIntensity == value) return;
     _environmentIntensity = value;
     _applySettingsToScene();
     notifyListeners();

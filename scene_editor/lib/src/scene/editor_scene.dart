@@ -868,7 +868,7 @@ class EditorScene {
       case 'light':
         _moveLight(model, delta);
       default:
-        _moveObjects(model, delta);
+        _moveObjects(model, world);
     }
   }
 
@@ -885,15 +885,39 @@ class EditorScene {
     _rotateObjects(model, event.axis, deg);
   }
 
-  void _moveObjects(ModelData model, vm.Vector3 delta) {
+  /// Moves the selected objects by the gizmo's world translation. The
+  /// document is snapped, then the render nodes are shifted by the ACTUAL
+  /// snapped step: solids recompute, baked content (model/gltf instances,
+  /// CSG results, rounded cuboids, sprites) gets the translation prepended
+  /// without a scene rebuild — dragging furniture no longer rebuilds the
+  /// whole model every pointer move.
+  void _moveObjects(ModelData model, vm.Vector3 world) {
+    final delta = _modelDelta(world);
+    final translated = <String, vm.Vector3>{};
     for (final o in model.moveExpansion(selectedIds)) {
       final start = _gizmoStartPositions[o.id];
       if (start == null) continue;
+      final prev = vm.Vector3(o.x, o.y, o.z);
       o.x = _snapV(start.x + delta.x);
       o.y = _snapV(start.y + delta.y).clamp(0.0, 64.0);
       o.z = _snapV(start.z + delta.z);
+      final step = vm.Vector3(o.x - prev.x, o.y - prev.y, o.z - prev.z);
+      if (step.length2 > 1e-18) {
+        // World +X = model −x.
+        translated[o.id] = vm.Vector3(-step.x, step.y, step.z);
+      }
     }
-    _refreshAfterTransform();
+    // A csg result's nodes are registered under the operation id while the
+    // document moves its operands: shift the result by the first leaf's step.
+    for (final id in selectedIds) {
+      if (translated.containsKey(id)) continue;
+      final leaves = model.csgLeavesOf(id);
+      if (leaves.isEmpty) continue;
+      final step = translated[leaves.first.id];
+      if (step != null) translated[id] = step;
+    }
+    controller.refreshObjectTransforms(translated: translated);
+    rebuildOverlays();
   }
 
   void _rotateObjects(ModelData model, GizmoAxis axis, double deg) {

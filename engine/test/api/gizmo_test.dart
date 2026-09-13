@@ -139,6 +139,34 @@ void main() {
       controller.dispose();
     });
 
+    test('hidden gizmos never take the hit', () {
+      final controller = SceneController();
+      controller.setViewport(const Size(400, 300), 1);
+      final anchor = vm.Vector3(0, 0, 10);
+      // Скрытый гизмо вращения стоит первым в порядке обхода (reversed) и
+      // раньше перехватывал клик по видимой оси переноса.
+      final rotate = controller.addGizmo(
+        GizmoNode(mode: GizmoMode.rotate, anchor: anchor),
+      );
+      final move = controller.addGizmo(
+        GizmoNode(mode: GizmoMode.translate, anchor: anchor),
+      );
+      rotate.visible = false;
+      rotate.applyScreenScale(2.0);
+      move.applyScreenScale(2.0);
+
+      final center = controller.worldToScreen(anchor)!;
+      final xEnd = controller.worldToScreen(anchor + vm.Vector3(2, 0, 0))!;
+      final grab = Offset.lerp(center, xEnd, 0.6)!;
+      final hit = controller.hitGizmo(grab);
+      expect(hit, isNotNull);
+      expect(hit!.gizmo, same(move));
+
+      rotate.visible = true;
+      expect(controller.hitGizmo(grab), isNotNull);
+      controller.dispose();
+    });
+
     test('a target node follows a translate drag', () {
       final controller = SceneController();
       controller.setViewport(const Size(400, 300), 1);

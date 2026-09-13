@@ -679,12 +679,42 @@ class ModelRenderer {
   /// vertices bake the placement (csg, rounded cuboids, model/gltf
   /// instances, sprites) is left to a full [rebuild]; returns true when at
   /// least one node was refreshed.
-  bool updateObjectTransforms(ModelData model) {
+  ///
+  /// [translated] maps element ids to a WORLD translation applied since the
+  /// previous call (one drag step). Every node of those elements gets the
+  /// translation prepended to its current local transform — no geometry,
+  /// CSG, material or instance-chain work. This is the fast path for moving
+  /// baked content: model instances, CSG results, rounded cuboids and gltf
+  /// wrappers. The caller passes the actual (snapped) step per element, so
+  /// snapping stays consistent with the document.
+  bool updateObjectTransforms(
+    ModelData model, {
+    Map<String, vm.Vector3>? translated,
+  }) {
     _model = model;
     var updated = false;
     for (final entry in elementNodes.entries) {
       final obj = model.objectById(entry.key);
       if (obj == null) continue;
+      final delta = translated?[entry.key];
+      if (delta != null && delta.length2 > 1e-18) {
+        final step = vm.Matrix4.translation(delta);
+        for (final node in entry.value) {
+          node.localTransform = step * node.localTransform;
+          updated = true;
+        }
+        // Billboard sprites nested in an instance re-orient every frame from
+        // a chain snapshotted at build: shift the chain too, otherwise the
+        // per-frame reorient would snap them back to the old placement.
+        if (instanceBillboards.isNotEmpty) {
+          for (var i = 0; i < instanceBillboards.length; i++) {
+            final (node, chain) = instanceBillboards[i];
+            if (elementOfNode[node] != entry.key) continue;
+            instanceBillboards[i] = (node, step * chain);
+          }
+        }
+        continue;
+      }
       if (obj.isCsg ||
           obj.isModelRef ||
           obj.isGltfRef ||

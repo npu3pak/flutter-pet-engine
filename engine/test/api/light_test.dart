@@ -133,6 +133,28 @@ void main() {
       controller.dispose();
     });
 
+    test('applyLighting is idempotent for the same document config', () {
+      final controller = SceneController();
+      controller.loadModelData(_model(lighting: ModelLighting(ambient: 0.5)));
+      controller.applyLighting();
+      final lights = controller.nodesOfType<LightNode>().toList();
+      expect(lights, isNotEmpty);
+
+      // The editor calls applyLighting on every scene revision; the same
+      // document config must not tear the light rig down and rebuild it.
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+      controller.applyLighting();
+      expect(controller.nodesOfType<LightNode>().toList(), lights);
+      expect(notifications, 0, reason: 'повторный вызов — no-op');
+
+      // A changed config applies again.
+      controller.model!.lighting.ambient = 0.9;
+      controller.applyLighting();
+      expect(controller.environmentIntensity, 0.9);
+      controller.dispose();
+    });
+
     test('clearLighting removes only the built light', () {
       final controller = SceneController();
       controller.loadModelData(
