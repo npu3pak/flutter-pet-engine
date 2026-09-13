@@ -133,5 +133,12 @@ Post-acceptance addition (branch `feature/camera-input-touch-fly`):
 consumer is the `mypet-game/pet_demo` migration (branch
 `feature/engine-v2`).
 
+Post-acceptance addition (branch `feature/sprite-field-yaw`):
+`SpriteFieldNode.screenParallelYaw` exposes the shared yaw of
+`SpriteFieldFacing.screenParallel` fields (the v1 `SpriteFieldLayer.update`
+capability) so math_quest's grass keeps its one-instanced-batch
+camera-facing; the consumer migration is the `math_quest` branch
+`feature/engine-v2` (September 13, 2026).
+
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).
