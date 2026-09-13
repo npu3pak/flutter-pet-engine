@@ -109,7 +109,9 @@ class SceneViewSpec {
 ```
 
 У ноды есть `layer` (битовая маска, по умолчанию `SceneLayer.base`).
-Без параметра `views` вьюпорт создаёт один вид со всеми слоями.
+Без параметра `views` вьюпорт создаёт главный вид, а служебные виды
+(`overlay`, `top`) добавляет сам, когда на этих слоях есть ноды: wireframe
+и гизмо рисуются поверх сцены без ручной настройки видов.
 
 Пример редактора:
 
@@ -137,6 +139,8 @@ class SceneController extends ChangeNotifier {
 
   // ── сессия и ресурсы ────────────────────────────────────────────────
   Future<void> open(ProjectSource source);       // проект, модели, каталоги
+  Future<bool> createProject(Directory directory, {required String name});
+                                                 // создать project_v1 и открыть
   Future<void> openProject();                    // повторно: project.json и каталоги
   Future<void> openModels();                     // повторно: models/*.json
   Future<bool> loadModel(String id);             // модель из каталога
@@ -144,6 +148,8 @@ class SceneController extends ChangeNotifier {
   void unloadModel();
   void reloadResources();                        // сброс кэшей текстур/glTF
   void rebuild();                                // пересборка контента, ++revision
+  void refreshObjectTransforms();                // быстрый путь драга: только трансформы
+                                                 // солидных объектов, без пересборки геометрии
   SceneLoadStatus get status;
   SceneResources? get resources;
   ProjectStore get project;                      // модели проекта (создание и т.п.)
@@ -228,6 +234,19 @@ class SceneController extends ChangeNotifier {
   // ── небо ────────────────────────────────────────────────────────────
   SkyboxNode? get skybox;                        // активное небо сцены
 
+  // ── wireframe ───────────────────────────────────────────────────────
+  WireframeStyle? get wireframeStyle;            // сцена целиком, null — выкл.
+  void setWireframe(WireframeStyle? style);      // см. §9.1
+
+  // ── гизмо и сетка ───────────────────────────────────────────────────
+  List<GizmoNode> get gizmos;
+  T addGizmo<T extends GizmoNode>(T gizmo);
+  void removeGizmo(GizmoNode gizmo);
+  GizmoHit? hitGizmo(Offset screenPoint);        // приоритет над сценой
+  GizmoHit? beginGizmoDrag(Offset screenPoint);  // null — ручки под курсором нет
+  void updateGizmoDrag(Offset screenPoint);
+  void endGizmoDrag();
+
   // ── динамика ────────────────────────────────────────────────────────
   DynamicNodes get dynamics;
 
@@ -277,8 +296,9 @@ abstract class SceneNode extends ChangeNotifier {
   List<SceneNode> get children;
 
   bool visible;
-  double opacity;
+  double opacity;                   // применяется копией материала; детям не наследуется
   Vector4? highlightColor;          // контур выделения, null — нет
+  WireframeStyle? wireframe;        // wireframe ноды, null — выключен (см. §9.1)
 
   Matrix4 get transform;
   set transform(Matrix4 value);
@@ -358,7 +378,8 @@ class SpriteNode extends SceneNode {
 }
 
 class LineNode extends SceneNode {
-  LineNode({String? id, required LineGeometry geometry, Color color = Colors.white, double width = 0.01});
+  LineNode({String? id, required LineGeometry geometry, Color color = Colors.white, double? width});
+  double width;                    // ширина ленты; хранится в LineGeometry
 }
 
 class RingNode extends SceneNode {
@@ -399,6 +420,8 @@ class ModelNode extends SceneNode {
   // glTF
   String get gltfName;
   Aabb3? get gltfBounds;            // габариты ресурса, когда он загружен
+  bool get gltfLoading;             // импорт ещё идёт (UI: «загружается»)
+  bool get gltfFailed;              // импорт не удался (битый файл)
   List<GltfAnimInfo> get animationClips;
   String get animation;
   void play(String clipFullName);   // '' — стойка
@@ -408,6 +431,14 @@ class ModelNode extends SceneNode {
   void setFaceMaterial(String faceKey, SceneMaterial? material);
   void setTexture(String key, {String? faceKey, bool fromSprites = false});
   void setColor(Color color, {String? faceKey});
+
+  // wireframe граней (см. §9.1)
+  bool faceWireframe(String faceKey);
+  void setFaceWireframe(String faceKey, bool enabled);
+
+  // рёбра объекта в мировых координатах (контуры выделения, wireframe):
+  // вычисленный результат CSG/скруглений, грани примитивов, бокс вставки
+  List<Vector3> edges({double? creaseAngleDegrees});
 }
 ```
 
@@ -439,7 +470,7 @@ class GroundFogNode extends SceneNode {
 }
 
 class BillboardBatchNode extends SceneNode {
-  BillboardBatchNode({required int capacity, SpriteAtlas? atlas, BillboardFacing facing = BillboardFacing.spherical, SpriteBlendMode blendMode = SpriteBlendMode.opaque, int blendOrder = 0});
+  BillboardBatchNode({required int capacity, SceneTexture? atlas, BillboardFacing facing = BillboardFacing.spherical, SpriteBlendMode blendMode = SpriteBlendMode.opaque, int blendOrder = 0});
   void setInstance({required Vector3 center, required double width, required double height, double rotation = 0, int frame = 0, Vector3? velocity, Color? color});
   void commit();
 }
@@ -448,7 +479,7 @@ class SkyboxNode extends SceneNode {
   SkyboxNode({String? id, Color backgroundColor = const Color(0xFF000000)});
   Color backgroundColor;            // фон, когда слоёв нет
   bool followCamera;                // поворот за камерой
-  double rotation;                  // дополнительный поворот 0..1 (север = 1/8)
+  double skyRotation;               // дополнительный поворот 0..1 (север = 1/8)
   List<SkyboxLayer> get layers;     // порядок отрисовки снизу вверх
   void addLayer(SkyboxLayer layer);
   void removeLayer(SkyboxLayer layer);
@@ -519,8 +550,15 @@ final lamp = controller.add(
 
 - Документ (`ModelLighting`) хранит художественный свет: источники, цвет,
   интенсивность, радиус, направление, ambient.
+- `applyLighting` строит свет документа: источники, а при их отсутствии —
+  дефолтный риг (солнце + лампа камеры); `clearLighting` снимает только этот
+  построенный свет, лампы приложения не трогает.
+- Ambient документа — стартовое значение `environmentIntensity`, но только
+  когда освещение не дефолтное (`!ModelLighting.isDefault`); после этого
+  источник истины — `environmentIntensity` (`setEnvironmentIntensity`).
 - Тумблеры теней и SSAO берутся не из документа, а из `QualitySettings`
-  (раздел 15).
+  (раздел 15). Тени источника идут только когда `LightNode.castsShadow` и
+  `QualitySettings.shadows` включены одновременно.
 - `LightNode.importance` задаёт приоритет: при ограничении
   `QualitySettings.maxPointLights` движок оставляет самые важные точечные
   источники, остальные выключает, не удаляя ноды.
@@ -536,6 +574,8 @@ final lamp = controller.add(
 - Небо — нода сцены (`SkyboxNode`); вьюпорт рисует её фоновым проходом за
   сценой: фон → градиент → панорамы → облака → звёзды → солнце/луна.
   Сцена перекрывает небо, поэтому пещеры и интерьеры выглядят правильно.
+  Проход реализован 2D-слоем под сценой (как `StaticSkybox` v1) — шейдеры
+  форка для слоёв не нужны.
 - По умолчанию узел пуст: только `backgroundColor`.
 - Примеры: день — градиент + облака + солнце; ночь — градиент + звёзды +
   луна; город — две панорамы + облака; природа — панорама + солнце.
@@ -547,7 +587,7 @@ final lamp = controller.add(
 
 ```dart
 class AnimationPlayer extends ChangeNotifier {
-  AnimationPlayer(ModelNode node);
+  AnimationPlayer(GltfNode node);
   List<GltfAnimInfo> get clips;
   String? get current;
   bool get playing;
@@ -563,10 +603,12 @@ class AnimationPlayer extends ChangeNotifier {
 }
 ```
 
-- `ModelNode.play` — короткая форма для одной анимации; `AnimationPlayer` —
-  полное управление (пауза, перемотка, скорость, цикл, кроссфейд), нужное
-  просмотрщику моделей.
-- Временем владеет контроллер: он обновляет проигрыватели в кадре.
+- `ModelNode.play` — короткая форма выбора анимации документной glTF-вставки
+  (без транспорта: перемотка/пауза живут в рендерере); полный транспорт —
+  `AnimationPlayer` у `GltfNode` (просмотрщик моделей).
+- Временем владеет кадр форка: клипы, созданные на клонированном дереве
+  `GltfNode`, продвигаются, пока нода в сцене; плеер управляет их
+  состоянием и уведомляет об изменениях (включая кроссфейд).
 
 ### 5.8. glTF во время выполнения
 
@@ -591,6 +633,77 @@ class GltfNode extends SceneNode {
 - `GltfNode` — нода такого ресурса с собственным проигрывателем анимаций.
 - Ссылки на glTF из документа остаются `ModelNode` (`gltfName`,
   `animationClips`, `play`).
+
+### 5.9. Гизмо и сетка
+
+Гизмо переноса/вращения живёт в движке: постоянный размер в пикселях,
+верхний слой (видно сквозь сцену), приоритетный экранный hit-тест, драг
+мышью и пальцем. `SceneController` сам пересчитывает масштаб гизмо в кадре.
+
+```dart
+enum GizmoMode { translate, rotate }
+enum GizmoAxis { x, y, z }
+Vector3 gizmoAxisDirection(GizmoAxis axis);
+
+class GizmoStyle {
+  const GizmoStyle({
+    this.lineWidth = 3.0,       // толщина линии, px
+    this.length = 96.0,         // длина стрелки / радиус кольца, px
+    this.tipLength = 18.0,      // кончик стрелки, px
+    this.hitTolerance = 12.0,   // порог попадания, px
+    this.xColor = ..., this.yColor = ..., this.zColor = ...,
+    this.throughGeometry = true,
+  });
+  GizmoStyle copyWith({...});
+}
+
+class GizmoNode extends GroupNode {
+  GizmoNode({
+    required GizmoMode mode,
+    required Vector3 anchor,
+    GizmoStyle style = const GizmoStyle(),
+    SceneNode? target,                       // нода, которую двигает драг
+    void Function(GizmoDragEvent event)? onDrag,
+    void Function()? onDragEnd,
+  });
+  GizmoMode mode;
+  GizmoStyle style;
+  SceneNode? target;
+  Vector3 get anchor; set anchor(Vector3 value);
+  double get screenScale;
+  GizmoHit? hitTest(Offset screenPoint);
+  bool get dragging;
+  void beginDrag(GizmoAxis axis, Offset screenPoint);
+  void updateDrag(Offset screenPoint);
+  void endDrag();
+}
+
+class GizmoHit { GizmoNode get gizmo; GizmoAxis get axis; }
+class GizmoDragEvent { GizmoAxis get axis; Vector3? get translation; double? get rotation; }
+```
+
+- `SceneController.hitGizmo` проверяет гизмо раньше любых объектов сцены и
+  без учёта глубины: предмет перед гизмо не перехватывает клик.
+- Драг гизмо: `beginGizmoDrag(screenPoint)` → `updateGizmoDrag(...)` →
+  `endGizmoDrag()`; дельты приходят в `onDrag` (перенос по оси или угол
+  поворота), а при заданном `target` нода трансформируется напрямую.
+- Чистые хелперы драга доступны приложению: `axisDragDelta`, `planeHit`,
+  `signedAngleAroundAxis`, `rotationDragDelta`.
+
+```dart
+class GridNode extends LineNode {
+  GridNode({
+    required double width,
+    required double depth,
+    double cell = 1.0,
+    double lineWidthPx = 1.0,
+    Color color = const Color(0xFF737380),
+    Vector3? center,
+    int layer = SceneLayer.overlay,
+  });
+}
+List<Vector3> gridSegments({...});
+```
 
 ## 6. Материалы `SceneMaterial`
 
@@ -730,6 +843,9 @@ enum SceneTextureFilter { pixelated, linear }
 
 Текстуры проекта резолвятся по ключу через ресурсную сессию:
 `resources.texture('wallpaper_beige.png')`, `resources.sprite('window_4.png')`.
+Размеры (`width`/`height`) заполняются для текстур и спрайтов, загруженных
+через сессию (кэш хранит размер декодированного изображения); у текстур,
+обёрнутых из готового GPU-ресурса без размера, они остаются 0.
 
 Формат ключей:
 
@@ -775,8 +891,56 @@ class GeometryBuilder {
 }
 
 class LineGeometry {
-  LineGeometry(List<Vector3> segments, {double width = 0.01});
+  LineGeometry(List<Vector3> segments, {double width = 0.01, double? widthPx});
 }
+```
+
+### 9.1. Толщина линий и wireframe
+
+Толщина линий задаётся либо в мировых единицах (`width`), либо в пикселях
+экрана (`widthPx`) и тогда не зависит от приближения камеры. Пиксельная
+толщина раскрывается шейдером на macOS/iOS/iPadOS/Android и полилиниями на
+CPU на Windows/Linux (там шейдеры грузятся слишком медленно); для отладки
+бэкенд переключается принудительно.
+
+```dart
+enum LineWidthBackend { shader, polyline }
+
+LineWidthBackend get lineWidthBackend;
+void setLineWidthBackend(LineWidthBackend backend);
+LineWidthBackend defaultLineWidthBackend();
+
+Future<void> initializeEngine({LineWidthBackend? lineWidthBackend});
+// define PET_LINE_WIDTH_BACKEND=polyline тоже включает CPU-бэкенд
+
+class LineNode extends SceneNode {
+  LineNode({..., double? width, double? widthPx});
+  double get width;    set width(double value);     // мировые единицы
+  double? get widthPx; set widthPx(double? value);  // пиксели экрана
+}
+
+class WireframeStyle {
+  const WireframeStyle({
+    this.thickness = 1.0,           // толщина обводки, px экрана
+    this.color = const Color(0xFFFFFFFF),
+    this.throughGeometry = true,    // рисовать поверх сцены (слой top)
+    this.creaseAngle,               // угол склейки рёбер, градусы (по умолчанию 1°)
+  });
+  WireframeStyle copyWith({...});
+}
+```
+
+Wireframe включается на трёх уровнях: нода (`SceneNode.wireframe`), объект
+документа (`ModelNode.wireframe`) и вся сцена
+(`SceneController.setWireframe(style)`); грани документа —
+`ModelNode.setFaceWireframe(faceKey, enabled)`. Рёбра берутся из CPU-геометрии
+(для CSG — из вычисленного результата), рисуются пиксельными линиями
+толщиной `thickness` (по умолчанию 1 px); при `throughGeometry` — на слое
+`top`, поэтому видны сквозь сцену.
+
+```dart
+WireframeStyle? get wireframeStyle;
+void setWireframe(WireframeStyle? style);   // вся сцена, null — выключить
 ```
 
 ## 10. Камеры
@@ -802,7 +966,7 @@ class FlyCameraController implements CameraController {
 
   void flyStep(double dt, {bool shift = false});
   void flyLook(double dx, double dy);
-  void startFly();
+  void startFly();                  // включить полёт (сам не двигает)
   void stopFly();
   void keyDown(int logicalKey, {bool shift = false});
   void keyUp(int logicalKey);
@@ -825,8 +989,12 @@ class FirstPersonCameraController implements CameraController {
   int column;
   double y;
   AnimationType animation;
-  double moveProgress;              // 0..1
+  double moveProgress;              // 1 — прежняя поза, 0 — целевая клетка
+  double stepDuration;              // длительность шага/поворота, 0.3 с
 }
+// update(dt) ведёт анимацию сам (progress 1 → 0), поэтому кадр сразу
+// показывает интерполированную позу; приложение только задаёт цель и
+// animation. moveProgress = 0 и animation = none — покой.
 
 class OrbitCameraController implements CameraController {
   OrbitCameraController({Vector3? target, double distance = 10, double yaw = 0, double pitch = 0.45});
@@ -880,8 +1048,9 @@ class SceneInput {
 
 class CameraInput extends SceneInput {
   CameraInput({
-    this.pointerLookButton = kSecondaryButton,
-    this.pointerFlyButton = kPrimaryButton,
+    this.pointerLookButton = kSecondaryButton,  // обзор
+    this.pointerFlyButton = kSecondaryButton,   // полёт (WASD/QE)
+    this.pointerPanButton = kPrimaryButton,     // панорама
     this.tapSlop = 8,
     this.tapTimeout = const Duration(milliseconds: 300),
     this.lookSensitivity = 0.005,
@@ -889,6 +1058,9 @@ class CameraInput extends SceneInput {
   });
 }
 ```
+
+Роли по умолчанию: ПКМ (зажать) — обзор и полёт (WASD/QE, Shift —
+быстрее), ЛКМ (протяжка) — панорама, колесо — зум.
 
 Правила вьюпорта:
 
@@ -1050,6 +1222,13 @@ class FaceRef {
 Материал грани — документный (`ModelMaterial`); рантайм-подмена материала
 грани выполняется через `ModelNode.setFaceMaterial`.
 
+Объекты документа (`model_v1`) пикаются: `raycast`/`raycastAll`/`nearestNode`
+видят их `ModelNode`-обёртки (они же в `byId`/`nodesOfType`), у примитивов и
+скруглённых кубоидов заполняется `SceneHit.face` с документным ключом грани
+(`+x`…`-z`, `side`, `round`). Результат CSG пикается как объект целиком (без
+`FaceRef`); вставки модели и glTF пикаются по габаритному прокси-боксу
+(точное попадание по контенту — уточнение фазы 6).
+
 Примеры:
 
 ```dart
@@ -1181,6 +1360,7 @@ class SceneResources {
   List<String> get spriteKeys;
   List<String> get loadErrors;
   Model3dEntry? gltfEntry(String name);
+  List<Model3dEntry> get gltfEntries;   // весь каталог, по имени
 
   Future<Uint8List?> readBytes(String relativePath);
   // запись модели — через controller.project.saveModel
@@ -1201,8 +1381,16 @@ class ProjectStore {
   Future<void> saveModel(ModelData model);
   Future<void> deleteModel(String id);
   Future<void> renameModel(String id, String newId);
+
+  // ── мета проекта (project.json) ─────────────────────────────────────
+  String get name;                       // отображаемое имя
+  String? get created;                   // ISO-8601 UTC
+  String? get lastModelId;               // последняя открытая модель
+  Map<String, ResourceMeta> get resources; // индекс ресурсов, живой
+  Future<void> loadMeta();               // читает project.json
+  Future<void> saveMeta({String? lastModelId}); // атомарная запись
 }
-// controller.project — операции над моделями проекта (редактор).
+// controller.project — операции над моделями и мета проекта (редактор).
 
 enum SceneLoadPhase { idle, project, models, resources, geometry, bake, ready, error }
 
@@ -1222,8 +1410,9 @@ class SceneLoadError {
 ```
 
 Типы документа `ModelData`, `ModelObject`, `ModelMaterial`, `ModelMeta`,
-`ModelLight`, `ModelLighting`, `ModelGroup`, `ModelSize`, `ModelSide`
-остаются публичными без изменений (экспорт `package:pet_engine_v2/models.dart`).
+`ModelLight`, `ModelLighting`, `ModelGroup`, `ModelSize`, `ModelSide` и
+`ResourceMeta` (индекс ресурсов `project.json`) остаются публичными без
+изменений (экспорт `package:pet_engine_v2/models.dart`).
 
 ### 16.1. Владение и освобождение
 
@@ -1274,7 +1463,7 @@ class CameraProjection {
 }
 
 enum Direction { north, east, south, west }
-enum AnimationType { none, step, turn }
+enum AnimationType { none, stepForward, stepBackward, strafeLeft, strafeRight, turnLeft, turnRight }
 enum SpriteOrientation { vertical, floor, ceiling, wall }
 enum BillboardFacing { spherical, axisLocked, velocityStretched, screenParallel }
 enum SpriteBlendMode { opaque, alpha, additive }
@@ -1494,4 +1683,13 @@ controller.dynamics.sync('enemies', ...);
 5. Форма `SceneViewSpec` при нескольких камерах (пока одна активная
    камера на контроллер).
 6. Точные формулы слоёв неба (проекция солнца/луны, покрытие облаков) —
-   уточняются на demo.
+   уточнены на demo (2D-фон под сценой).
+7. Пикинг документных объектов: `raycast`/`raycastAll`/`nearestNode` видят
+   `ModelNode`-обёртки объектов `model_v1` (фаза 4), `FaceRef` заполняется
+   для плоских граней и скруглённых поверхностей. Вставки модели пикаются
+   AABB фактического содержимого (когда источник резолвится) либо кэшированным
+   гридом источника; glTF — подогнанным footprint-боксом. Точное попадание
+   по контенту вставок — при необходимости в фазе 6.
+8. Размеры `SceneTexture.fromGpu`: заполняются для текстур/спрайтов из
+   ресурсной сессии (кэш помнит размер декода, фаза 4); у GPU-обёрток без
+   размера остаются 0.

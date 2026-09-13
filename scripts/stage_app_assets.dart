@@ -6,10 +6,13 @@
 // Запуск (из корня репозитория):
 //   fvm dart run scripts/stage_app_assets.dart
 //   fvm dart run scripts/stage_app_assets.dart --project projects/Pet --out demo/assets/pet_project
+//   fvm dart run scripts/stage_app_assets.dart --full --out scene_editor/assets/pet_project
 //
 // Бандл сохраняет структуру проекта: project.json, models/*.json,
 // textures/<key>, sprites/<key>, 3d_models/<имя>/… (целиком для glTF-папок).
 // В конце пишется manifest.json со списком файлов (для BundleProjectSource).
+// С `--full` копируется весь проект целиком (редактору нужны все ресурсы,
+// включая бэкапы `_original`).
 import 'dart:convert';
 import 'dart:io';
 
@@ -25,6 +28,7 @@ const _skipSuffix = '_original';
 void main(List<String> args) {
   final project = _arg(args, '--project', 'projects/Pet');
   final out = _arg(args, '--out', 'demo/assets/pet_project');
+  final full = args.contains('--full');
   final root = Directory(project);
   if (!root.existsSync() || !File('$project/project.json').existsSync()) {
     stderr.writeln('Проект не найден: $project');
@@ -59,6 +63,38 @@ void main(List<String> args) {
     }
   }
 
+  if (full) {
+    // Полный бандл: весь проект как есть (редактор).
+    for (final e in root.listSync(recursive: true)) {
+      if (e is File) {
+        copy(e.path.substring(root.path.length + 1));
+      }
+    }
+  } else {
+    _stageDemoProject(project, copy, copyDir);
+  }
+
+  final manifest = copied.toList()..sort();
+  File('$out/manifest.json')
+      .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(manifest));
+
+  var bytes = 0;
+  for (final rel in copied) {
+    bytes += File('$out/${rel.replaceAll('/', '__')}').lengthSync();
+  }
+  stdout.writeln('Бандл собран: ${outDir.uri}');
+  stdout.writeln('  файлов: ${copied.length}');
+  stdout.writeln('  размер: ${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ');
+  stdout.writeln('  модели: ${copied.where((f) => f.startsWith('models/')).length} · '
+      '3d_models: ${copied.where((f) => f.startsWith('3d_models/')).length}');
+}
+
+/// Сжатый бандл demo: модели, нужные сценам ресурсы и 3D-модели.
+void _stageDemoProject(
+  String project,
+  void Function(String rel) copy,
+  void Function(String rel) copyDir,
+) {
   // project.json + модели.
   copy('project.json');
   for (final f in Directory('$project/models')
@@ -127,18 +163,4 @@ void main(List<String> args) {
       copyDir('3d_models/$name');
     }
   }
-
-  final manifest = copied.toList()..sort();
-  File('$out/manifest.json')
-      .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(manifest));
-
-  var bytes = 0;
-  for (final rel in copied) {
-    bytes += File('$out/${rel.replaceAll('/', '__')}').lengthSync();
-  }
-  stdout.writeln('Бандл собран: ${outDir.uri}');
-  stdout.writeln('  файлов: ${copied.length}');
-  stdout.writeln('  размер: ${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ');
-  stdout.writeln('  модели: ${copied.where((f) => f.startsWith('models/')).length} · '
-      '3d_models: ${copied.where((f) => f.startsWith('3d_models/')).length}');
 }

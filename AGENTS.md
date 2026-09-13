@@ -21,7 +21,8 @@ are written in Russian; code identifiers are English.
 - `docs/` — the knowledge base: `plan.md` (idea and phases), `features.md`
   (feature registry with examples and code references), `architecture.md`,
   `api.md`, `migration.md`, `conventions.md`, `visual_testing.md`, `tz.md`
-  (the implementation brief).
+  (the implementation brief), `handoff.md` (state after phase 2 and the
+  phase 3 plan).
 - `projects/` — scene projects and resources (copied from v1).
 - `scripts/` — asset staging (`stage_app_assets.dart`), perf scripts.
 - `temp/` — the only place for scratch files (not tracked by git).
@@ -42,20 +43,23 @@ fvm flutter test            # single file: fvm flutter test test/<name>_test.dar
 fvm dart run scripts/stage_app_assets.dart
 cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 
-# fork — outside this repository; fork edits and fork tests are out of scope
+# fork — the shared path dependency; helpers and bug fixes are allowed
+cd ../flutter_scene/packages/flutter_scene && fvm flutter analyze && fvm flutter test
 ```
 
 ## Working-directory boundaries
 
-- Work only inside `pet_engine_v2`. Determine the current subdirectory with
-  `pwd`; never step outside the repository.
-- Do not read or modify sibling directories: `../pet_engine`, `../math_quest`,
-  `../mypet-game`, `../flutter_scene`, and others.
+- The workspace is `pet_games`. `pet_engine_v2` may be read and changed
+  freely (add, change, delete).
+- `../flutter_scene` (the shared fork) may be read, and may receive helper
+  additions and bug fixes. Keep fork analyze and tests green; do not change
+  its formats or sacred conventions.
+- Other sibling directories (`../pet_engine`, `../math_quest`,
+  `../mypet-game`) may be read as references, but never modified.
 - Scratch files go only to `pet_engine_v2/temp/`; `/tmp`, the home directory,
-  and files outside the repository are forbidden.
-- Information about plugins, dependencies, and third-party libraries
-  (including the shared fork) comes from the internet and official docs, not
-  from sibling directories.
+  and files outside `pet_games` are forbidden.
+- Information about plugins, dependencies, and third-party libraries comes
+  from their sources, the internet and official docs.
 
 ## Repository boundaries
 
@@ -85,7 +89,34 @@ Phase 0 (infrastructure) is done (September 11, 2026): the fork is a separate
 repository, the engine has been copied, the knowledge base exists. Phase 1
 (API design) is done and validated: the feature registry is
 `docs/features.md`, the public API is `docs/api.md`, the implementation brief
-is `docs/tz.md`. Code work for v2 happens in a separate context following
-these documents. Final owner acceptance happens after the whole v2 is
-complete (engine, docs, demo, scene_editor); old facades are removed after
-the demo and editor migrations.
+is `docs/tz.md`.
+
+Phase 2 (core API) is done (September 12, 2026): `lib/pet_engine_v2.dart`
+exposes `SceneViewport`/`SceneController`/`SceneNode`, materials, textures,
+shaders, geometry, cameras, input, picking, dynamics, mechanism nodes,
+document `ModelNode` and `QualityController`. `engine` analyze is clean and
+439 tests are green; the journal is `docs/plan.md` §8. Old facades stay
+internal until the demo and editor migrations.
+
+Phase 3 (demo) is done (September 12, 2026): the `demo/` app runs all 48
+features of the v1 example on API v2, with deeplinks, screenshots, visual
+checks and the stress screen. `engine` has 458 green tests, `demo` has 162;
+the journal is `docs/plan.md` §8, the defect log is
+`demo/visual_tests.json`.
+
+Phase 4 (scene_editor) is done (September 12, 2026): `scene_editor/` is the
+v1 editor ported to API v2 — document and undo, panels, viewport with
+picking/FaceRef, gizmo, overlays and layers, resources, model viewer and
+markup, with deeplinks/screenshots and a visual journal.
+
+Phase 7 (demo defects) is done (September 12, 2026): the owner-reported
+defects bug_38–bug_50 are closed — camera input roles, glTF loading state,
+shadow settings, quality through `QualityController`, frame-driven
+first-person animation, the disposed-controller frame crash behind the
+vanishing weather, the `.fmat` effect cycle and the level decor. The journal
+is `demo/visual_tests.json`.
+
+`engine` has 521 green tests, `demo` 163, `scene_editor` 339; the journal is
+`docs/plan.md` §8. Next: phase 5 (removing the old facades — see
+`docs/handoff.md`). Final owner acceptance happens after the whole v2 is
+complete (engine, docs, demo, scene_editor).

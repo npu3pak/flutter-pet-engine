@@ -378,3 +378,565 @@ pet_games/
 Реализация кода v2 ведётся в отдельном контексте; этот документ и
 спутники — единственный источник требований для неё. Порядок работ, объём
 и приёмка — в `docs/tz.md`.
+
+## 8. Журнал реализации (фаза 2)
+
+### Подшаг 1. Ноды, материалы, геометрия (12 сентября 2026)
+
+Сделано:
+
+- Новый публичный вход `engine/lib/pet_engine_v2.dart`; новый слой
+  `engine/lib/src/api/`.
+- `SceneNode` (id, имя, слой, `inScene`, parent/children,
+  transform/position/rotation/scale, visible/opacity/highlightColor,
+  material, worldBounds, detach/remove/dispose) и внутренний шов
+  `SceneNodeHost`, который реализует будущий `SceneController`.
+- Ноды: `GroupNode`, `BoxNode`, `PlaneNode`, `MeshNode` (+`MeshPart`),
+  `SpriteNode`, `LineNode`, `RingNode`; `SceneLayer`.
+- Материалы: `SceneMaterial` (pbr/unlit/shader), `SceneTexture` (ленивая
+  GPU-загрузка, `fromImage/Asset/Bytes`), `ShaderMaterial`/
+  `ShaderMaterialInstance`/`ShaderParameter` + `ShaderLibrary` (схема
+  параметров из sidecar `.fmat`).
+- Геометрия: `SceneGeometry` (cuboid/plane/cylinder/cone/sphere/roundedBox/
+  trapezoid/ring + annulus), `GeometryBuilder` (transform-bake, мировые UV,
+  стены), `LineGeometry`.
+- Форк: добавлены геттеры `PreprocessedMaterial.metadata`/
+  `vertexShaders`; экспортированы чистые генераторы примитивов
+  (`PrimitiveArrays`, `build*Arrays`). Analyze форка чист.
+- Тесты `engine/test/api/*` (39); analyze чист, тесты зелёные:
+  356 (317 базовых + 39 новых).
+
+Решения:
+
+- Геометрия хранит чистые CPU-данные (`MeshData`) и поднимает GPU лениво —
+  отсюда GPU-free тесты и измерение габаритов без видеокарты.
+- `roundedBox`/`trapezoid` собираются из документных csg-полигонов (та же
+  математика, что у рендера) и центрируются по Y.
+- Виндинг: треугольники намотаны так, что правая тройка смотрит внутрь,
+  нормаль — наружу (правило форка).
+- `GroupNode.remove(child)` совмещён с `SceneNode.remove()` (необязательный
+  аргумент): в `api.md` у обоих методов одно имя.
+- `SceneNode.scene` появится в подшаге 2 вместе с `SceneController`; пока
+  нода знает только внутренний `host`.
+
+Отклонение от `AGENTS.md` (по разрешению владельца): общий форк читается и
+дополняется хелперами; правки — только совместимые, тесты и analyze форка
+зелёные.
+
+### Подшаг 2. Контроллер сцены (12 сентября 2026)
+
+Сделано:
+
+- `SceneController` (`ChangeNotifier` + `SceneNodeHost`): реестр нод
+  (`add/remove/byId/nodesOfType`), камера (`camera`, `cameraNode`), кадр
+  (`update`, `addFrameListener`, `reorientBillboards`), размер вьюпорта,
+  ревизия (`revision`, `rebuild`).
+- Сессия: `open/openProject/openModels/loadModel/loadModelData/unloadModel/
+  reloadResources`; `SceneResources` (модели, каталоги, чтение, текстуры
+  через `SceneTexture.fromGpu`, glTF-оверрайды, инвалидация);
+  `ProjectStore` (create/save/delete/rename) с необязательной
+  возможностью `MutableProjectSource` (у `DirectoryProjectSource` есть,
+  кастомные источники не ломаются).
+- `SceneLoadStatus`/`SceneLoadError`/`SceneLoadPhase`; ошибки загрузки не
+  фатальны и попадают в статус.
+- `CameraController` (интерфейс) и `MatrixCameraController`; `SceneNode.scene`
+  теперь возвращает контроллер.
+- Внутренняя привязка рендера: ленивая `ensureRenderScene()` (fork `Scene`
+  создаётся только при подключении вьюпорта), `renderCamera`, синхронизация
+  мешей нод с проверкой идентичности (без пересборки на смену трансформа).
+
+### Подшаг 3. Вьюпорт (12 сентября 2026)
+
+Сделано:
+
+- `SceneViewport` (виджет) + `SceneViewportState`: размер и pixelRatio
+  сообщаются контроллеру, тик через `Ticker`, `autoTick`, оверлеи, фон,
+  индикатор загрузки, тап/двойной тап с порогами, клавиатурный фокус,
+  `capture`.
+- `SceneViewSpec` (main/overlay/top/layer) и `SceneLayer`; подменяемый
+  `SceneViewportBackend`: боевой `ForkSceneViewportBackend` (fork
+  `SceneView` + `RepaintBoundary` + `captureBoundary`) и фейковый в тестах —
+  GPU-free widget-тесты.
+- `SceneInput`/`SceneViewportInfo`/`SceneTapEvent` (луч из камеры);
+  `initializeEngine()`.
+- Тесты: 59 в `engine/test/api` (всего 376, analyze чист).
+
+Открыто до следующих подшагов: `CameraInput` (подшаг 4), raycast/проекция
+(подшаг 5), динамика и механизмы (6), документ и `ModelNode` (7), качество
+(8).
+
+### Подшаг 4. Камеры и ввод (12 сентября 2026)
+
+Сделано:
+
+- `FlyCameraController` (полёт, обзор, орбита, панорама, зум, кадрирование
+  модели/габаритов/ноды) поверх v1-математики `GameCamera`;
+- `FirstPersonCameraController` (клетка, направление, анимации шага/поворота,
+  покачивание) поверх `gameCameraNodeTransformAnimated`;
+- `OrbitCameraController` (цель, дистанция, орбита, панорама, зум,
+  кадрирование);
+- `Direction`/`AnimationType` — полный набор (правка внесена в `api.md`
+  §17.1: `stepForward/stepBackward/strafeLeft/strafeRight/turnLeft/turnRight`);
+- `CameraInput` (роли кнопок мыши и двух пальцев, колесо, WASD/QE,
+  клавиатура не потребляет чужие шорткаты); вьюпорт по умолчанию использует
+  его;
+- `SceneController` применяет матрицу любой из встроенных камер к
+  `cameraNode`.
+- Тесты: 15 в `test/api/camera_test.dart`; всего 391, analyze чист.
+
+### Подшаг 5. Попадания и проекция (12 сентября 2026)
+
+Сделано:
+
+- `SceneHit`, `FaceRef`, `RaycastOptions`;
+- `SceneController.screenPointToRay/worldToScreen/screenRect/raycast/
+  raycastRay/raycastAll/nearestNode`;
+- CPU-луч по треугольникам геометрии (`intersectGeometry` + AABB-пре-тест) —
+  без видеокарты; нормаль разворачивается к лучу;
+- фильтры `includeInvisible`, `skipNodeIds`, `where`, порядок «ближний
+  первым»; у нод появился внутренний `pickGeometries`;
+- `FaceRef` заполняется для `ModelNode` в подшаге 7.
+- Тесты: 10 в `test/api/picking_test.dart`; всего 401, analyze чист.
+
+### Подшаг 6. Динамика и небо (12 сентября 2026)
+
+Сделано:
+
+- `DynamicNodes`/`DynamicObject`/`DynamicEntry`: `spawn/despawn/clear/
+  byId/objects/aliveCount/update`, время жизни, `remainingFactor`,
+  `onUpdate/onFinished/onEnteredFrame`, пул нод и `sync(key, entries)` без
+  пересоздания неизменившихся объектов;
+- `SceneController.dynamics` и вызов `dynamics.update(dt)` в кадре;
+- `SkyboxNode` и слои (`SkyboxColorLayer`, `SkyboxImageLayer`,
+  `SkyboxCloudsLayer`, `SkyboxStarsLayer`, `SkyboxBodyLayer`);
+  `SceneController.skybox`;
+- в `api.md` исправлены две коллизии имён: `AnimationType` (полный набор) и
+  `SkyboxNode.skyRotation` (не конфликтует с `SceneNode.rotation`).
+- Тесты: 8 в `test/api/dynamics_test.dart`; всего 409, analyze чист.
+
+Осталось по фазе 2 (следующий контекст):
+
+- подшаг 6 (продолжение): ноды-механизмы `ParticleNode`, `SpriteFieldNode`,
+  `GroundFogNode`, `BillboardBatchNode`, `LevelNode` (обёртки v1-слоёв) и
+  фоновый проход неба во вьюпорте;
+- подшаг 7: документ (`addObject/addMeta/addDocumentLight/addGroup` + remove,
+  грани, csg, `ModelNode`, сохранение, undo-совместимость);
+- подшаг 8: `QualityController`;
+- подшаг 9: приёмка ядра и smoke-фичи demo.
+
+Открытые уточнения API (из анализа demo/editor) уже частично закрыты
+(`initializeEngine`, `AnimationType`, `skyRotation`); остальные (`ambient`,
+`ParticleNode.prepare`/фокус, прогресс `loadLevel`, undo-совместимость) — в
+соответствующих подшагах.
+
+### Подшаг 6 (продолжение). Механизмы-ноды (12 сентября 2026)
+
+Сделано:
+
+- `ParticleNode` (погода/частицы): конфиг, поле, интенсивность, фокус,
+  `prepare()`, автоперепаковка в кадре; `SpriteFieldNode` (трава/декор),
+  `GroundFogNode` (туман), `BillboardBatchNode` (собственные инстансы,
+  `setInstance`/`commit`), `LevelNode` (`result`, `nodeFor`);
+- в API введены собственные `BillboardFacing`/`SpriteBlendMode` (типы форка
+  наружу не выходят), `SceneNode.frameTick` и общий тик механизмов в
+  `SceneController.update`;
+- в `api.md` уточнено: `BillboardBatchNode.atlas` — `SceneTexture`.
+- Тесты: 7 в `test/api/mechanisms_test.dart`.
+
+### Подшаг 7. Документ и `ModelNode` (12 сентября 2026)
+
+Сделано:
+
+- `SceneController`: `addObject/removeObject/objectNode`, `addMeta/removeMeta`,
+  `addDocumentLight/removeDocumentLight`, `addGroup/removeGroup`; ревизия и
+  пересборка документа; `rebuild()` пересобирает `ModelRenderer`, когда
+  рендер-сцена существует;
+- ленивая привязка рендера: `ensureRenderScene()` создаёт `ModelRenderer` из
+  ресурсной сессии, монтирует корень документа и текущую модель;
+- `ModelNode`: координаты модели (`x/y/z/rotY`), `worldPosition`,
+  `worldBounds`, `setPlacement/setWorldPlacement` (живое обновление glTF),
+  glTF (`gltfName`, `gltfBounds`, `animationClips`, `animation`, `play`),
+  материалы (`faces`, `setFaceMaterial` через runtime-оверрайды рендера,
+  `setTexture`, `setColor`);
+- `ModelRenderer.materialOverrides` — рантайм-подмена материалов граней без
+  изменения документа;
+- Тесты: 8 в `test/api/model_node_test.dart`.
+
+### Подшаг 8. `QualityController` (12 сентября 2026)
+
+Сделано:
+
+- `QualitySettings` (renderScale, SSAO, тени/каскады/дистанция, AA, фильтр,
+  бюджет ламп, подсказка sustained performance), `QualityPreset`
+  (`low/medium/high/auto` + `recommendedFor`), `QualityPolicy`,
+  `QualityStep.fullLadder`, `FrameStats`, `QualityChange`,
+  `DeviceCapabilities`, `SceneAntiAliasing`, `SceneFog`;
+- `QualityController`: замер (`reportFrame` с инъекцией времён), лестница
+  понижения/повышения с гистерезисом, cooldown, `upscaleHold`, пол/потолок,
+  пауза адаптации, поток изменений, `attach(scene)`;
+- `SceneController`: `settings`, `applySettings`, `setShadows/setSsao/
+  setShadowCascades/setShadowDistance/setRenderScale/setAntiAliasing/
+  setEnvironmentIntensity/setFog`, геттеры для интерфейса; применение к
+  рендер-сцене (AA, renderScale, фильтр, SSAO, туман, окружение);
+- Тесты: 15 в `test/api/quality_test.dart`.
+
+### Подшаг 9. Приёмка ядра (12 сентября 2026)
+
+- `fvm flutter analyze` — чисто; `fvm flutter test` — **439 тестов** зелёные
+  (317 базовых + 122 новых в `engine/test/api/`); форк: analyze чисто,
+  1050 тестов зелёные (29 skip).
+- Публичный вход `lib/pet_engine_v2.dart` собирает новый API, документ и
+  механизмы; старые фасады не тронуты и остаются внутренней реализацией.
+- GPU-free правило соблюдено: тесты не создают fork `Scene`; у вьюпорта
+  подменяемый бэкенд; геометрия, материалы и пикинг проверяются на CPU.
+- Smoke-фичи demo на новом API откладываются до появления demo (фаза 3):
+  без приложения их не на чем запускать.
+
+Итог: ядро API фазы 2 готово. Дальше — фаза 3 (demo: инфраструктура и все
+48 фич), затем фаза 4 (редактор) и фаза 5 (очистка).
+
+### Фаза 3, подготовка. Закрытие блокеров API (12 сентября 2026)
+
+Сделано:
+
+- **Свет.** `LightNode` (point/directional) с живым форк-компонентом,
+  `SceneController.applyLighting`/`clearLighting` (источники документа или
+  дефолтный риг «солнце + лампа камеры»), теневые настройки и каскады из
+  `QualitySettings`, бюджет `maxPointLights` по `importance`; ambient
+  документа — стартовое значение `environmentIntensity` только при
+  нестандартном освещении. Тесты `engine/test/api/light_test.dart`.
+- **Небо.** 2D-фон `SkyboxBackground` под сценой вьюпорта: градиент,
+  панорама (tile/offset/дымка), облака, звёзды, солнце/луна; прокрутка за
+  камерой (FirstPerson — по facing/animation, остальные — по forward);
+  экспорт `loadSkyboxImage`. Тесты `engine/test/api/skybox_test.dart`.
+- **Прозрачность и линии.** `SceneNode.opacity` применяется per-node копией
+  материала (общий материал не заражается), `LineGeometry.width` и
+  `LineNode.width` стали живыми. Тесты в `test/api/scene_node_test.dart`.
+- **Уровни.** `SceneLoadPhase`/`SceneLoadError` переехали в
+  `src/level/load_status.dart` (ре-экспорт из `api/scene_load_status.dart`),
+  `LevelLoadEvent.stage` → `phase`, `LevelBakeOptions`/`BakedMaterialHook` с
+  `SceneMaterial`, `SceneController.loadLevel/mountLevel/unmountLevel/level`,
+  реориентация билбордов уровня в кадре. Экспортированы уровневый слой,
+  `TextureCache`, `SpriteAtlas`/`buildSpriteAtlas`, координатные хелперы и
+  навигация. Тесты `engine/test/api/level_test.dart`.
+
+Отклонения:
+
+- `LineNode` принимает `double? width` (ширина живёт в `LineGeometry`), а не
+  `double width = 0.01` — иначе конструктор перетирал бы ширину геометрии;
+  `api.md` §5.2 обновлён.
+- `SceneController.loadLevel` получил необязательный `@internal LevelBaker`
+  — шов для GPU-free тестов; в публичном контракте не значится.
+
+Проверки: `analyze` чист, **458 тестов** зелёные (439 + 19 новых).
+Дальше — каркас demo и 48 фич (фаза 3).
+
+### Фаза 3. demo (12 сентября 2026)
+
+Сделано:
+
+- **Каркас приложения** `demo/`: `flutter create` (macOS/iOS/Android),
+  `initializeEngine`, диплинк-мосты macOS/iOS (схема `pet-engine-example`,
+  канал `example/deeplink`), GPU-флаги и снятие песочницы macOS,
+  `hook/build.dart` на `petBuildMaterials`, staging в
+  `demo/assets/pet_project`.
+- **Инфраструктура**: `AppPaths`/`AppInfo`/`deeplink`/`screenshot_saver`,
+  perf-логи, журнал визуальных проверок, `ProjectSource`-источники,
+  `app_shell` (три панели, режимы, очередь команд, сервис-расширение),
+  `SettingsPanel` на `QualityController`, стресс-экран на
+  `SceneController.loadLevel`, навигация по клеткам на
+  `FirstPersonCameraController` (свободная камера — на `CameraInput`).
+- **Хост сцены** `DemoSceneHost` на `SceneController`/`SceneViewport` с
+  подменяемым бэкендом вьюпорта; все 48 фич восьми групп перенесены и
+  открываются; `analyze`/`test` demo зелёные (**162 теста**).
+- **Визуальные проверки** на macOS по tz §4.10: снимки всех групп через
+  `capture` + `saveScreenshot`, замечания — в `demo/visual_tests.json`
+  (`note`/`fixed`, вердикт `ok` — владелец).
+
+Найденные и исправленные дефекты движка (журнал `demo/visual_tests.json`):
+
+- `ensureRenderScene` создавал группу document через `attachToHost` и
+  прерывал построение рендер-сцены `notifyListeners` во время build;
+- `unlinkChild` отвязывал поддерево до `engine.remove` — исключение при
+  смене фичи;
+- не было подписки на `onTextureReady`/`gltfAssets` — текстуры не
+  появлялись после асинхронной загрузки;
+- поддеревья нод не синхронизировались при создании рендер-сцены
+  (частицы не рисовались) — добавлен `_syncSubtree`;
+- `ParticlePresets` ссылались на ассеты старого пакета;
+- `BillboardBatchNode` не применял смену режимов и повторно добавлял узел;
+- `DynamicNodes.update` не применял позицию `onUpdate` к ноде;
+- `LevelNode` повторно добавлял корень уровня;
+- добавлены `SceneResources.models`, `BillboardBatchNode.flipbookColumns/Rows`,
+  экспорт хелперов §17.2 и `SceneLoadPhaseLabel`.
+
+Отложено (зафиксировано в `api.md` §21): пикинг документных объектов лучом
+(`raycast` видит только API-ноды; для demo цели сделаны `BoxNode`), размеры
+`SceneTexture.fromGpu`.
+
+
+### Фаза 4. scene_editor (12 сентября 2026)
+
+Сделано:
+
+- **Каркас** `scene_editor/`: macOS/iOS, GPU-флаги и снятая песочница,
+  диплинки (`pet-scene-editor`, канал `editor/deeplink`), снимки,
+  `AppPaths`/`AppInfo`, `hook/build.dart`, staging `--full` для iPad,
+  `tool/deeplink.sh`.
+- **Документ и undo**: `AppState` на `SceneController(mergeStatic: false)`,
+  `ProjectStore`/`ResourceStore`/`Model3dStore`, стеки отмены на модель,
+  шаблоны дома/комнаты, обработка изображений, сохранение и миграция
+  legacy `chunks/`.
+- **Вьюпорт**: `EditorScene` на видах `main/overlay/top`; сетка, рамка,
+  курсор, контуры и подсветка граней, гизмо переноса/вращения, picking с
+  `FaceRef`, камера `FlyCameraController`, меты и маркеры света.
+- **Ресурсы и просмотрщик**: вкладка «Ресурсы» с редактором изображений;
+  просмотр моделей на `GltfAsset`/`GltfNode`/`AnimationPlayer` и
+  `OrbitCameraController`.
+- **Панели и разметка**: `main_screen`, `left_panel`, `right_panel`,
+  `bottom_bars`, диалоги; `entries`/`front`, клеточная кисть, `ScenePlacement`.
+- **Проверки**: `analyze` чист, **339 тестов** зелёные; визуальные снимки
+  macOS (вьюпорт, выделение и гизмо, освещение и маркер источника, меты,
+  текстурирование) — журнал `scene_editor/visual_tests.json`.
+
+Закрытие API под редактор (до/во время порта):
+
+- пикинг документных объектов: `ModelNode.pickParts` (грани примитивов,
+  `side`/крышки цилиндра, `round` скруглений, CSG целиком, прокси-боксы
+  вставок) и реестр документных нод в `SceneController`
+  (`byId`/`nodesOfType`/`nearestNode`);
+- размеры `SceneTexture` из ресурсной сессии (`TextureCache` хранит размер
+  декода);
+- `GltfAsset`/`GltfNode`/`AnimationPlayer` (§5.7–5.8 `api.md`);
+- `SceneResources.gltfEntries`, кэш `gltfBounds` через `onGltfFootprint`;
+- мета проекта: `ProjectStore.name/created/lastModelId/resources/loadMeta/
+  saveMeta`, `SceneController.createProject`, `ProjectStore.directory`;
+- перенесены движковые тесты `csg_test` и `face_snap_test`; всего в
+  `engine` **516 тестов**.
+
+### Фаза 7. Закрытие замечаний demo (12 сентября 2026)
+
+Владелец прошёл demo и оставил 13 открытых замечаний
+(`demo/visual_tests.json`, bug_38–bug_50). Исправлено:
+
+- **Навигация (bug_38).** `CameraInput`: ПКМ — обзор и полёт (WASD/QE),
+  ЛКМ — панорама, колесо — зум; новый параметр `pointerPanButton`.
+- **Анимации glTF (bug_39).** `ModelNode.gltfLoading/gltfFailed`; панель
+  показывает «загружается», хост demo отложенно обновляет интерфейс на
+  изменения контроллера.
+- **Тени (bug_40).** Прогон снимков с `cascades=1/2/4` и
+  `shadowDistance=2/10`; добавлены ключи диплинка `settings`.
+- **Дальность лампы (bug_41).** Пятно точечного света меняется, тени даёт
+  солнце; пояснение в панели уточнено.
+- **Качество (bug_42).** Хост demo применяет настройки через
+  `QualityController.apply` — единый источник истины.
+- **Камера по клеткам (bug_43).** Анимацию ведёт
+  `FirstPersonCameraController.update` (progress 1 → 0); `CellNavController`
+  только задаёт цель.
+- **Погода и частицы (bug_44–48).** Причина: старый `SceneViewport` тикал
+  disposed-контроллер, `SceneController.update` падал на камерной ноде и
+  прерывал кадр (частицы не обновлялись). Guard `_disposed` в `update` и
+  отложенный `setState` во вьюпорте; цикл из 9 переключений снова
+  показывает погоду.
+- **Цикл .fmat (bug_49).** Переключатель «Циклически менять эффект»:
+  свечение ↔ пикселизация раз в 3 секунды.
+- **Декор уровня (bug_50).** Коврик — плоская плитка перед стартовой
+  камерой, стол и растение — вертикальные тела по бокам, разные цвета.
+- **Автополёт (bug_51).** `GameCamera._moveStep` двигал камеру вперёд при
+  активном полёте даже без клавиш; теперь полёт — только режим и обзор,
+  движение — WASD/QE. Регрессионный тест в `engine/test/api/camera_test.dart`.
+
+Проверки: `engine` 521 тест, `demo` 163, `scene_editor` 339; analyze чист;
+снимки в `temp/screenshots`, журнал — `demo/visual_tests.json`.
+
+### Аудит scene_editor после приёмки demo (12 сентября 2026)
+
+Проверка редактора на классы дефектов demo и собственные ошибки порта:
+
+- **Обновление панелей.** `AppState` слушает `SceneController` и будит
+  интерфейс при росте ревизии (догрузка текстур/glTF): список анимаций
+  модели появляется сам. Гейт по ревизии обязателен — оверлеи вьюпорта
+  тоже уведомляют контроллер, без него получалось бы зацикливание.
+- **Тени.** `EditorScene._applyLighting` пишет `cfg.shadows`/`cfg.ssao`
+  в `QualitySettings` сцены: тумблеры режима «Освещение» теперь меняют
+  картинку, а не только документ.
+- **glTF-панель.** «Загружается»/«Не удалось загрузить» через
+  `ModelNode.gltfLoading/gltfFailed`.
+- **Вьюпорт.** Тесты `test/editor_viewport_test.dart`: ПКМ-обзор и полёт
+  WASD, ЛКМ не летит, гизмо переноса двигает объект, тумблеры тени/SSAO
+  доходят до качества; удалён мёртвый код кэша footprint (движок кэширует
+  `gltfBounds` сам).
+
+Проверки: `scene_editor` 342 теста, analyze чист; снимки —
+`scene_editor/visual_tests.json` (bug_2).
+
+### Замечание bug_52: направление ветра (12 сентября 2026)
+
+Метки компаса в «Параметрах частиц» переводились в мировые оси без учёта
+зеркала X (`chunkWorld`): восток модели — world −X. Наклон и снос шли
+против выбранной стороны. Направление вынесено в `windDirectionFor()`
+(восток → −X, запад → +X), добавлен тест, параметры диплинка
+`wind`/`windSpeed`/`density` для визуальных прогонов.
+
+### Отладка scene_editor: краш оверлеев и file_picker (13 сентября 2026)
+
+Первая порция замечаний владельца (`scene_editor/visual_tests.json`,
+bug_3–bug_4):
+
+- **Краш при загрузке (bug_3).** `Exception: Child is not attached to this
+  node` в `EditorScene._rebuildOverlays` после догрузки текстур/glTF.
+  Причина: `SceneController.onNodeDetached` снимал engine-ноду у всех
+  потомков отвязываемого поддерева — зеркало движка расходилось с
+  API-деревом, и следующий `unlinkChild` падал. Исправлено: отвязка только
+  у корней рендер-сцены (`node.parent == null`), `EngineNode.remove` стал
+  идемпотентным, `selectionOverlay` чистится до `overlays.removeAll()`.
+  Регрессии — `engine/test/api/scene_controller_test.dart`,
+  `scene_editor/test/editor_viewport_test.dart`.
+- **file_picker на macOS (bug_4).** `ENTITLEMENT_NOT_FOUND` при выборе
+  папки: file_picker 11 проверяет user-selected entitlements даже при
+  выключенной песочнице. На старте вызывается
+  `FilePicker.skipEntitlementsChecks()` — штатный API плагина для
+  не-sandbox приложений; тест
+  `scene_editor/test/file_picker_entitlements_test.dart`.
+
+Проверки: `engine` 522 теста, `demo` 164, `scene_editor` 344; analyze чист;
+смоук редактора на macOS (model_2 с выделением, догрузка текстур/glTF,
+смена режимов «Освещение»/«Текстурирование» и моделей) — без исключений.
+
+### Wireframe и экранная толщина линий (13 сентября 2026)
+
+Сделано:
+
+- **Форк.** `LineSegmentsGeometry` получил пиксельный режим (`pixelWidth` +
+  `pixelScale`): вершинный шейдер разворачивает ленту на постоянное число
+  пикселей независимо от дистанции (неиспользуемые слоты `FrameInfo.params`,
+  формат блока не менялся). Добавлена чистая CPU-функция
+  `expandLineSegments` (полилинии для Windows/Linux и отладочного режима).
+- **Движок.** `LineWidthBackend` (`shader` на macOS/iOS/iPadOS/Android,
+  `polyline` на Windows/Linux, принудительно — параметром `initializeEngine`
+  или define `PET_LINE_WIDTH_BACKEND=polyline`); `LineGeometry`/`LineNode`
+  получили `widthPx` (по умолчанию в хелперах 3 px). `WireframeStyle`
+  (толщина, цвет, `throughGeometry`, угол склейки) и API wireframe на трёх
+  уровнях: `SceneNode.wireframe`, `ModelNode.setFaceWireframe`, сцена —
+  `SceneController.setWireframe`; рёбра берутся из CPU-геометрии (для CSG —
+  из вычисленного результата), дедуплицируются и рисуются на слое `top`.
+  Вьюпорт сам добавляет служебные виды (`overlay`/`top`), когда на слоях
+  есть ноды.
+- **Исправлено по ходу.** Pick-прокси model-инстансов в world-кадре
+  смещался от содержимого (ячейки `modelRefCubeProxy`); добавлен
+  `modelRefFootprintBox` — бокс, центрированный на якоре инстанса, как у
+  рендера и `unionAabbResolved`; это же чинит промахи выделения по мебели.
+  Guard'ы `_disposed` в колбэках контроллера убрали падения
+  «SceneController used after being disposed» при асинхронной догрузке фичи
+  или уровня после смены сцены.
+- **Demo.** Тумблер «Wireframe всей сцены» в панели настроек, ключ диплинка
+  `settings?wireframe=1`, признак в метаданных снимков; визуальный прогон
+  всех 48 сцен (`temp/screenshots/wf_*`, журнал `demo/visual_tests.json`
+  bug_53).
+- **Документация.** `docs/api.md` §9.1 (толщина линий и wireframe), §3
+  (авто-виды), §4/§5.1/§5.3.
+
+Проверки: форк — analyze чист, 1057 тестов; `engine` — analyze чист,
+534 теста; `demo` — analyze чист, 164 теста; `scene_editor` — 344.
+
+### Гизмо, сетка и отладка выделения (13 сентября 2026)
+
+Сделано:
+
+- **Движок: гизмо.** `GizmoMode`/`GizmoAxis`/`GizmoStyle`/`GizmoHit`/
+  `GizmoDragEvent`, `GizmoNode` (перенос — стрелки, вращение — кольца) с
+  постоянным экранным размером (линия 3 px, стрелка/радиус 96 px, кончик
+  18 px), слоем `top` и видимостью сквозь сцену. `SceneController`:
+  `addGizmo`/`removeGizmo`/`hitGizmo` (приоритет над сценой без учёта
+  глубины), `beginGizmoDrag`/`updateGizmoDrag`/`endGizmoDrag`; дельты
+  приходят в `onDrag`, при заданном `target` нода трансформируется сама.
+  Чистые хелперы драга (`axisDragDelta`, `planeHit`,
+  `signedAngleAroundAxis`, `rotationDragDelta`) экспортированы.
+- **Движок: сетка.** `GridNode` — пиксельные линии на слое `overlay`;
+  редактор строит сетку им.
+- **Demo: сцена «Гизмо»** (49-я фича): оба гизмо одновременно, драг мышью и
+  пальцем; в demo проброшен перехват указателя фичей
+  (`FeatureContext.setPointerHandlers`), при драге камера не конфликтует.
+- **Отладка выделения (движок + редактор).**
+  - pick-прокси model-инстансов выровнен с содержимым
+    (`modelRefFootprintBox`), починены и outline, и плейсхолдер, и wireframe;
+  - спрайты пикаются по живому билборд-йо, а не по авторскому `rotY`;
+  - пикинг учитывает отсечение граней (`RaycastOptions.respectCulling`,
+    сторона из материала): невидимые потолок/стены/небо не перехватывают
+    луч (баг «выделение не работает за границей сцены»);
+  - контур выделения CSG рисует вычисленный результат
+    (`ModelNode.edges()`), а не сырые операнды (баг «выделение не совпадает
+    изнутри»);
+  - исправлена подпись операции CSG в правой панели (печаталась `Closure`).
+- **Редактор: wireframe.** Тумблер «Wireframe всей сцены» в верхней панели
+  и переключатель объекта в свойствах; ключ диплинка `settings?wireframe=1`.
+- **Производительность.** `ModelRenderer.updateObjectTransforms` +
+  `SceneController.refreshObjectTransforms` — драг солидных объектов
+  обновляет только трансформы (без пересборки геометрии); для
+  CSG/скруглений/вставок/спрайтов остаётся полный `rebuild`.
+- **Несохранённые изменения.** `AppState.hasUnsavedChanges`/`saveAll`,
+  диалог «Сохранить / Не сохранять / Отмена» на открытие и создание
+  проекта, создание модели и шаблон; новые/дублированные модели помечаются
+  dirty; диплинки (визуальные прогоны) по-прежнему отбрасывают правки.
+
+Проверки: `engine` — analyze чист, 548 тестов; `demo` — 164;
+`scene_editor` — 348; визуальные снимки редактора (кресло, штора, CSG,
+wireframe сцены, сетка движка) — `temp/screenshots`, журнал
+`scene_editor/visual_tests.json`.
+
+Осталось по редактору: перевести собственный гизмо переноса/вращения
+редактора на движковый `GizmoNode` (сейчас движковый гизмо используется в
+demo; редактор показывает свой — с той же математикой, вынесенной в
+движок).
+
+### Wireframe: чужие рамки, следование и толщина (13 сентября 2026)
+
+Замечания владельца (`scene_editor/visual_tests.json` bug_7):
+
+- **Рамки от других сцен.** Документные `ModelNode` виртуальны (без host),
+  поэтому их `dispose` не доходил до `_dropNodeWireframe` и линии прошлых
+  сцен копились в `_wireframeNodes`/группе `wireframes`. `_refreshWireframes`
+  теперь удаляет из трекинга и сцены все id, которых нет среди текущих нод
+  (тест «switching models drops the previous wireframes»).
+- **Следование за объектами.** Пересборка wireframe добавлена в
+  `refreshObjectTransforms` (быстрый драг) и `ModelNode.setPlacement`
+  (живой glTF).
+- **Толщина.** Дефолт `WireframeStyle.thickness` снижен с 3 до 1 px
+  (demo/editor наследуют); `docs/api.md` обновлён.
+- **Выделение в редакторе.** Прокси model-инстанса сужен с полного грида
+  источника (3×3 = 1.8 world) до world-AABB фактического содержимого
+  (`worldContentBounds`): бокс кресла больше не торчит сквозь стену и не
+  перехватывает клики. Pet-лучи (`engine/test/api/pet_picking_test.dart`):
+  клик по левой шторе → штора, по разделителю → окно, по стене у кресла →
+  стена, по креслу → кресло. Снимки `fin_*` — без чужих рамок.
+
+Проверки: `engine` — analyze чист, 554 теста; `demo` — 164;
+`scene_editor` — 348.
+
+### Спрайты, точный пикинг и гизмо редактора (13 сентября 2026)
+
+Замечания владельца (`scene_editor/visual_tests.json` bug_8,
+`demo/visual_tests.json` bug_56):
+
+- **Спрайты.** `SceneController.reorientBillboards` не вызывал
+  `ModelRenderer.reorientBillboards`, поэтому документные спрайты (и
+  вложенные во вставки) стояли на авторском `rotY`; вызов восстановлен.
+  Ориентация вынесена в общий хелпер `spriteBillboardMatrix`
+  (рендер, пик-геометрия, контур редактора) — горизонтальный билборд по
+  священной конвенции. Тест `engine/test/api/sprite_billboard_test.dart`.
+- **Точный пикинг вставок.** Model-инстансы пикаются рекурсивными частями
+  фактического содержимого (примитивы, CSG/скругления, вложенные ссылки,
+  glTF-бокс, спрайты с живым yaw) вместо AABB-прокси: луч в зазор больше
+  не задевает мебель. Pet-лучи: штора → штора, разделитель → окно, стена у
+  кресла → стена, кресло → кресло.
+- **Гизмо редактора — из движка.** Объекты, меты и направленный свет
+  переведены на движковый `GizmoNode` (`onDrag` применяет дельты с шагом,
+  один undo-шаг на драг, приоритетный экранный hit-тест); локальные гизмо,
+  невидимые зоны захвата и дублирующая математика удалены. Мировое +X
+  зеркалится в модельный −x (объекты) и в −rotX (вращение).
+- **Deeplink редактора**: `settings?rotate=1` (режим вращения) и выбор
+  мет/света по режиму (`mode=lighting select=…`).
+
+Проверки: `engine` — analyze чист, 556 тестов; `demo` — 164;
+`scene_editor` — 345; снимки `gizmo_move`/`gizmo_rot2`/`gizmo_light2`/
+`gizmo_light_rot`, `sprite_fix`.
