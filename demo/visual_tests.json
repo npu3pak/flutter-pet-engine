@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated": "2026-09-13T06:46:00.000Z",
+  "updated": "2026-09-13T10:09:53.693015Z",
   "appVersion": "0.1.0+1",
   "engineVersion": "0.1.0-dev.1",
   "platform": "macOS · Metal",
@@ -88,6 +88,251 @@
       "updatedAt": "2026-09-11T09:17:11.789655Z",
       "phase": 2,
       "version": "app 0.2.0+1 · engine 0.1.0+2 · commit неизвестно"
+    },
+    "sprite_atlas": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:02:20.216455Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "transparency_order": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:02:23.443511Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "static_merge": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:02:32.310647Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "dynamic_objects": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:02:45.542829Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "camera_modes": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:02:57.296166Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "picking_hit": {
+      "status": "issue",
+      "comment": "По расстоянию на экране не находит пол",
+      "updatedAt": "2026-09-13T10:03:25.378034Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "screen_projection": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:03:45.519390Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "gizmos": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:04:07.519471Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "weather_rain": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:04:21.877738Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "weather_snow": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:04:38.819512Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "weather_wind": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:04:53.344314Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "weather_cave_draft": {
+      "status": "issue",
+      "comment": "Не движется.",
+      "updatedAt": "2026-09-13T10:05:35.579298Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "particle_params": {
+      "status": "issue",
+      "comment": "Включаю запад. Дождь наклонен в правильну сторону. Но капли смещаются в сторону востока а не запада. Ветер должен сносить капли на запад если ветер западный.",
+      "updatedAt": "2026-09-13T10:07:22.980868Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "fmat_effects": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:07:28.079721Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_shell": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:07:47.434073Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_meta_cells": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:07:53.887520Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_meta_query": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:07:58.612209Z",
+      "phase": 5,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_docking": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:04.548339Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_validation": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:07.928918Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_baking": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:13.763552Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_loading": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:27.686732Z",
+      "phase": 5,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "legacy_chunks": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:51.370580Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "biome_dungeon": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:53.053741Z",
+      "phase": 4,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "biome_forest": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:54.853762Z",
+      "phase": 4,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "biome_abandoned_building": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:08:56.720806Z",
+      "phase": 4,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "level_stress": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:22.074859Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_ops": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:25.892636Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_snap_cylinder": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:29.419653Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_parallel": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:32.220026Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_align": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:35.038311Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_fill_gap": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:37.280708Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_cover": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:39.290149Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_inset_outset": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:41.770220Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "placement_stretch": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:45.319468Z",
+      "phase": 3,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "ready_scene": {
+      "status": "ok",
+      "comment": "",
+      "updatedAt": "2026-09-13T10:09:53.693007Z",
+      "phase": 2,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
     }
   },
   "bugs": [
@@ -1666,7 +1911,6 @@
           "at": "2026-09-12T11:26:38.907Z",
           "author": "agent",
           "kind": "fixed",
-          "text": "",
           "status": "fixed",
           "version": "app 0.2.0+1 · engine 0.1.0-dev.1"
         }
@@ -1698,7 +1942,6 @@
           "at": "2026-09-12T12:04:50.102Z",
           "author": "agent",
           "kind": "fixed",
-          "text": "",
           "status": "fixed",
           "version": "app 0.2.0+1 · engine 0.1.0-dev.1"
         }
@@ -1783,6 +2026,74 @@
           "text": "SceneController.reorientBillboards не вызывал ModelRenderer.reorientBillboards — документные спрайты (и вложенные) оставались на авторском rotY. Вызов восстановлен, ориентация вынесена в общий хелпер spriteBillboardMatrix (рендер/пикинг/контур). Лог подтверждает переориентацию спрайтов каждый кадр (billboards yaw=… sprites=3). Тесты: engine/test/api/sprite_billboard_test.dart; engine 556.",
           "status": "fixed",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1"
+        }
+      ]
+    },
+    {
+      "id": "bug_57",
+      "featureId": "model_refs",
+      "status": "open",
+      "createdAt": "2026-09-13T10:00:06.711097Z",
+      "updatedAt": "2026-09-13T10:00:06.711097Z",
+      "events": [
+        {
+          "at": "2026-09-13T10:00:06.711097Z",
+          "author": "user",
+          "kind": "reported",
+          "text": "Отсутствующий источник должен быть ярко розовым, чтобы он был заметен",
+          "status": "open",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        }
+      ]
+    },
+    {
+      "id": "bug_58",
+      "featureId": "picking_hit",
+      "status": "open",
+      "createdAt": "2026-09-13T10:03:25.378057Z",
+      "updatedAt": "2026-09-13T10:03:25.378057Z",
+      "events": [
+        {
+          "at": "2026-09-13T10:03:25.378057Z",
+          "author": "user",
+          "kind": "reported",
+          "text": "По расстоянию на экране не находит пол",
+          "status": "open",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        }
+      ]
+    },
+    {
+      "id": "bug_59",
+      "featureId": "weather_cave_draft",
+      "status": "open",
+      "createdAt": "2026-09-13T10:05:35.579305Z",
+      "updatedAt": "2026-09-13T10:05:35.579305Z",
+      "events": [
+        {
+          "at": "2026-09-13T10:05:35.579305Z",
+          "author": "user",
+          "kind": "reported",
+          "text": "Не движется.",
+          "status": "open",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        }
+      ]
+    },
+    {
+      "id": "bug_60",
+      "featureId": "particle_params",
+      "status": "open",
+      "createdAt": "2026-09-13T10:07:22.980875Z",
+      "updatedAt": "2026-09-13T10:07:22.980875Z",
+      "events": [
+        {
+          "at": "2026-09-13T10:07:22.980875Z",
+          "author": "user",
+          "kind": "reported",
+          "text": "Включаю запад. Дождь наклонен в правильну сторону. Но капли смещаются в сторону востока а не запада. Ветер должен сносить капли на запад если ветер западный.",
+          "status": "open",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }
       ]
     }
