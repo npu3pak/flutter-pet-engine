@@ -467,6 +467,8 @@ class ParticleNode extends SceneNode {
 
 class SpriteFieldNode extends SceneNode {
   SpriteFieldNode({required List<SpriteFieldSprite> sprites, required int capacity, SpriteFieldFacing facing = SpriteFieldFacing.screenParallel, bool opaque = false});
+  double screenParallelYaw;         // общий разворот screen-parallel поля (радианы),
+                                    // как у SpriteNode.billboard — обновляется при повороте камеры
   Future<void> prepare();           // сборка атласа до первого кадра
   void update(List<SpriteFieldInstance> instances);
   void reset();                     // очистка без потери атласа

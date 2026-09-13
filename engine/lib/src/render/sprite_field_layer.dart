@@ -81,6 +81,18 @@ class SpriteFieldLayer {
 
   final SpriteFieldFacing facing;
 
+  double _screenParallelYaw = 0.0;
+
+  /// The shared yaw (radians) of [SpriteFieldFacing.screenParallel] instances.
+  /// Applied to the live batch immediately, so the application can update it
+  /// while the camera turns; repacking stays one instanced call.
+  double get screenParallelYaw => _screenParallelYaw;
+  set screenParallelYaw(double value) {
+    if (_screenParallelYaw == value) return;
+    _screenParallelYaw = value;
+    _batch?.screenParallelYaw = value;
+  }
+
   /// Opaque alpha-tested batch (depth buffer resolves ordering exactly).
   final bool opaque;
 
@@ -131,17 +143,18 @@ class SpriteFieldLayer {
 
   /// Repacks the layer for the current frame. [tint] multiplies every
   /// instance's color (the layer default when an instance carries none);
-  /// [screenParallelYaw] orients screen-parallel fields.
+  /// [screenParallelYaw] overrides the stored yaw for this pack.
   void update(
     List<SpriteFieldInstance> instances, {
     vm.Vector4? tint,
-    double screenParallelYaw = 0.0,
+    double? screenParallelYaw,
   }) {
     if (_disposed) return;
+    if (screenParallelYaw != null) this.screenParallelYaw = screenParallelYaw;
     _ensureBatch();
     final batch = _batch;
     if (batch == null) return;
-    batch.screenParallelYaw = screenParallelYaw;
+    batch.screenParallelYaw = _screenParallelYaw;
     final count =
         instances.length > batch.capacity ? batch.capacity : instances.length;
     var written = 0;

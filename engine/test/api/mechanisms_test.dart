@@ -65,6 +65,17 @@ void main() {
       node.reset();
       node.dispose();
     });
+
+    test('screenParallelYaw flows through to the layer', () {
+      final node = SpriteFieldNode(sprites: const [], capacity: 16);
+      expect(node.screenParallelYaw, 0.0);
+      node.screenParallelYaw = 0.75;
+      expect(node.screenParallelYaw, 0.75);
+      // Repack keeps the stored yaw.
+      node.update(const []);
+      expect(node.screenParallelYaw, 0.75);
+      node.dispose();
+    });
   });
 
   group('GroundFogNode', () {

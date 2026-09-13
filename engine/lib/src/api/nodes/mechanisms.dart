@@ -145,6 +145,13 @@ class SpriteFieldNode extends SceneNode {
 
   final SpriteFieldLayer _layer;
 
+  /// The shared yaw (radians) of [SpriteFieldFacing.screenParallel] instances:
+  /// the whole field turns uniformly, exactly like `SpriteNode.billboard`
+  /// nodes driven by `SceneController.reorientBillboards`. The application
+  /// writes it when the camera turns; the repack stays one instanced call.
+  double get screenParallelYaw => _layer.screenParallelYaw;
+  set screenParallelYaw(double value) => _layer.screenParallelYaw = value;
+
   /// Whether the atlas and batch are ready.
   bool get ready => _layer.ready;
 
