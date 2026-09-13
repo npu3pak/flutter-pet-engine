@@ -107,9 +107,9 @@ class ParticleConfig {
   final double swayFreq;
 
   /// Horizontal world drift direction (only x/z are used; normalized) and
-  /// drift speed in m/s. Rain gets a whole-volume breeze slant on its streaks;
-  /// snow falls slanting along it (see [slantDrift]); wind wisps/glints ride
-  /// the draught as a repeating dash.
+  /// drift speed in m/s. Rain drops drift along it while falling (and their
+  /// streaks slant with the full velocity); snow falls slanting along it (see
+  /// [slantDrift]); wind wisps/glints ride the draught as a repeating dash.
   final vm.Vector3 windDirection;
   final double windSpeed;
 

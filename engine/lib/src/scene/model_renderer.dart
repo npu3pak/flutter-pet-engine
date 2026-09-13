@@ -143,6 +143,7 @@ ModelObject modelRefFootprintBox(ModelObject ref) {
     y: 0,
     z: 0,
     dims: {'w': w, 'h': h, 'd': l},
+    material: ModelMaterial(type: MaterialType.color, color: const [255, 0, 255]),
   );
 }
 

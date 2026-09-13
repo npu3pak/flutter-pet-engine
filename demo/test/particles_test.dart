@@ -75,6 +75,14 @@ void main() {
     expect(ParticlePresets.passSnow.rotationSpin, greaterThan(0));
     expect(ParticlePresets.passWind.fallSpeedMax, 0);
     expect(ParticlePresets.caveWindStreak.kind, ParticleKind.wind);
+    expect(
+      ParticlePresets.caveWindStreak.windDirection.length2,
+      greaterThan(0),
+    );
+    expect(
+      ParticlePresets.caveWindGlint.windDirection,
+      ParticlePresets.caveWindStreak.windDirection,
+    );
   });
 
   testWidgets('управление погодой открывается без проекта', (tester) async {

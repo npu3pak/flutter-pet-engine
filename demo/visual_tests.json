@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated": "2026-09-13T10:09:53.693015Z",
+  "updated": "2026-09-13T10:35:06.137311Z",
   "appVersion": "0.1.0+1",
   "engineVersion": "0.1.0-dev.1",
   "platform": "macOS · Metal",
@@ -2032,9 +2032,9 @@
     {
       "id": "bug_57",
       "featureId": "model_refs",
-      "status": "open",
+      "status": "fixed",
       "createdAt": "2026-09-13T10:00:06.711097Z",
-      "updatedAt": "2026-09-13T10:00:06.711097Z",
+      "updatedAt": "2026-09-13T10:31:55.000816Z",
       "events": [
         {
           "at": "2026-09-13T10:00:06.711097Z",
@@ -2043,15 +2043,22 @@
           "text": "Отсутствующий источник должен быть ярко розовым, чтобы он был заметен",
           "status": "open",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        },
+        {
+          "at": "2026-09-13T10:31:55.000816Z",
+          "author": "user",
+          "kind": "fixed",
+          "status": "fixed",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }
       ]
     },
     {
       "id": "bug_58",
       "featureId": "picking_hit",
-      "status": "open",
+      "status": "fixed",
       "createdAt": "2026-09-13T10:03:25.378057Z",
-      "updatedAt": "2026-09-13T10:03:25.378057Z",
+      "updatedAt": "2026-09-13T10:35:06.137090Z",
       "events": [
         {
           "at": "2026-09-13T10:03:25.378057Z",
@@ -2060,15 +2067,29 @@
           "text": "По расстоянию на экране не находит пол",
           "status": "open",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        },
+        {
+          "at": "2026-09-13T10:32:42.961570Z",
+          "author": "user",
+          "kind": "message",
+          "text": "Стало хуже, ни один объект не выбирается теперь, только пол. Откатываем если невозможно выбирать пол без деградации",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        },
+        {
+          "at": "2026-09-13T10:35:06.137090Z",
+          "author": "user",
+          "kind": "fixed",
+          "status": "fixed",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }
       ]
     },
     {
       "id": "bug_59",
       "featureId": "weather_cave_draft",
-      "status": "open",
+      "status": "fixed",
       "createdAt": "2026-09-13T10:05:35.579305Z",
-      "updatedAt": "2026-09-13T10:05:35.579305Z",
+      "updatedAt": "2026-09-13T10:32:57.294622Z",
       "events": [
         {
           "at": "2026-09-13T10:05:35.579305Z",
@@ -2077,15 +2098,22 @@
           "text": "Не движется.",
           "status": "open",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        },
+        {
+          "at": "2026-09-13T10:32:57.294622Z",
+          "author": "user",
+          "kind": "fixed",
+          "status": "fixed",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }
       ]
     },
     {
       "id": "bug_60",
       "featureId": "particle_params",
-      "status": "open",
+      "status": "fixed",
       "createdAt": "2026-09-13T10:07:22.980875Z",
-      "updatedAt": "2026-09-13T10:07:22.980875Z",
+      "updatedAt": "2026-09-13T10:33:08.861954Z",
       "events": [
         {
           "at": "2026-09-13T10:07:22.980875Z",
@@ -2093,6 +2121,13 @@
           "kind": "reported",
           "text": "Включаю запад. Дождь наклонен в правильну сторону. Но капли смещаются в сторону востока а не запада. Ветер должен сносить капли на запад если ветер западный.",
           "status": "open",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        },
+        {
+          "at": "2026-09-13T10:33:08.861954Z",
+          "author": "user",
+          "kind": "fixed",
+          "status": "fixed",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }
       ]

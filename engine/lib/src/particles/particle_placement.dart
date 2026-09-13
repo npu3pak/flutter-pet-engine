@@ -109,8 +109,9 @@ const double _rainHeadFrac = 48 / 256;
 ///   [ParticleConfig.fallSpeedMin]..[fallSpeedMax] m/s, cycling the vertical
 ///   band [ParticleConfig.bottomY]..[topY] (the hidden wrap sits below the
 ///   floor and above the top bound). The per-instance velocity carries the
-///   fall (the streak billboard stretches along it), plus an optional
-///   horizontal breeze slant.
+///   fall (the streak billboard stretches along it), plus the horizontal
+///   breeze: the drops drift along the wind over the fall phase and the
+///   streak slants with the full velocity.
 /// - [ParticleKind.snow]: slow flakes fall the same way, swaying and spinning
 ///   around their cell anchor. With [ParticleConfig.slantDrift] they
 ///   additionally drift along the wind over one full fall cycle — the offset
@@ -239,14 +240,33 @@ List<ParticleInstance> placeParticles(
           final fall = time * speed + phase * span;
           if (config.kind == ParticleKind.rain) {
             // The loop variable is the drop HEAD; the billboard center sits
-            // below it by the top blank of the rain texture.
-            final stretch = config.velocityStretch * speed;
+            // behind it along the velocity by the top blank of the rain
+            // texture (BillboardFacing.velocityStretched aligns the sprite's
+            // up axis with the full velocity, so under wind the offset has
+            // horizontal components as well). The stretch follows the full
+            // speed for the same reason.
+            final vx0 = dirX * config.windSpeed;
+            final vz0 = dirZ * config.windSpeed;
+            final speedTotal = math.sqrt(speed * speed + vx0 * vx0 + vz0 * vz0);
+            final stretch = config.velocityStretch * speedTotal;
             final head = config.topY - fall % span;
             final len = chosen.height + stretch;
-            py = head - (0.5 - _rainHeadFrac) * len;
-            vx = dirX * config.windSpeed;
+            // Wind drift: the drop rides the wind while it falls; the offset
+            // is a closed form of the fall phase, so the wrap coincides with
+            // the hidden under-floor reset and no teleport is visible.
+            final frac = (config.topY - head) / span;
+            final fallTime = speed > 1e-9 ? span / speed : 0.0;
+            px += vx0 * fallTime * frac;
+            pz += vz0 * fallTime * frac;
+            final back = speedTotal > 1e-9
+                ? (0.5 - _rainHeadFrac) * len / speedTotal
+                : 0.0;
+            px += back * vx0;
+            pz += back * vz0;
+            py = head - back * speed;
+            vx = vx0;
             vy = -speed;
-            vz = dirZ * config.windSpeed;
+            vz = vz0;
           } else {
             // Snow: the loop variable is the flake center. Flakes stay in
             // their cell — the slant below is bounded per fall cycle.

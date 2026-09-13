@@ -102,7 +102,8 @@ class ParticlePresets {
   );
 
   /// Ice-cave wind, layer one: soft translucent wisps that slowly draught
-  /// through the halls. The direction is per-floor — the game passes the
+  /// through the halls. The direction defaults to north (−Z, like the
+  /// mountain pass) and may be overridden per floor with the game's
   /// center→exit vector (see `ParticleLayer.windDirection`).
   static final ParticleConfig caveWindStreak = ParticleConfig(
     kind: ParticleKind.wind,
@@ -123,6 +124,7 @@ class ParticlePresets {
     topY: 0.72,
     swayAmp: 0.10,
     swayFreq: 0.6,
+    windDirection: vm.Vector3(0.0, 0.0, -1.0),
     windSpeed: 0.6,
     color: vm.Vector3(0.78, 0.90, 1.0),
     opacity: 0.55,
@@ -151,6 +153,7 @@ class ParticlePresets {
     topY: 0.74,
     swayAmp: 0.05,
     swayFreq: 2.2,
+    windDirection: vm.Vector3(0.0, 0.0, -1.0),
     windSpeed: 1.07,
     color: vm.Vector3(0.70, 0.88, 1.0),
     opacity: 0.9,

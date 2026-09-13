@@ -47,6 +47,17 @@ void main() {
       expect(ParticlePresets.streetRain.velocityStretch, greaterThan(0));
       expect(ParticlePresets.streetRain.fallSpeedMin, greaterThan(0));
     });
+
+    test('cave draughts carry a default direction and move', () {
+      expect(
+        ParticlePresets.caveWindStreak.windDirection,
+        vm.Vector3(0.0, 0.0, -1.0),
+      );
+      expect(
+        ParticlePresets.caveWindGlint.windDirection,
+        ParticlePresets.caveWindStreak.windDirection,
+      );
+    });
   });
 
   group('ParticleConfig.withIntensity', () {

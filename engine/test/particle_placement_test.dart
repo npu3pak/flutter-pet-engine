@@ -134,6 +134,29 @@ void main() {
       expect(p.vz, -3);
     });
 
+    test('rain drifts downwind over the fall phase, never upwind', () {
+      final field = _field(rows: 1, columns: 1);
+      final still = _rain(speed: 2.0, maxPerCell: 1);
+      final drifting = _rain(
+        speed: 2.0,
+        maxPerCell: 1,
+        windSpeed: 4,
+        windDirection: vm.Vector3(1, 0, 0),
+      );
+
+      var maxDelta = 0.0;
+      for (var t = 0.0; t < 5.0; t += 0.1) {
+        final moving = placeParticles(field, drifting,
+            focusRow: 0, focusColumn: 0, time: t).single;
+        final base = placeParticles(field, still,
+            focusRow: 0, focusColumn: 0, time: t).single;
+        final delta = moving.x - base.x;
+        expect(delta, greaterThanOrEqualTo(-1e-9));
+        if (delta > maxDelta) maxDelta = delta;
+      }
+      expect(maxDelta, greaterThan(0.0));
+    });
+
     test('snow drifts along the wind over the fall phase', () {
       final field = _field(rows: 1, columns: 1);
       final config = ParticleConfig(
