@@ -244,6 +244,65 @@ void main() {
       controller.dispose();
     });
 
+    test('touch: one finger looks and the second flies', () {
+      final controller = SceneController();
+      final fly = FlyCameraController(eye: vm.Vector3.zero(), yaw: 0, pitch: 0);
+      controller.camera = fly;
+      final input = CameraInput();
+      final info = SceneViewportInfo(
+        size: const Size(400, 300),
+        pixelRatio: 1,
+        controller: controller,
+      );
+
+      // Первый палец — осмотр.
+      input.onPointerDown(
+        PointerDownEvent(pointer: 1, kind: PointerDeviceKind.touch),
+        info,
+      );
+      input.onPointerMove(
+        PointerMoveEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          delta: const Offset(10, 0),
+        ),
+        info,
+      );
+      expect(fly.yaw, closeTo(0.05, 1e-6));
+
+      // Второй палец — полёт: вверх = вперёд (+Z), вправо = стрейф (+X).
+      input.onPointerDown(
+        PointerDownEvent(pointer: 2, kind: PointerDeviceKind.touch),
+        info,
+      );
+      expect(fly.flying, isTrue);
+      final before = fly.eye.clone();
+      input.onPointerMove(
+        PointerMoveEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          delta: const Offset(0, -20),
+        ),
+        info,
+      );
+      expect(fly.eye.z, greaterThan(before.z));
+      input.onPointerMove(
+        PointerMoveEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          delta: const Offset(20, 0),
+        ),
+        info,
+      );
+      expect(fly.eye.x, greaterThan(before.x));
+      input.onPointerUp(
+        PointerUpEvent(pointer: 2, kind: PointerDeviceKind.touch),
+        info,
+      );
+      expect(fly.flying, isFalse);
+      controller.dispose();
+    });
+
     test('wheel zooms the fly camera', () {
       final controller = SceneController();
       final fly = FlyCameraController(eye: vm.Vector3(0, 0, 10), yaw: 0);

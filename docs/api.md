@@ -969,6 +969,10 @@ class FlyCameraController implements CameraController {
   double yaw;
   double pitch;
 
+  Vector3 get forwardH;             // горизонтальное направление взгляда
+  Vector3 get rightH;               // горизонтальное направление вправо
+  Vector3 get forward;              // полное направление взгляда
+
   void lookAt(Vector3 target);
   void frameModel(ModelData model);
   void frameBounds(Aabb3 bounds);
@@ -1064,13 +1068,17 @@ class CameraInput extends SceneInput {
     this.tapSlop = 8,
     this.tapTimeout = const Duration(milliseconds: 300),
     this.lookSensitivity = 0.005,
+    this.touchFlyDistance = 8.0,                // мировой путь тач-полёта
     this.keyFlyCodes = const {0x57, 0x41, 0x53, 0x44, 0x45, 0x51},
   });
 }
 ```
 
 Роли по умолчанию: ПКМ (зажать) — обзор и полёт (WASD/QE, Shift —
-быстрее), ЛКМ (протяжка) — панорама, колесо — зум.
+быстрее), ЛКМ (протяжка) — панорама, колесо — зум. На тач-устройствах:
+один палец — обзор, два пальца — полёт (драг второго пальца: вертикаль —
+вперёд/назад, горизонталь — стрейф); мировой путь драга на полную высоту
+вьюпорта — `touchFlyDistance`.
 
 Правила вьюпорта:
 

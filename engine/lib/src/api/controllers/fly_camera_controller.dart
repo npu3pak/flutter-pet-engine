@@ -67,6 +67,9 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
   @override
   vm.Vector3 get forwardH => _camera.forwardH;
 
+  /// The horizontal part of the camera's local +X (screen-right).
+  vm.Vector3 get rightH => _camera.rightH;
+
   /// The full view direction.
   vm.Vector3 get forward => _camera.forward;
 

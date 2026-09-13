@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -9,6 +11,11 @@ import 'scene_input.dart';
 /// keyboard flight, the pan button drags the scene sideways, the wheel
 /// zooms, the keyboard moves (WASD/QE, Shift = faster).
 ///
+/// Touch devices use the same camera in two gestures: one finger looks
+/// around, two fingers fly — the second finger's drag moves the camera
+/// (vertical = forward/back, horizontal = strafe), matching
+/// [touchFlyDistance].
+///
 /// The handler is stateless per event and only reacts when the active camera
 /// is a [FlyCameraController]; other cameras ignore it.
 class CameraInput extends SceneInput {
@@ -19,6 +26,7 @@ class CameraInput extends SceneInput {
     this.tapSlop = 8,
     this.tapTimeout = const Duration(milliseconds: 300),
     this.lookSensitivity = 0.005,
+    this.touchFlyDistance = 8.0,
     this.keyFlyCodes = const {0x57, 0x41, 0x53, 0x44, 0x45, 0x51},
   });
 
@@ -37,6 +45,10 @@ class CameraInput extends SceneInput {
 
   /// Look sensitivity in radians per pixel.
   final double lookSensitivity;
+
+  /// World units the camera covers when a two-finger touch drag travels the
+  /// full viewport height. The horizontal drag scales with the same factor.
+  final double touchFlyDistance;
 
   /// The engine key codes that fly (W/A/S/D/Q/E).
   final Set<int> keyFlyCodes;
@@ -87,7 +99,31 @@ class CameraInput extends SceneInput {
         focus: camera.eye + camera.forward * 10,
         viewportHeight: info.size.height,
       );
+    } else if (event.pointer == _flyPointer &&
+        event.kind == PointerDeviceKind.touch) {
+      _flyByTouch(camera, event.delta, info);
     }
+  }
+
+  /// Two-finger touch flight: a vertical drag moves forward/back along the
+  /// camera's horizontal view direction, a horizontal drag strafes. The
+  /// world distance per pixel scales with the viewport height so the gesture
+  /// feels the same on any screen.
+  void _flyByTouch(
+    FlyCameraController camera,
+    Offset delta,
+    SceneViewportInfo info,
+  ) {
+    final height = info.size.height;
+    if (height <= 0) return;
+    final scale =
+        2 *
+        touchFlyDistance *
+        math.tan(camera.projection.fovY / 2) /
+        height;
+    camera.eye = camera.eye +
+        camera.forwardH.scaled(-delta.dy * scale) +
+        camera.rightH.scaled(delta.dx * scale);
   }
 
   @override

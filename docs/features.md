@@ -602,8 +602,11 @@
 - **Где.** `PD/lib/src/game_screen.dart:216-237`;
   `EX/lib/src/navigation/free_nav.dart:87-115`;
   `ED/lib/src/ui/editor_viewport.dart:389-477`.
-- **API v2.** Обработчик ввода видит все указатели и их идентификаторы.
-- **Статус.** Частично.
+- **API v2.** `CameraInput`: роли кнопок мыши настраиваются; на тач-
+  устройствах один палец — обзор, два пальца — полёт (драг второго пальца,
+  `touchFlyDistance`).
+- **Статус.** Готово (тач-полёт добавлен `feature/camera-input-touch-fly`,
+  тест — `engine/test/api/camera_test.dart`).
 
 ### F3. Тап
 
