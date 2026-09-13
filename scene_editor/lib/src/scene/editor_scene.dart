@@ -317,10 +317,12 @@ class EditorScene {
     controller: controller,
   );
 
-  /// Gizmo markers of the light sources (balls / balls with aim arrows).
-  /// Rendered on the overlay layer — always on top, rebuilt from the
-  /// model's lighting config (only shown in the lighting mode).
-  final GroupNode lightGizmoRoot = GroupNode(id: 'light-gizmos');
+  /// The layout-independent light gizmos; all their nodes are managed by
+  /// this layer.
+  late final LightGizmoLayer lightGizmos = LightGizmoLayer();
+
+  /// The root group of the light gizmos (the layer owns the nodes).
+  GroupNode get lightGizmoRoot => lightGizmos.root;
 
   /// True while the editor is in the texture mode: the gizmo is hidden and
   /// face selection drives the outlines.
@@ -1164,7 +1166,7 @@ class EditorScene {
       _outlineNode = null;
       _selectionDirty = true;
       metaOverlay.rebuild(null);
-      lightGizmoRoot.removeAll();
+      lightGizmos.clear();
       moveGizmo.visible = false;
       rotateGizmo.visible = false;
       _overlayRevision = controller.revision;
@@ -1320,10 +1322,10 @@ class EditorScene {
     // Light-source gizmos are visible only in the «Освещение» mode (and
     // while its scene knob «показывать гизмо» is on).
     if (lightingMode && model.lighting.gizmos) {
-      rebuildLightGizmos(lightGizmoRoot, model.lighting,
+      lightGizmos.rebuild(model.lighting,
           modelW: model.size.w, modelL: model.size.l);
     } else {
-      lightGizmoRoot.removeAll();
+      lightGizmos.clear();
     }
   }
 
@@ -1372,13 +1374,14 @@ class EditorScene {
     _overlayRevision = controller.revision;
   }
 
-  /// Syncs the meta layer after a meta drag step (the whole layer is
-  /// re-diffed, but the grid/frame/selection/light overlays stay cached).
+  /// Syncs the meta layer after a meta drag step: only the dragged meta's
+  /// nodes get fresh transforms (the other metas stay cached); the grid,
+  /// frame, selection and light overlays are untouched.
   void _syncAfterMetaMove() {
     final model = controller.model;
     if (model == null) return;
     armMetaProbe();
-    metaOverlay.rebuild(markupMode ? model : null);
+    if (markupMode) metaOverlay.sync(model);
     _syncGizmo(
       model,
       selectedObjects(model),
@@ -1388,9 +1391,13 @@ class EditorScene {
     _overlayRevision = controller.revision;
   }
 
-  /// Syncs the light-source gizmos after a light drag step.
+  /// Syncs the light-source gizmos after a light drag step: only the dragged
+  /// source's nodes get fresh transforms (the others stay).
   void _syncAfterLightMove(ModelData model) {
-    _rebuildLightGizmos(model);
+    if (lightingMode && model.lighting.gizmos) {
+      lightGizmos.sync(model.lighting,
+          modelW: model.size.w, modelL: model.size.l, only: selectedLightId);
+    }
     _syncGizmo(
       model,
       selectedObjects(model),
@@ -1506,6 +1513,7 @@ class EditorScene {
     controller.remove(selectionOverlay);
     controller.remove(overlays);
     controller.remove(lightGizmoRoot);
+    lightGizmos.dispose();
     controller.remove(metaOverlay.root);
     metaOverlay.dispose();
   }

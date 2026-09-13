@@ -1118,8 +1118,10 @@ analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-ви
   сразу; во вьюпорте редактора появился `onPointerCancel`.
 
 Тесты: `engine/test/fast_rotate_test.dart`; регрессии в
-`scene_editor/test/editor_scene_test.dart` и
-`scene_editor/test/editor_viewport_test.dart`. Проверки: `engine` — analyze
-чист, 515 тестов; `demo` — 164; `scene_editor` — analyze чист, 352. Числа и
-визуальные проверки — `docs/perf_journal.md`. Хвост на будущее: точечный
-diff мета-слоя и гизмо света при их собственных драгах.
+`scene_editor/test/editor_scene_test.dart`,
+`scene_editor/test/editor_viewport_test.dart` и
+`scene_editor/test/overlay_layers_test.dart`. Проверки: `engine` — analyze
+чист, 515 тестов; `demo` — 164; `scene_editor` — analyze чист, 355. Числа и
+визуальные проверки — `docs/perf_journal.md`. Хвост закрыт: мета-слой
+(`MetaOverlayLayer.sync`) и гизмо света (`LightGizmoLayer.sync(only:)`)
+обновляют только перемещённый элемент (0.10 мс/шаг, 0 пересборок).

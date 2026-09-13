@@ -244,6 +244,17 @@ class _MetaView {
   final List<_MetaMaterial> materials = [];
   final List<SpriteNode> billboards = [];
 
+  /// Every node of the view (shape meshes, box edges, the bubble sprite):
+  /// a rigid move shifts them via their transforms.
+  final List<SceneNode> nodes = [];
+
+  /// The world base (chunkWorld anchor + y) the node transforms were built
+  /// with; the move delta is applied to the existing nodes.
+  vm.Vector3 base = vm.Vector3.zero();
+
+  /// Shape identity (kind, dims, z-index, label): a change rebuilds the view.
+  String geometryKey = '';
+
   String? bubbleKey;
   double bubbleWidthWorld = 0;
   double bubbleHeightWorld = 0;
@@ -276,7 +287,7 @@ class MetaOverlayLayer {
   final Map<String, SceneTexture> _textures = {};
   final Map<String, Future<SceneTexture?>> _loading = {};
   final Map<String, _BubbleSpec> _specs = {};
-  final List<_MetaView> _views = [];
+  final Map<String, _MetaView> _views = {};
   ModelData? _model;
   double _yaw = 0;
   bool _needsProbe = false;
@@ -295,43 +306,107 @@ class MetaOverlayLayer {
     _views.clear();
     _model = model;
     if (model == null) return;
+    sync(model);
+  }
+
+  /// Incremental refresh after a meta edit: views whose shape key changed
+  /// are rebuilt, added/removed metas are mounted/unmounted, and a moved
+  /// meta just shifts its existing nodes (the bubbles follow in [tick]).
+  void sync(ModelData model) {
+    if (_disposed) return;
+    _model = model;
     final usedKeys = <String>{};
+    final alive = <String>{};
     for (final meta in model.metas) {
-      if (meta.kind != metaKindComment &&
-          meta.kind != metaKindMarker &&
-          meta.kind != metaKindBox) {
-        continue;
+      if (!_isShapeMeta(meta)) continue;
+      alive.add(meta.id);
+      final key = _geometryKey(meta);
+      var view = _views[meta.id];
+      if (view != null && view.geometryKey != key) {
+        _removeView(view);
+        view = null;
       }
-      final view = _buildShape(meta, model.size);
-      _views.add(view);
-      if (metaHasLabel(meta)) {
-        view.bubbleKey = _labelKey(meta);
-        usedKeys.add(view.bubbleKey!);
-        final spec = _specs[view.bubbleKey];
-        if (spec != null) {
-          view.bubbleWidthWorld = spec.widthWorld;
-          view.bubbleHeightWorld = spec.heightWorld;
-          final tex = _textures[view.bubbleKey];
-          if (tex != null) view.bubbleAttached = true;
+      if (view == null) {
+        view = _buildShape(meta, model.size);
+        view.geometryKey = key;
+        view.base = _viewBase(meta);
+        view.bubbleKey = metaHasLabel(meta) ? _labelKey(meta) : null;
+        _views[meta.id] = view;
+      } else {
+        final base = _viewBase(meta);
+        final delta = base - view.base;
+        if (delta.length2 > 1e-18) {
+          final step = vm.Matrix4.translation(delta);
+          for (final node in view.nodes) {
+            node.transform = step * node.transform;
+          }
+          view.base = base;
         }
       }
+      _prepareBubble(view);
+      if (view.bubbleKey != null) usedKeys.add(view.bubbleKey!);
     }
-    // Attach ready bubbles; kick off the pending rasterizations.
-    for (final view in _views) {
-      if (view.bubbleKey != null && view.bubbleAttached) {
-        _attachBubbleNode(view, _textures[view.bubbleKey]!);
-      } else if (view.bubbleKey != null) {
-        _ensureBubbleTexture(view);
+    // Drop views of metas that no longer exist.
+    for (final id in _views.keys.toList()) {
+      if (alive.contains(id)) continue;
+      _removeView(_views.remove(id)!);
+    }
+    _pruneBubbles(usedKeys);
+    _needsProbe = true;
+  }
+
+  bool _isShapeMeta(ModelMeta meta) =>
+      meta.kind == metaKindComment ||
+      meta.kind == metaKindMarker ||
+      meta.kind == metaKindBox;
+
+  /// Shape identity: a change in kind, dimensions, z-index or label text
+  /// requires new geometry/nodes.
+  String _geometryKey(ModelMeta meta) => '${meta.kind}|'
+      '${meta.dim('w', 1)}|${meta.dim('h', 1)}|${meta.dim('d', 1)}|'
+      '${meta.zIndex}|${metaHasLabel(meta) ? _labelKey(meta) : ''}';
+
+  /// World base of a meta view (chunkWorld anchor with its y).
+  vm.Vector3 _viewBase(ModelMeta meta) {
+    final model = _model;
+    if (model == null) return vm.Vector3.zero();
+    final w = chunkWorld(meta.x, meta.z, model.size.w, model.size.l);
+    return vm.Vector3(w.x, meta.y, w.z);
+  }
+
+  /// Attaches a ready bubble or kicks off its rasterization.
+  void _prepareBubble(_MetaView view) {
+    final key = view.bubbleKey;
+    if (key == null) return;
+    final spec = _specs[key];
+    if (spec != null) {
+      view.bubbleWidthWorld = spec.widthWorld;
+      view.bubbleHeightWorld = spec.heightWorld;
+      final tex = _textures[key];
+      if (tex != null && !view.bubbleAttached) {
+        view.bubbleAttached = true;
+        _attachBubbleNode(view, tex);
       }
     }
-    // Drop caches of metas/bubbles that no longer exist.
+    if (!view.bubbleAttached) _ensureBubbleTexture(view);
+  }
+
+  void _pruneBubbles(Set<String> usedKeys) {
     _textures.removeWhere((k, tex) {
       if (usedKeys.contains(k)) return false;
       tex.dispose();
       return true;
     });
     _specs.removeWhere((k, _) => !usedKeys.contains(k));
-    _needsProbe = true;
+  }
+
+  void _removeView(_MetaView view) {
+    for (final node in view.nodes) {
+      root.remove(node);
+    }
+    view.nodes.clear();
+    view.materials.clear();
+    view.billboards.clear();
   }
 
   /// Detaches the layer and releases the cached bubble textures. Called when
@@ -363,7 +438,7 @@ class MetaOverlayLayer {
   }) {
     if (_disposed || _views.isEmpty) return;
     _yaw = screenParallelYaw(fx, fz);
-    for (final view in _views) {
+    for (final view in _views.values) {
       for (final b in view.billboards) {
         b
           ..position = _bubbleCenterWorld(view.meta, view.bubbleHeightWorld)
@@ -387,7 +462,7 @@ class MetaOverlayLayer {
       for (final node in controller.nodesOfType<SceneNode>())
         if (node is! ModelNode) node.id,
     };
-    for (final view in _views) {
+    for (final view in _views.values) {
       var occluded = false;
       for (final target in metaOcclusionSamples(view.meta, size)) {
         final d = (target - eye).length;
@@ -447,7 +522,7 @@ class MetaOverlayLayer {
       _textures[key] = tex;
       // The view list may have been rebuilt while the rasterization ran —
       // attach to the current view with the same bubble key.
-      for (final v in _views) {
+      for (final v in _views.values) {
         if (v.bubbleKey == key && !v.bubbleAttached) {
           v.bubbleWidthWorld = spec.widthWorld;
           v.bubbleHeightWorld = spec.heightWorld;
@@ -577,6 +652,7 @@ class MetaOverlayLayer {
     final m = _MetaMaterial(node.material, const ui.Color(0xFFFFFFFF));
     view.materials.add(m);
     view.billboards.add(node);
+    view.nodes.add(node);
     node
       ..position = _bubbleCenterWorld(view.meta, view.bubbleHeightWorld)
       ..yaw = _yaw;
@@ -707,6 +783,7 @@ class MetaOverlayLayer {
     );
     root.add(node);
     node.transform = vm.Matrix4.translation(anchor);
+    view.nodes.add(node);
     final m = _MetaMaterial(mat, base);
     view.materials.add(m);
     return m;
@@ -730,6 +807,7 @@ class MetaOverlayLayer {
       ..blendOrder = view.meta.zIndex.toDouble();
     root.add(node);
     node.transform = vm.Matrix4.translation(anchor);
+    view.nodes.add(node);
     final m = _MetaMaterial(node.material, base);
     view.materials.add(m);
     return m;

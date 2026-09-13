@@ -100,66 +100,162 @@ vm.Vector3 lightAnchor(ModelLight light, int modelW, int modelL) {
   return vm.Vector3(w.x, light.y, w.z);
 }
 
-/// Rebuilds the light-source gizmo layer under [root]: a colored ball per
+/// Owns the light-source gizmo layer under a root group: a colored ball per
 /// source and, for directional lights, an aim arrow along [ModelLight.dir].
 /// The shapes are unlit [MeshNode]s on [SceneLayer.overlay] — they never
 /// depend on the scene lights and render «through» the objects (their own
 /// depth buffer), like the meta markers. Each part node carries the
 /// `light:<id>` name so picking finds the source behind any of its parts.
-void rebuildLightGizmos(
-  GroupNode root,
-  ModelLighting cfg, {
-  required int modelW,
-  required int modelL,
-}) {
-  root.removeAll();
-  for (final light in cfg.lights) {
-    final anchor = lightAnchor(light, modelW, modelL);
+///
+/// [sync] refreshes only the sources whose shape or pose changed: a dragged
+/// light keeps its nodes and gets a new transform ([sync] with [only] skips
+/// every other source entirely).
+class LightGizmoLayer {
+  final GroupNode root = GroupNode(id: 'light-gizmos');
+
+  /// Part nodes per light id (ball; optionally shaft and cone).
+  final Map<String, List<MeshNode>> _views = {};
+
+  bool _disposed = false;
+
+  /// Full rebuild (model/mode/size changes).
+  void rebuild(ModelLighting cfg, {required int modelW, required int modelL}) {
+    if (_disposed) return;
+    root.removeAll();
+    _views.clear();
+    for (final light in cfg.lights) {
+      _views[light.id] = _buildLight(light, modelW, modelL);
+    }
+  }
+
+  /// Incremental sync: sources with a different part count are rebuilt, the
+  /// rest only get fresh transforms and colors; gone sources are removed.
+  /// With [only] every other source is left untouched (the live drag).
+  void sync(
+    ModelLighting cfg, {
+    required int modelW,
+    required int modelL,
+    String? only,
+  }) {
+    if (_disposed) return;
+    final alive = <String>{};
+    for (final light in cfg.lights) {
+      if (only != null && light.id != only) continue;
+      alive.add(light.id);
+      final existing = _views[light.id];
+      if (existing == null || existing.length != _partCount(light)) {
+        _removeLight(light.id);
+        _views[light.id] = _buildLight(light, modelW, modelL);
+      } else {
+        _updateLight(existing, light, modelW, modelL);
+      }
+    }
+    if (only == null) {
+      for (final id in _views.keys.toList()) {
+        if (!alive.contains(id)) _removeLight(id);
+      }
+    }
+  }
+
+  /// Removes every marker and forgets the views (leaving the mode).
+  void clear() {
+    root.removeAll();
+    _views.clear();
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _views.clear();
+  }
+
+  int _partCount(ModelLight light) =>
+      light.isPoint || lightDirOf(light).length < 1e-6 ? 1 : 3;
+
+  List<MeshNode> _buildLight(ModelLight light, int modelW, int modelL) {
+    final nodes = <MeshNode>[];
     final color = _uiColor(light);
-    if (light.isPoint) {
-      root.add(_part(light, SceneGeometry.sphere(radius: kLightBallRadius),
-          color, vm.Matrix4.translation(anchor)));
-      continue;
+    final anchor = lightAnchor(light, modelW, modelL);
+    void add(SceneGeometry geometry, vm.Matrix4 transform) {
+      final node = _part(light, geometry, color, transform);
+      root.add(node);
+      nodes.add(node);
+    }
+
+    if (light.isPoint || lightDirOf(light).length < 1e-6) {
+      add(SceneGeometry.sphere(radius: kLightBallRadius),
+          vm.Matrix4.translation(anchor));
+      return nodes;
     }
     // Directional: a ball at the anchor and an arrow along the aim. The
     // direction is stored in WORLD coordinates — no mirroring needed.
     final dir = lightDirOf(light);
-    if (dir.length < 1e-6) {
-      root.add(_part(light, SceneGeometry.sphere(radius: kLightBallRadius),
-          color, vm.Matrix4.translation(anchor)));
-      continue;
-    }
     final rot = rotationAlignY(dir);
-    root.add(_part(light, SceneGeometry.sphere(radius: kLightBallRadius),
-        color, vm.Matrix4.translation(anchor)));
-    final shaftStart = kLightBallRadius + kLightArrowGap;
-    final shaftCenter = shaftStart + kLightArrowShaftLength / 2;
-    root.add(_part(
-      light,
+    add(SceneGeometry.sphere(radius: kLightBallRadius),
+        vm.Matrix4.translation(anchor));
+    add(
       SceneGeometry.cylinder(
         bottomRadius: kLightArrowShaftRadius,
         topRadius: kLightArrowShaftRadius,
         height: kLightArrowShaftLength,
         radialSegments: 10,
       ),
-      color,
-      vm.Matrix4.translation(anchor + dir * shaftCenter) * rot,
-    ));
-    final coneStart = shaftStart + kLightArrowShaftLength;
-    final coneCenter = coneStart + kLightArrowConeLength / 2;
-    root.add(_part(
-      light,
+      vm.Matrix4.translation(anchor + dir * _shaftCenter) * rot,
+    );
+    add(
       SceneGeometry.cylinder(
         bottomRadius: kLightArrowConeRadius,
         topRadius: 0.0,
         height: kLightArrowConeLength,
         radialSegments: 10,
       ),
-      color,
-      vm.Matrix4.translation(anchor + dir * coneCenter) * rot,
-    ));
+      vm.Matrix4.translation(anchor + dir * _coneCenter) * rot,
+    );
+    return nodes;
+  }
+
+  void _updateLight(
+    List<MeshNode> nodes,
+    ModelLight light,
+    int modelW,
+    int modelL,
+  ) {
+    final anchor = lightAnchor(light, modelW, modelL);
+    final color = _uiColor(light);
+    if (nodes.length == 1) {
+      nodes[0]
+        ..transform = vm.Matrix4.translation(anchor)
+        ..material.color = color;
+      return;
+    }
+    final dir = lightDirOf(light);
+    final rot = rotationAlignY(dir);
+    nodes[0]
+      ..transform = vm.Matrix4.translation(anchor)
+      ..material.color = color;
+    nodes[1]
+      ..transform = vm.Matrix4.translation(anchor + dir * _shaftCenter) * rot
+      ..material.color = color;
+    nodes[2]
+      ..transform = vm.Matrix4.translation(anchor + dir * _coneCenter) * rot
+      ..material.color = color;
+  }
+
+  void _removeLight(String id) {
+    final nodes = _views.remove(id);
+    if (nodes == null) return;
+    for (final node in nodes) {
+      root.remove(node);
+    }
   }
 }
+
+const double _shaftCenter =
+    kLightBallRadius + kLightArrowGap + kLightArrowShaftLength / 2;
+const double _coneCenter = kLightBallRadius +
+    kLightArrowGap +
+    kLightArrowShaftLength +
+    kLightArrowConeLength / 2;
 
 /// The light's sRGB color 0..1 as a `dart:ui` [Color] (the unlit material
 /// converts it to the engine's linear space itself).

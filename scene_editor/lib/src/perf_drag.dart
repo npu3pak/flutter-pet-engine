@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:pet_engine_v2/pet_engine_v2.dart';
 
+import 'scene/editor_scene.dart';
 import 'state/app_state.dart';
 
 /// ВРЕМЕННЫЙ замер производительности драга (этап 0 перф-прохода).
@@ -84,9 +85,123 @@ Future<void> runDragPerf(AppState app) async {
   app.setRotateMode(false);
   await _frames(3);
 
+  // Источник света: движение в режиме «Освещение» (точечный синк слоя).
+  if (model.lighting.lights.isNotEmpty) {
+    app.setMode(EditorMode.lighting);
+    await _frames(5);
+    final light = model.lighting.lights.first;
+    app.selectLight(light.id);
+    await _frames(5);
+    await _benchSubjectDrag(app, 'PERF-LIGHT', () => light.x);
+    app.selectLight(null);
+  }
+
+  // Мета: движение в режиме «Разметка» (точечный синк мета-слоя).
+  app.setMode(EditorMode.markup);
+  await _frames(3);
+  app.addMeta(metaKindMarker);
+  await _frames(5);
+  final metaId = app.selectedMetaId;
+  final meta = metaId == null ? null : model.metaById(metaId);
+  if (meta != null) {
+    await _benchSubjectDrag(app, 'PERF-META', () => meta.x);
+  }
+  app.setMode(EditorMode.compose);
+  await _frames(3);
+
   debugPrint('PERF: готово');
   await Future<void>.delayed(const Duration(milliseconds: 300));
   exit(0);
+}
+
+/// Драг оси X гизмо переноса для произвольного выбранного субъекта (мета,
+/// источник света): те же 60 шагов и метрики, что у объектов.
+Future<void> _benchSubjectDrag(
+  AppState app,
+  String label,
+  double Function() readX,
+) async {
+  final controller = app.controller;
+  final gizmo =
+      controller.gizmos.firstWhere((g) => g.mode == GizmoMode.translate);
+  if (!gizmo.visible) {
+    debugPrint('$label: гизмо скрыто');
+    return;
+  }
+  final anchorScreen = controller.worldToScreen(gizmo.anchor);
+  final tipScreen = controller.worldToScreen(
+    gizmo.anchor + gizmoAxisDirection(GizmoAxis.x),
+  );
+  if (anchorScreen == null || tipScreen == null) {
+    debugPrint('$label: гизмо за кадром');
+    return;
+  }
+  final dir = tipScreen - anchorScreen;
+  if (dir.distance < 1e-6) {
+    debugPrint('$label: ось вырождена');
+    return;
+  }
+  final axisScreen = dir / dir.distance;
+  final handle = anchorScreen + axisScreen * 10.0;
+  final box = _viewportBox();
+  if (box == null) {
+    debugPrint('$label: вьюпорт не найден');
+    return;
+  }
+  final origin = box.localToGlobal(Offset.zero);
+  final x0 = readX();
+  final rebuilds0 = controller.rebuildCount;
+  final binding = GestureBinding.instance;
+  const pointer = 13;
+  binding.handlePointerEvent(
+    PointerDownEvent(
+      pointer: pointer,
+      position: origin + handle,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryButton,
+    ),
+  );
+  await _frames(1);
+  if (!gizmo.dragging) {
+    debugPrint('$label: драг не начался');
+    binding.handlePointerEvent(
+      PointerUpEvent(pointer: pointer, position: origin + handle),
+    );
+    return;
+  }
+  final syncSamples = <double>[];
+  final frameSamples = <double>[];
+  var position = origin + handle;
+  for (var i = 0; i < 60; i++) {
+    final next = origin + handle + axisScreen * (i + 1.0);
+    final delta = next - position;
+    position = next;
+    final sw = Stopwatch()..start();
+    binding.handlePointerEvent(
+      PointerMoveEvent(
+        pointer: pointer,
+        position: position,
+        delta: delta,
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      ),
+    );
+    syncSamples.add(sw.elapsedMicroseconds / 1000);
+    sw.reset();
+    await WidgetsBinding.instance.endOfFrame;
+    frameSamples.add(sw.elapsedMicroseconds / 1000);
+  }
+  binding.handlePointerEvent(
+    PointerUpEvent(pointer: pointer, position: position),
+  );
+  await _frames(2);
+  debugPrint(
+    '$label: сдвиг x=${(readX() - x0).toStringAsFixed(3)} '
+    'sync p50=${_p50(syncSamples).toStringAsFixed(2)} '
+    'p95=${_p95(syncSamples).toStringAsFixed(2)} '
+    'frame p50=${_p50(frameSamples).toStringAsFixed(2)} '
+    'rebuilds=${controller.rebuildCount - rebuilds0}',
+  );
 }
 
 Future<void> _benchDrag(AppState app, String id) async {
