@@ -1,6 +1,6 @@
 import 'package:flutter_scene/scene.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 ModelMaterial color(int r, int g, int b) =>
@@ -28,7 +28,7 @@ ModelObject cuboid(
     );
 
 void main() {
-  final baker = LevelBaker(TextureCache());
+  final baker = LevelBaker.planning();
 
   test('plan merges by material and batches by shape+material', () {
     final model = ConstructionModel(id: 'level');

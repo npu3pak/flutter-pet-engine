@@ -10,9 +10,10 @@ are written in Russian; code identifiers are English.
 ## Layout
 
 - `engine/` — the `pet_engine_v2` package: `model_v1` document, render core,
-  level layer, navigation, particles, resources. Public entry point:
-  `lib/pet_engine_v2.dart`. Currently it is the v1 code moved over; the new
-  API layer (`src/api/`) is added in phase 2.
+  level layer, navigation, particles, resources. The only public entry point
+  is `lib/pet_engine_v2.dart` (since phase 5); the old `pet_engine.dart` and
+  the v1 facades are removed. Internal plumbing (`src/`) stays available to
+  the package's own tests via `src/` imports.
 - `demo/` — the example app (phase 3): the full feature catalog and
   documentation-as-code. Written for junior and mid-level developers: keep
   it clear.
@@ -21,8 +22,8 @@ are written in Russian; code identifiers are English.
 - `docs/` — the knowledge base: `plan.md` (idea and phases), `features.md`
   (feature registry with examples and code references), `architecture.md`,
   `api.md`, `migration.md`, `conventions.md`, `visual_testing.md`, `tz.md`
-  (the implementation brief), `handoff.md` (state after phase 2 and the
-  phase 3 plan).
+  (the implementation brief), `handoff.md` (transfer context and the state
+  of the phases).
 - `projects/` — scene projects and resources (copied from v1).
 - `scripts/` — asset staging (`stage_app_assets.dart`), perf scripts.
 - `temp/` — the only place for scratch files (not tracked by git).
@@ -116,7 +117,15 @@ first-person animation, the disposed-controller frame crash behind the
 vanishing weather, the `.fmat` effect cycle and the level decor. The journal
 is `demo/visual_tests.json`.
 
-`engine` has 521 green tests, `demo` 163, `scene_editor` 339; the journal is
-`docs/plan.md` §8. Next: phase 5 (removing the old facades — see
-`docs/handoff.md`). Final owner acceptance happens after the whole v2 is
-complete (engine, docs, demo, scene_editor).
+Phase 5 (cleanup) is done (September 13, 2026): the old entry
+`engine/lib/pet_engine.dart` and the v1 facades (the list in `docs/api.md`
+§20) are removed from code; the public export is exactly the API of
+`docs/api.md`. Internal plumbing (`EngineNode`, `EngineMaterial`,
+`ModelRenderer`, `GameCamera`, `ParticleLayer`/`BillboardBatch`,
+`GameResourceManager`, `TextureCache`) remains unexported; the package's
+tests import it through `src/` paths, and `TextureCache` was replaced for
+consumers by `LevelBaker.planning()`. `engine` has 511 green tests,
+`demo` 164, `scene_editor` 349; the journal is `docs/plan.md` §8.
+
+Next: final owner acceptance of the whole v2 (engine, docs, demo,
+scene_editor).

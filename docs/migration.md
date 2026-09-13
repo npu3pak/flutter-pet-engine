@@ -3,8 +3,8 @@
 Документ описывает, как возможности v1 и форка ложатся на API v2, в каком
 порядке переводятся потребители и что происходит со старыми фасадами.
 
-Статус: согласовано в фазе 1. Реестр возможностей — `docs/features.md`,
-полный API — `docs/api.md`.
+Статус: согласовано в фазе 1, выполнено в фазе 5. Реестр возможностей —
+`docs/features.md`, полный API — `docs/api.md`.
 
 ## 1. Принципы
 
@@ -154,10 +154,12 @@
 | v1 / форк | v2 | Примечание |
 |---|---|---|
 | `GameResourceManager` | `SceneResources` | Владеет контроллер; только чтение и кэши |
+| `GameResourceManager`, `TextureCache` | внутренние | В публичный экспорт не входят |
 | `GameResourceManager.saveModel` | `ProjectStore.saveModel` | Запись моделей — через `controller.project` |
 | `ProjectSource` и реализации | без изменений | — |
 | `ProjectStore` (редактор) | `ProjectStore` (публичный) | CRUD моделей проекта |
 | `LevelLoader/LevelBaker/...` | без изменений | + `controller.loadLevel` |
+| `LevelBaker(TextureCache())` | `LevelBaker.planning()` | Чистый план/предпросмотр; запекание ресурсов — `controller.loadLevel` |
 | `ScenePlacement/SceneLayout` | без изменений | — |
 | `NavigationSource/PathPlanner/PathFollower` | без изменений | Становятся публичными |
 | `chunkWorld` и соседние | без изменений | — |
@@ -175,9 +177,9 @@
 
 ## 4. Судьба старых фасадов
 
-**Решение: удаляем после миграции.** Реестр фич показывает, что все
-возможности четырёх проектов выражаются API v2; отдельный публичный
-низкоуровневый доступ не нужен. Список удаляемых типов — раздел 20
+**Решение: удаляем после миграции — выполнено в фазе 5.** Реестр фич
+показал, что все возможности четырёх проектов выражаются API v2; отдельный
+публичный низкоуровневый доступ не нужен. Список удаляемых типов — раздел 20
 `docs/api.md`.
 
 Порядок:
@@ -188,9 +190,19 @@
    используются в demo.
 3. Фаза 4: редактор переходит на новый API; старые фасады не используются
    нигде.
-4. После этого старые фасады и их тесты удаляются, экспорт
-   `package:pet_engine_v2/pet_engine_v2.dart` сокращается до нового API,
-   документа и механизмов (уровни, навигация, частицы, ресурсы).
+4. Фаза 5 (выполнена): старый вход `engine/lib/pet_engine.dart` и фасады
+   удалены, экспорт `package:pet_engine_v2/pet_engine_v2.dart` сокращён до
+   нового API, документа и механизмов (уровни, навигация, частицы, ресурсы).
+   `TextureCache` убран из публичного экспорта: предпросмотр запекания
+   создаётся через `LevelBaker.planning()`, тесты внутренних механизмов
+   импортируют `src/`-пути самого пакета.
+
+Внутренними (без экспорта) остались `EngineNode`, `EngineMaterial`,
+`EngineTexture`, `EngineMesh`, `EngineGeometry`, `ModelRenderer`,
+`GameCamera` (под `FlyCameraController`/`FirstPersonCameraController`),
+`ParticleLayer`/`BillboardBatch`/`GroundFogLayer`/`SpriteFieldLayer`
+(под механизмами-нодами), `GameResourceManager` и `TextureCache` (под
+`SceneResources`).
 
 ## 5. Карта тестов
 
@@ -199,10 +211,10 @@
 | Документ `model_v1`, легаси-чанки | `EN/test/model_*`, `legacy_*` | без изменений |
 | Уровневый слой | `EN/test/level_*`, `construction_*`, `meta_queries_*` | без изменений |
 | Навигация | `PD/test/pet_move_test.dart` | в `engine/test` (публичный API) |
-| Материалы и шейдеры | `EN/test/engine_material_test.dart`, `fmat_manager_test.dart` | новые тесты `SceneMaterial`/`ShaderMaterial` |
-| Ноды и контроллер | `EN/test/engine_scene_*`, `game_scene_*` | новые тесты `SceneNode`/`SceneController` |
-| Камеры | `EN/test/game_camera_math_test.dart`, `camera_*` | тесты контроллеров камер |
-| Качество | `EN/test/gpu_backend_test.dart`, `game_quality_test.dart` | + тесты политики `QualityController` |
+| Материалы и шейдеры | `EN/test/engine_material_test.dart`, `fmat_manager_test.dart` | новые тесты `SceneMaterial`/`ShaderMaterial`; внутренние `EngineMaterial`/`FmatManager` — через `src/`-импорты (`FmatManager` удалён) |
+| Ноды и контроллер | `EN/test/engine_scene_*`, `game_scene_*` | новые тесты `SceneNode`/`SceneController` (`game_scene` удалён) |
+| Камеры | `EN/test/game_camera_math_test.dart`, `camera_*` | тесты контроллеров камер; математика `GameCamera` — внутренняя |
+| Качество | `EN/test/gpu_backend_test.dart`, `game_quality_test.dart` | + тесты политики `QualityController` (`GameQualitySettings` удалён) |
 | Виды и слои | — | новые тесты `SceneViewSpec`/`SceneLayer` |
 | Ввод | — | тесты `SceneInput`/`CameraInput` (widget) |
 | Скриншоты | `EN/test/screenshot_test.dart` | без изменений |

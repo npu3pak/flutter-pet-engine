@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 
 void main() {
   test('kPetEngineVersion совпадает с версией в pubspec.yaml', () {

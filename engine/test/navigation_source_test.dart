@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 const _modelJson = '''

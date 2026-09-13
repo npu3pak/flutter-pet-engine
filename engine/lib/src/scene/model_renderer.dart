@@ -618,8 +618,8 @@ class ModelRenderer {
 
   /// Whole-object wrapper nodes of attached gltf instances, by object id
   /// (kind 'gltf'). A gltf instance is the only object kind whose content
-  /// mounts under ONE node — games move/rotate it live without a rebuild
-  /// ([GameNode]). Nested instances inside model refs share the container's
+  /// mounts under ONE node — the API moves/rotates it live without a rebuild.
+  /// Nested instances inside model refs share the container's
   /// object id; the last one wins (top-level objects are the runtime target).
   final Map<String, Node> gltfWrappers = {};
 

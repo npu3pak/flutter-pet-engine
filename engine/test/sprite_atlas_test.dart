@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 
 Future<ui.Image> _solid(int width, int height, ui.Color color) async {
   final recorder = ui.PictureRecorder();

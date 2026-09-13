@@ -1,6 +1,8 @@
-import 'package:flutter_scene/scene.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/src/camera/animation_type.dart';
+import 'package:pet_engine_v2/src/camera/direction.dart';
+import 'package:pet_engine_v2/src/camera/game_camera_math.dart';
+import 'package:pet_engine_v2/src/engine_compat/coords.dart' show facingAngle;
 import 'package:vector_math/vector_math.dart' as vm;
 
 void _expectMatrixClose(vm.Matrix4 a, vm.Matrix4 b, {double tolerance = 1e-12}) {
@@ -113,56 +115,6 @@ void main() {
       // to the right of the destination, so progress 1 sits at −4.
       expect(left.getTranslation().x, closeTo(-4, 1e-12));
       expect(right.getTranslation().x, closeTo(-2, 1e-12));
-    });
-  });
-
-  group('GameViewController', () {
-    test('forwardH matches the cardinal facings', () {
-      vm.Vector3 forward(Direction facing) {
-        final controller = GameViewController(facing: facing);
-        return controller.forwardH;
-      }
-
-      expect(forward(Direction.north).x, closeTo(0, 1e-12));
-      expect(forward(Direction.north).z, closeTo(-1, 1e-12));
-      expect(forward(Direction.east).x, closeTo(-1, 1e-12));
-      expect(forward(Direction.south).z, closeTo(1, 1e-12));
-      expect(forward(Direction.west).x, closeTo(1, 1e-12));
-    });
-
-    test('uses the 75° first-person projection', () {
-      final projection =
-          GameViewController().projection as PerspectiveProjection;
-      expect(projection.fovRadiansY, closeTo(kGameCameraFovY, 1e-12));
-      expect(projection.near, kGameCameraNear);
-      expect(projection.far, kGameCameraFar);
-    });
-
-    test('applyTo writes the animated transform', () {
-      final node = Node();
-      final controller = GameViewController(
-        facing: Direction.east,
-        row: 2,
-        column: 4,
-      );
-      controller.applyTo(node);
-      _expectMatrixClose(node.localTransform, controller.matrix);
-    });
-  });
-
-  group('FreeCameraController', () {
-    test('wraps the free camera projection and transform', () {
-      final camera = GameCamera();
-      final controller = FreeCameraController(camera);
-      final projection = controller.projection as PerspectiveProjection;
-      expect(projection.fovRadiansY, closeTo(kFovY, 1e-12));
-      expect(controller.forwardH, camera.forwardH);
-
-      final node = Node();
-      controller.applyTo(node);
-      final expected = Node();
-      camera.applyTo(expected);
-      _expectMatrixClose(node.localTransform, expected.localTransform);
     });
   });
 

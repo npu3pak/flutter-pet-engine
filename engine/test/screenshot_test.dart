@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 
 Uint8List _png(int w, int h, void Function(img.Image im) draw) {
   final image = img.Image(width: w, height: h, numChannels: 4);

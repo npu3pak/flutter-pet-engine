@@ -1,5 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine_v2/src/particles/particle_placement.dart'
+    show
+        ParticleInstance,
+        particleBatchCapacity,
+        particleCellSeed,
+        placeParticles;
 import 'package:vector_math/vector_math.dart' as vm;
 
 ParticleField _field({

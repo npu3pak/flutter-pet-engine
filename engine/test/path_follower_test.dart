@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 BoxMarkupNavigation _room([List<vm.Aabb2> obstacles = const []]) =>

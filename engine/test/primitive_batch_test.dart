@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/src/render/primitive_batch.dart'
+    show PrimitiveBatch;
 import 'package:vector_math/vector_math.dart' as vm;
 
 List<double> _floats(Uint8List bytes) {
@@ -159,31 +160,6 @@ void main() {
       final floats = _floats(batch.packVertices());
       expect(_position(floats, 4), vm.Vector3(-0.5, 0, 0));
       expect(_position(floats, 5), vm.Vector3(0.5, 0, 0));
-    });
-  });
-
-  group('sprite transforms', () {
-    test('mirror the X axis and scale the unit quad', () {
-      final transform = spriteTransform(
-        position: vm.Vector3(1, 2, 3),
-        yaw: 0.0,
-      );
-      expect(transform.getTranslation(), vm.Vector3(1, 2, 3));
-      expect(transform.determinant() < 0, isTrue);
-    });
-
-    test('wall decals follow the wall side', () {
-      final north = wallDecalTransform(
-        position: vm.Vector3.zero(),
-        wallDir: 'n',
-      );
-      final east = wallDecalTransform(
-        position: vm.Vector3.zero(),
-        wallDir: 'e',
-      );
-      expect(north.determinant() < 0, isTrue);
-      expect(east.determinant() < 0, isTrue);
-      expect(north.storage, isNot(equals(east.storage)));
     });
   });
 }

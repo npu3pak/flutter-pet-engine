@@ -6,13 +6,12 @@ import 'engine_mesh.dart';
 
 /// Opaque handle to a node of the engine scene graph.
 ///
-/// Games create nodes through [EngineNode] / the [EngineScene] add methods and
-/// drive them through these members; the fork's node type stays behind the
-/// facade.
+/// The API nodes own `EngineNode`s and drive them through these members; the
+/// fork's node type stays behind the facade.
 class EngineNode {
   EngineNode.wrap(this.raw);
 
-  /// Creates a detached node (attach it with [EngineScene.add] or [add]).
+  /// Creates a detached node (the API node plumbing attaches it).
   factory EngineNode({String name = '', vm.Matrix4? transform}) =>
       EngineNode.wrap(Node(name: name, localTransform: transform));
 

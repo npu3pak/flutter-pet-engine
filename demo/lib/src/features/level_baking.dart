@@ -15,7 +15,7 @@ LevelBakePlan bakingPlan(BakeMode mode) {
   for (final element in model.elements) {
     setBakeMode(element, mode);
   }
-  return LevelBaker(TextureCache()).plan(model);
+  return LevelBaker.planning().plan(model);
 }
 
 final FeatureSpec levelBakingFeature = FeatureSpec(

@@ -3,7 +3,13 @@ import 'dart:typed_data';
 
 import 'package:flutter_scene/scene.dart' show Node;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine_v2/src/engine/game_resource_manager.dart'
+    show GameResourceManager;
+import 'package:pet_engine_v2/src/level/level_baker.dart'
+    show LevelMaterialHook;
+import 'package:pet_engine_v2/src/level/level_resources.dart'
+    show collectModelResources;
 
 ModelObject cuboid(String id, {ModelMaterial? material}) => ModelObject(
   id: id,

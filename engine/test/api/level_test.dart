@@ -6,6 +6,8 @@ import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'package:pet_engine_v2/src/level/level_baker.dart'
     show LevelMaterialHook;
 import 'package:pet_engine_v2/src/render/engine_material.dart';
+import 'package:pet_engine_v2/src/services/texture_cache.dart'
+    show TextureCache;
 import 'package:vector_math/vector_math.dart' as vm;
 
 class _FakeBaker extends LevelBaker {

@@ -121,7 +121,7 @@ class LevelBakeResult {
   final List<(Node, vm.Matrix4?)> billboards;
 
   /// Reorients every baked billboard toward the camera with the given
-  /// camera-local forward — call per frame. [GameScene.update] does it for
+  /// camera-local forward — call per frame. [SceneController] does it for
   /// engine-managed levels; a game owning its own scene calls it from its
   /// render loop.
   void reorientBillboards(double fx, double fz) {
@@ -158,6 +158,10 @@ class LevelBakeResult {
 /// never merge unrelated geometry; the batch key adds the element shape.
 class LevelBaker {
   final ModelRenderer _renderer;
+
+  /// A baker over its own empty texture cache — for pure plans and previews
+  /// that do not resolve the resources of a project session.
+  factory LevelBaker.planning() => LevelBaker(TextureCache());
 
   LevelBaker(
     TextureCache textures, {

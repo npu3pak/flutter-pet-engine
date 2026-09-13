@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine_v2/src/scene/face_snap.dart' show faceCenterLocal;
 import 'package:vector_math/vector_math.dart' as vm;
 
 ModelObject cuboid(

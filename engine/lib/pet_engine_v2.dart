@@ -101,7 +101,6 @@ export 'src/scene/model_renderer.dart'
 export 'src/render/sprite_field_layer.dart'
     show SpriteFieldFacing, SpriteFieldInstance, SpriteFieldSprite;
 export 'src/services/gltf_asset_store.dart' show GltfAnimInfo;
-export 'src/services/texture_cache.dart' show TextureCache;
 export 'src/skybox/static_skybox.dart' show loadSkyboxImage;
 export 'src/visual/screenshot.dart'
     show

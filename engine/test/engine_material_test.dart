@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine.dart';
+import 'package:pet_engine_v2/src/render/engine_material.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 void main() {

@@ -1,11 +1,12 @@
-# Передача контекста: pet_engine_v2 → фаза 5 (очистка старых фасадов)
+# Передача контекста: pet_engine_v2 → финальная приёмка (после фазы 5)
 
-Дата: 12 сентября 2026. Для нового контекста реализации.
+Дата: 13 сентября 2026. Для нового контекста реализации.
 Читать вместе с `AGENTS.md`, `docs/tz.md`, `docs/plan.md` §8, `docs/api.md`.
 
 ## 0. Состояние
 
-- Фазы 0–4 выполнены: ядро API, demo со всеми 48 фичами, scene_editor.
+- Фазы 0–5 выполнены: ядро API, demo со всеми 49 фичами, scene_editor,
+  очистка старых фасадов.
 - Обновление 13 сентября (см. `plan.md` §8, разделы «Wireframe…»,
   «Гизмо…», «Спрайты…»):
   - движок: wireframe (грани/объект/сцена, экранная толщина 1 px, шейдер +
@@ -20,17 +21,24 @@
     тумблеры wireframe сцены/объекта, диалог несохранённых изменений,
     быстрый драг, исправленные дефекты выделения (кресло, штора,
     CSG-контур, вид снаружи, подпись CSG).
-- `engine`: `analyze` чист, **556 тестов** зелёные.
+- Фаза 5 (13 сентября 2026, см. `plan.md` §8): старый вход
+  `engine/lib/pet_engine.dart` и фасады из `api.md` §20 удалены из кода;
+  публичный экспорт — только API `docs/api.md`; 33 теста переведены на
+  `pet_engine_v2.dart`/`src/`-импорты; `TextureCache` убран из экспорта,
+  для чистого плана забегания добавлен `LevelBaker.planning()`.
+- `engine`: `analyze` чист, **511 тестов** зелёные (минус тесты снятых
+  фасадов).
 - `demo`: `analyze` чист, **164 теста** зелёные, все 49 фич открываются;
-  замечания владельца bug_38–bug_56 закрыты (журнал
+  замечания владельца bug_38–bug_60 закрыты (журнал
   `demo/visual_tests.json`).
-- `scene_editor`: `analyze` чист, **345 тестов** зелёные; визуальные
-  проверки вьюпорта — `scene_editor/visual_tests.json` (bug_1–bug_8).
-- Форк (`../flutter_scene`) расширен пиксельным режимом
-  `LineSegmentsGeometry` и `expandLineSegments` (analyze/тесты зелёные).
-- Коммитов нет (правило репозитория) — всё в рабочем дереве.
-- Следующее: фаза 5 (очистка старых фасадов), затем финальная приёмка
-  владельцем.
+- `scene_editor`: `analyze` чист, **349 тестов** зелёные; визуальные
+  проверки вьюпорта — `scene_editor/visual_tests.json` (bug_1–bug_10).
+- Форк (`../flutter_scene`) с пиксельным режимом `LineSegmentsGeometry` и
+  `expandLineSegments` (analyze/тесты зелёные).
+- Коммиты — по явной просьбе владельца; текущая работа закоммичена
+  (c78edee и ранее).
+- Следующее: финальная приёмка владельцем (engine, docs, demo,
+  scene_editor).
 
 ## 1. Проверка базлайна
 
@@ -38,15 +46,15 @@
 cd pet_engine_v2/engine
 fvm flutter pub get
 fvm flutter analyze      # No issues found
-fvm flutter test         # 521 тест
+fvm flutter test         # 511 тестов
 
 cd ../demo
 fvm flutter analyze      # No issues found
-fvm flutter test         # 163 теста
+fvm flutter test         # 164 теста
 
 cd ../scene_editor
 fvm flutter analyze      # No issues found
-fvm flutter test         # 339 тестов
+fvm flutter test         # 349 тестов
 ```
 
 ## 2. Что сделано в фазе 4 (scene_editor)
@@ -87,34 +95,35 @@ fvm flutter test         # 339 тестов
 - Цикл эффектов `.fmat`, однозначный декор `level_shell`, ключи диплинка
   `settings` (`cascades`, `shadowDistance`, `step`).
 
-## 4. Фаза 5: очистка (следующая работа)
+## 4. Фаза 5: очистка (выполнена 13 сентября 2026)
 
 Цель: публичный экспорт `pet_engine_v2` — только API из `docs/api.md`;
 старые фасады удалены из кода и экспорта (список — `api.md` §20).
 
-Порядок:
+Что сделано:
 
-1. Перенести покрытие `engine/test/*` (33 файла импортируют
-   `package:pet_engine_v2/pet_engine.dart`) на `pet_engine_v2.dart` или
-   внутренние `src/`-пути; ничего не потерять (документ, уровень, частицы,
-   навигация, ресурсы, скриншоты).
-2. Удалить старый вход `engine/lib/pet_engine.dart` и фасады из `api.md`
-   §20 (`GameScene`, `GameNode`, `GameSceneView`, `GameCamera`,
-   `FreeCameraController`, `GameViewController`, `EngineScene`,
-   `EngineNode`, `EngineMaterial`, `EngineTexture`, `EngineMesh`,
-   `EngineGeometry`, `EngineSceneView`, `DynamicWorld`, `DynamicVisual`,
-   `ModelRenderer`, `ScreenPicking`, `FmatManager`, `FmatSlot`,
-   `BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer`,
-   `StaticSkybox`, `GameQualitySettings`, `GameFog`, `GameAntiAliasing`,
-   `EngineFog`, `EngineAntiAliasing`).
-3. Внутренние зависимости v2, которые сегодня живут в этих типах
-   (`SceneNode.engine` → `EngineNode`, `SceneController` → `ModelRenderer`,
-   `FlyCameraController` → `GameCamera`, `ParticleNode` → `ParticleLayer`/
-   `BillboardBatch`, `GameResourceManager`/`TextureCache`), оставить
-   внутренними: убрать их из экспорта, но не переписывать рендер целиком.
-4. Обновить `docs/migration.md`, `docs/api.md` (§20), `AGENTS.md`, `plan.md`.
-5. Проверки: `analyze`/`test` зелёные во всех трёх пакетах; в `demo/lib` и
-   `scene_editor/lib` нет старых типов; смоук-визуал demo и редактора.
+1. Покрытие `engine/test/*` (33 файла с
+   `package:pet_engine_v2/pet_engine.dart`) переведено на
+   `pet_engine_v2.dart` или внутренние `src/`-пути; ничего не потеряно
+   (документ, уровень, частицы, навигация, ресурсы, скриншоты).
+2. Удалён старый вход `engine/lib/pet_engine.dart` и фасады из `api.md`
+   §20 (`GameScene`, `GameNode`, `GameSceneView`, `EngineScene`,
+   `EngineSceneView`, `FreeCameraController`, `GameViewController`,
+   `DynamicWorld`, `DynamicVisual`, `RingVisual`, `ScreenPicking`,
+   `FmatManager`, `FmatSlot`, `GameQualitySettings`, `GameFog`,
+   `GameAntiAliasing`, `GamePictureSettings`, `StaticSkybox` и мёртвый
+   код вокруг них).
+3. Внутренние зависимости v2 (`SceneNode.engine` → `EngineNode`,
+   `SceneController` → `ModelRenderer`, `FlyCameraController` →
+   `GameCamera`, `ParticleNode` → `ParticleLayer`/`BillboardBatch`,
+   `GameResourceManager`/`TextureCache`) остались внутренними: не
+   экспортируются, рендер не переписывался. Из публичного экспорта убран
+   `TextureCache`, добавлен `LevelBaker.planning()`.
+4. Обновлены `docs/migration.md`, `docs/api.md` (§17/§20/§21),
+   `AGENTS.md`, `plan.md`.
+5. Проверки: `analyze`/`test` зелёные во всех трёх пакетах (engine 511,
+   demo 164, scene_editor 349); в `demo/lib` и `scene_editor/lib` старых
+   типов нет.
 
 ## 5. Правила
 
@@ -130,7 +139,9 @@ fvm flutter test         # 339 тестов
 ## 6. Первые шаги нового контекста
 
 1. `pwd`, `git status`; базлайн (§1).
-2. Прочитать `AGENTS.md`, `docs/tz.md`, `docs/plan.md` §8, `docs/api.md`
-   §20, этот файл.
-3. Составить карту: какие старые тесты что покрывают и куда переезжают;
-   начать с переноса тестов, затем удаление фасадов.
+2. Прочитать `AGENTS.md`, `docs/tz.md` (раздел 5, приёмка), `docs/plan.md`
+   §5/§8, `docs/api.md`, этот файл.
+3. Подготовить финальную приёмку владельцем: прогон demo (все 49 фич,
+   визуальные проверки) и scene_editor, сверка документов с фактом.
+   Замечания владельца фиксировать в `demo/visual_tests.json` и
+   `scene_editor/visual_tests.json`.

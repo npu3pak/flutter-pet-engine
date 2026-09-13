@@ -315,11 +315,13 @@ pet_games/
   паритет возможностей со старым редактором.
 - Итоговая приёмка владельцем — после завершения всего v2 (раздел 5 `tz.md`).
 
-### Фаза 5. Завершение
+### Фаза 5. Завершение (выполнена 13 сентября 2026)
 
 - Очистка (входит в объём): удаление старых фасадов из кода и публичного
   экспорта после миграции demo и редактора (список — `docs/api.md`,
-  раздел 20).
+  раздел 20). Выполнено: старый вход `pet_engine.dart` удалён, публичный
+  экспорт — только API `docs/api.md`, внутренние механизмы остались
+  неэкспортированными.
 
 Вне текущего объёма (отдельные работы позже):
 
@@ -1039,3 +1041,57 @@ demo; редактор показывает свой — с той же мате
 
 Проверки: `engine` — analyze чист, 562 теста; `demo` — 164;
 `scene_editor` — 349.
+
+### Прогон владельца и закрытие bug_57–60 (13 сентября 2026)
+
+Владелец прошёл demo на macOS (`demo/visual_tests.json`): 35 проверок
+отмечены ok, открыты bug_57–60 — отсутствующий источник модели, поиск
+пола по расстоянию, неподвижный сквозняк в пещере, снос капель не по
+ветру. Исправлено:
+
+- подстановка удалённого источника `modelRefFootprintBox` — яркая фуксия,
+  как у остальных подстановок;
+- капли дождя едут по ветру за фазу падения и растягиваются по полной
+  скорости;
+- у cave-пресетов задано направление −Z, сквозняк снова движется.
+
+Замер стресса уровневого слоя — `docs/perf_journal.md` (demo, 50×50: сборка
+7 мс, запекание 2636 мс, 5200 элементов, 60 fps).
+
+Проверки: `engine` — analyze чист, 565 тестов; `demo` — 164.
+
+### Фаза 5. Очистка старых фасадов (13 сентября 2026)
+
+Сделано:
+
+- **Старый вход.** `engine/lib/pet_engine.dart` удалён; единственный
+  публичный вход — `lib/pet_engine_v2.dart`.
+- **Тесты.** 33 файла `engine/test/*` переведены с
+  `package:pet_engine_v2/pet_engine.dart` на `pet_engine_v2.dart`; покрытие
+  внутренних механизмов (документ, уровень, частицы, навигация, ресурсы,
+  скриншоты, материалы, рендер) сохранено через внутренние `src/`-импорты.
+- **Удалены фасады и мёртвый код:** `GameScene`, `GameNode`, `GameSceneView`
+  (`game_scene.dart`), `EngineScene`, `EngineSceneView` (`engine_scene.dart`,
+  `engine_view.dart`), `FreeCameraController`, `GameViewController`
+  (`camera_controller.dart`), `DynamicWorld`, `DynamicVisual`, `RingVisual`
+  (каталог `dynamic/`), `ScreenPicking` (`engine/picking.dart`),
+  `FmatManager`/`FmatSlot`, `GameQualitySettings`, `GameFog`,
+  `GameAntiAliasing`, `GamePictureSettings`, `StaticSkybox` (виджет;
+  `loadSkyboxImage` сохранён).
+- **Остались внутренними** без экспорта: `EngineNode`, `EngineMaterial`,
+  `EngineTexture`, `EngineMesh`, `EngineGeometry`, `ModelRenderer`,
+  `GameCamera` и математика камеры, `ParticleLayer`, `BillboardBatch`,
+  `GroundFogLayer`, `SpriteFieldLayer`, `GameResourceManager`,
+  `TextureCache`.
+- **Публичный API.** Из экспорта убран `TextureCache`; для чистого плана
+  запекания добавлен `LevelBaker.planning()` (demo и тесты переведены).
+- **Документы.** `api.md` §17/§20/§21, `migration.md` §4–5, `AGENTS.md`,
+  этот журнал и `handoff.md`.
+
+Проверки: `engine` — analyze чист, 511 тестов (минус тесты снятых фасадов:
+`dynamic_world`, `fmat_manager`, `game_quality`, `picking`,
+`picture_settings` и группы `StaticSkybox`/`GameViewController`); `demo` —
+analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-визуал demo:
+фича `gltf_models` на macOS (Impeller) — glTF-модели загружены, фуксия —
+штатная подстановка отсутствующего источника, 60 fps; снимок
+`pet_games/temp/screenshots/phase5_smoke.png`.

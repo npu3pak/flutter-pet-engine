@@ -1534,6 +1534,9 @@ typedef BakedMaterialHook = void Function(SceneMaterial material, {required bool
 class LevelBakeOptions {
   const LevelBakeOptions({bool collectStats = false, BakedMaterialHook? onMaterial});
 }
+class LevelBaker {
+  factory LevelBaker.planning();   // чистый план без ресурсной сессии
+}
 class LevelLoadResult {
   LevelBakeResult? get baked;
   List<SceneLoadError> get errors;
@@ -1654,16 +1657,24 @@ controller.dynamics.sync('enemies', ...);
 
 ## 20. Что удаляется после миграции
 
-После перевода demo и редактора на этот API старые фасады удаляются из
-публичного экспорта, а затем из кода: `GameScene`, `GameNode`,
-`GameSceneView`, `GameCamera`, `FreeCameraController`, `GameViewController`,
-`EngineScene`, `EngineNode`, `EngineMaterial`, `EngineTexture`,
-`EngineMesh`, `EngineGeometry`, `EngineSceneView`, `DynamicWorld`,
-`DynamicVisual`, `ModelRenderer`, `ScreenPicking`, `FmatManager`,
-`FmatSlot`, `BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`,
-`ParticleLayer`, `StaticSkybox`, `GameQualitySettings`, `GameFog`,
-`GameAntiAliasing`, `EngineFog`, `EngineAntiAliasing`. Их место занимают
-типы из этого документа:
+Старые фасады **удалены из публичного экспорта в фазе 5 (13 сентября
+2026)** вместе со старым входом `package:pet_engine_v2/pet_engine.dart`:
+`GameScene`, `GameNode`, `GameSceneView`, `GameCamera`,
+`FreeCameraController`, `GameViewController`, `EngineScene`, `EngineNode`
+(как публичный тип), `EngineMaterial`, `EngineTexture`, `EngineMesh`,
+`EngineGeometry`, `EngineSceneView`, `DynamicWorld`, `DynamicVisual`,
+`ModelRenderer`, `ScreenPicking`, `FmatManager`, `FmatSlot`,
+`BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer`,
+`StaticSkybox`, `GameQualitySettings`, `GameFog`, `GameAntiAliasing`,
+`EngineFog`, `EngineAntiAliasing`.
+
+Полностью удалены из кода (вместе со своими тестами): `GameScene`,
+`GameNode`, `GameSceneView`, `EngineScene`, `EngineSceneView`,
+`FreeCameraController`, `GameViewController`, `DynamicWorld`,
+`DynamicVisual`/`RingVisual`, `ScreenPicking`, `FmatManager`/`FmatSlot`,
+`GameQualitySettings`, `GameFog`, `GameAntiAliasing`, `GamePictureSettings`,
+`EngineFog`, `EngineAntiAliasing` и виджет `StaticSkybox` (функция
+`loadSkyboxImage` сохранена). Их место занимают типы из этого документа:
 
 | Удаляется | Заменяется |
 |---|---|
@@ -1673,13 +1684,24 @@ controller.dynamics.sync('enemies', ...);
 | `GameAntiAliasing`, `EngineAntiAliasing` | `SceneAntiAliasing` |
 | `FreeCameraController`, `GameViewController` | `FlyCameraController`, `FirstPersonCameraController` |
 | `BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer` | `BillboardBatchNode`, `SpriteFieldNode`, `GroundFogNode`, `ParticleNode` |
+| `TextureCache` (не экспортируется) | `LevelBaker.planning()`, ресурсы — `SceneResources` |
+| `GameResourceManager` (не экспортируется) | `SceneResources` |
+
+Часть перечисленного осталась внутренней реализацией v2 без публичного
+экспорта: `EngineNode` (поле `SceneNode.engine`), `EngineMaterial`,
+`EngineTexture`, `EngineMesh`, `EngineGeometry`, `ModelRenderer`
+(рендер документа и уровней), `GameCamera` (математика
+`FlyCameraController`/`FirstPersonCameraController`), `ParticleLayer`,
+`BillboardBatch`, `GroundFogLayer`, `SpriteFieldLayer` (механизмы-ноды),
+`GameResourceManager`, `TextureCache` (ресурсная сессия). Тесты этих
+механизмов импортируют внутренние `src/`-пути пакета.
 
 Таблица соответствий целиком — `docs/migration.md`.
 
 ## 21. Детали, уточняемые при реализации
 
-1. Имя ресурсной сессии (`SceneResources`) и остаётся ли
-   `GameResourceManager` как внутренний тип.
+1. Имя ресурсной сессии — `SceneResources`; `GameResourceManager` и
+   `TextureCache` остались внутренними типами (фаза 5).
 2. Точные сигнатуры `GeometryBuilder` (полный набор операций) и
    `LineGeometry`.
 3. Состав `DeviceCapabilities` (ядра, память, платформа) и способ его
@@ -1693,9 +1715,9 @@ controller.dynamics.sync('enemies', ...);
 7. Пикинг документных объектов: `raycast`/`raycastAll`/`nearestNode` видят
    `ModelNode`-обёртки объектов `model_v1` (фаза 4), `FaceRef` заполняется
    для плоских граней и скруглённых поверхностей. Вставки модели пикаются
-   AABB фактического содержимого (когда источник резолвится) либо кэшированным
-   гридом источника; glTF — подогнанным footprint-боксом. Точное попадание
-   по контенту вставок — при необходимости в фазе 6.
+   рекурсивными частями фактического содержимого (примитивы, CSG,
+   вложенные ссылки, glTF-бокс, спрайты с живым yaw); при нерезолвленном
+   источнике — кэшированным гридом или footprint-боксом.
 8. Размеры `SceneTexture.fromGpu`: заполняются для текстур/спрайтов из
    ресурсной сессии (кэш помнит размер декода, фаза 4); у GPU-обёрток без
    размера остаются 0.
