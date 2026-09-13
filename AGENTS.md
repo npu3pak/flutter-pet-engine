@@ -127,5 +127,11 @@ tests import it through `src/` paths, and `TextureCache` was replaced for
 consumers by `LevelBaker.planning()`. `engine` has 511 green tests,
 `demo` 164, `scene_editor` 349; the journal is `docs/plan.md` §8.
 
+Post-acceptance addition (branch `feature/camera-input-touch-fly`):
+`CameraInput` flies on touch with two fingers (the second finger's drag,
+`touchFlyDistance`), `FlyCameraController.rightH` is public; the first
+consumer is the `mypet-game/pet_demo` migration (branch
+`feature/engine-v2`).
+
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).

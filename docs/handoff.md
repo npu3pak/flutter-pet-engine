@@ -37,6 +37,12 @@
   `expandLineSegments` (analyze/тесты зелёные).
 - Коммиты — по явной просьбе владельца; текущая работа закоммичена
   (c78edee и ранее).
+- Обновление после приёмки (ветка `feature/camera-input-touch-fly`):
+  `CameraInput` на тач-устройствах умеет полёт двумя пальцами (драг
+  второго пальца, параметр `touchFlyDistance`), у `FlyCameraController`
+  появился публичный `rightH`; тест — `engine/test/api/camera_test.dart`.
+  Первый потребитель — `mypet-game/pet_demo`, переписанный на API v2
+  (ветка `feature/engine-v2`), визуальные снимки режима `pet.shots`.
 - Следующее: финальная приёмка владельцем (engine, docs, demo,
   scene_editor).
 
