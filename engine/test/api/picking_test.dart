@@ -537,9 +537,16 @@ void main() {
       final controller = _controller();
       controller.loadModelData(model());
       controller.addObject(box());
+      final rebuilds = controller.rebuildCount;
       controller.unloadModel();
       expect(controller.byId('obj_1'), isNull);
       expect(controller.nodesOfType<ModelNode>(), isEmpty);
+      expect(controller.model, isNull);
+      expect(
+        controller.rebuildCount,
+        greaterThan(rebuilds),
+        reason: 'выгрузка документа чистит рендер через rebuild',
+      );
       controller.dispose();
     });
   });

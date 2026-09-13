@@ -337,6 +337,17 @@ class AppState extends ChangeNotifier {
       logStage('store', 'openProject FAIL $path: ${controller.status.errors}');
       return false;
     }
+    // The previous document must not survive the switch: the new project may
+    // have no models at all, and the old render scene would stay behind.
+    controller.unloadModel();
+    currentModelId = null;
+    selectedObjectId = null;
+    selectedFaceKey = null;
+    selectedIds.clear();
+    selectedGroupId = null;
+    selectedMetaId = null;
+    selectedLightId = null;
+    faceSnapMode = null;
     final s = controller.project;
     logStage(
       'store',

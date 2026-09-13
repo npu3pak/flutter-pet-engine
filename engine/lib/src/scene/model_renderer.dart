@@ -673,6 +673,33 @@ class ModelRenderer {
 
   // ── objects ──────────────────────────────────────────────────────────
 
+  /// Drops the current model content: removes every built node, clears the
+  /// tracking maps and disposes the persistent glTF runtimes. Used when the
+  /// document is unloaded — without it the previous model's geometry would
+  /// stay in the render scene.
+  void clear() {
+    _model = null;
+    root.removeAll();
+    nodeObjectId.clear();
+    nodeFaceKey.clear();
+    allNodes.clear();
+    instanceBillboards.clear();
+    elementNodes.clear();
+    elementOfNode.clear();
+    _nodePartOffset.clear();
+    gltfWrappers.clear();
+    _pendingCounts.clear();
+    _mergeCandidates.clear();
+    _materialCache.clear();
+    _builtParts = 0;
+    _missingParts = 0;
+    _gltfUsedKeys.clear();
+    for (final runtime in _gltfRuntimes.values) {
+      runtime.dispose();
+    }
+    _gltfRuntimes.clear();
+  }
+
   /// Refreshes the local transforms of the already-built nodes of [model]'s
   /// solid objects (cuboid, trapezoid, cylinder, plane) without touching
   /// their geometry — the fast path for move/rotate drags. Content whose

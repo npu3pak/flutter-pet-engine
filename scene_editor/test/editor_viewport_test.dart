@@ -212,4 +212,46 @@ void main() {
 
     await unmount(tester);
   });
+
+  testWidgets('пересоздание вьюпорта снимает старые оверлеи и гизмо', (
+    tester,
+  ) async {
+    await pumpViewport(tester);
+    app.selectObject(app.currentModel!.objects.first.id);
+    await tester.pump();
+
+    final oldOverlays = app.controller.byId('editor-overlays')!;
+    final oldSelection = app.controller.byId('editor-selection')!;
+    final oldLightRoot = app.controller.byId('light-gizmos')!;
+    final oldGizmos = List.of(app.controller.gizmos);
+    expect(oldGizmos, hasLength(2));
+
+    // Вкладка «Ресурсы»: EditorViewport (и его EditorScene) уничтожается,
+    // контроллер остаётся жив — ноды старой сцены должны уйти с него.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+
+    expect(oldOverlays.isDisposed, isTrue,
+        reason: 'старые оверлеи должны сниматься с контроллера');
+    expect(oldSelection.isDisposed, isTrue);
+    expect(oldLightRoot.isDisposed, isTrue);
+    for (final gizmo in oldGizmos) {
+      expect(gizmo.isDisposed, isTrue);
+    }
+    expect(app.controller.gizmos, isEmpty);
+
+    // Возврат в «Композицию»: ровно один новый комплект.
+    await pumpViewport(tester);
+    expect(app.controller.gizmos, hasLength(2));
+    expect(app.controller.byId('editor-overlays'), isNot(same(oldOverlays)));
+    final overlays = app.controller.byId('editor-overlays') as GroupNode;
+    expect(
+      overlays.children,
+      hasLength(4),
+      reason: 'сетка, рамка, курсор и слой выделения — по одному',
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    app.dispose();
+  });
 }

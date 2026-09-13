@@ -207,12 +207,17 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   }
 
   /// Marks the scene content as rebuilt and bumps [revision]. Rebuilds the
-  /// document renderer when the render scene exists.
+  /// document renderer when the render scene exists; an unloaded document
+  /// clears it (the previous model's geometry must not stay on screen).
   void rebuild() {
     final model = _model;
     final renderer = _renderer;
-    if (model != null && renderer != null) {
-      renderer.rebuild(model);
+    if (renderer != null) {
+      if (model != null) {
+        renderer.rebuild(model);
+      } else {
+        renderer.clear();
+      }
     }
     _rebuildCount++;
     _syncDocumentNodes();

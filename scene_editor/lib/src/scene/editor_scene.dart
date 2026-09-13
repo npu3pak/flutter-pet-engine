@@ -1298,6 +1298,19 @@ class EditorScene {
 
   void dispose() {
     controller.removeFrameListener(_frameListener);
+    // The viewport is recreated on every workspace-tab switch, while the
+    // controller lives on: every node this scene attached to it must go, or
+    // the old overlays stay rendered (frozen at the previous model) and the
+    // next EditorScene mounts a second set on top.
+    moveGizmo.onDrag = null;
+    rotateGizmo.onDrag = null;
+    controller.removeGizmo(moveGizmo);
+    controller.removeGizmo(rotateGizmo);
+    controller.remove(selectionOverlay);
+    controller.remove(overlays);
+    controller.remove(lightGizmoRoot);
+    controller.remove(metaOverlay.root);
+    metaOverlay.dispose();
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated": "2026-09-13T11:30:00.000Z",
+  "updated": "2026-09-13T11:45:00.000Z",
   "appVersion": "1.0.0+1",
   "engineVersion": "0.1.0-dev.1",
   "platform": "macOS",
@@ -246,6 +246,31 @@
           "author": "agent",
           "kind": "fixed",
           "text": "Замер харнессом pet.perf.drag на Pet/model_2: вставки моделей, спрайты и glTF пересобирали всю сцену на каждый шаг драга (53 мс синхронно; ModelRenderer.rebuild 50–120 мс), CSG во время драга не двигался вовсе, скрытый гизмо вращения перехватывал клики. Исправлено: трансформационный быстрый путь (ModelRenderer.updateObjectTransforms с translated: {id: мировой шаг} — без геометрии/CSG/материалов; редактор передаёт фактический снапнутый шаг, CSG двигается шагом операнда, цепочки билбордов внутри вставок сдвигаются), идемпотентный свет и тумблеры, wireframe только по перемещённым, SceneController.rebuildCount, hitGizmo не проверяет скрытые гизмо. Итог: 53.6 → 0.44 мс (вставка), 53.6 → 0.33 (спрайт), 52.9 → 0.34 (glTF), CSG двигается при 0.71 мс; полных пересборок за драг 0. Снимки before/after в temp/perf_screenshots, журнал docs/perf_journal.md. Тесты: engine 562, demo 164, scene_editor 347; analyze чист.",
+          "status": "fixed",
+          "version": "app 1.0.0+1 · engine 0.1.0-dev.1"
+        }
+      ]
+    },
+    {
+      "id": "bug_10",
+      "featureId": "viewport",
+      "status": "fixed",
+      "createdAt": "2026-09-13T11:45:00.000Z",
+      "updatedAt": "2026-09-13T11:45:00.000Z",
+      "events": [
+        {
+          "at": "2026-09-13T11:45:00.000Z",
+          "author": "owner",
+          "kind": "reported",
+          "text": "После переключения моделей могут остаться прошлые границы (рамка/сетка прошлой сцены вокруг новой модели).",
+          "status": "open",
+          "version": "app 1.0.0+1 · engine 0.1.0-dev.1"
+        },
+        {
+          "at": "2026-09-13T11:45:00.000Z",
+          "author": "agent",
+          "kind": "fixed",
+          "text": "Причина: EditorScene.dispose снимал с контроллера только frame-listener. Вьюпорт пересоздаётся при уходе на вкладку «Ресурсы» и обратно, а контроллер общий: overlays (сетка/рамка/курсор/выделение), metaOverlay.root, lightGizmoRoot и оба гизмо оставались на нём, замирали на прошлой модели и дублировались. Исправлено: dispose снимает все ноды и гизмо; MetaOverlayLayer.dispose освобождает текстуры пузырей и защищён от поздней растеризации; ModelRenderer.clear() чистит ноды и glTF-рантаймы при выгрузке документа (unloadModel); AppState.openProject выгружает прошлый документ после успешного открытия нового. Проверка: харнесс тапает «Ресурсы»→«Композиция», меняет модель и снимает вьюпорт — до фикса рамка/сетка комнаты 5×5 вокруг кресла 3×3, после чисто (temp/perf_screenshots/remount_before/after). Регрессии: editor_viewport_test, app_state_test, picking_test. Тесты: engine 562, demo 164, scene_editor 349; analyze чист.",
           "status": "fixed",
           "version": "app 1.0.0+1 · engine 0.1.0-dev.1"
         }

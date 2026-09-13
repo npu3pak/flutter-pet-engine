@@ -43,6 +43,19 @@ Future<void> runDragPerf(AppState app) async {
     exit(1);
   }
 
+  // Хвосты при пересоздании вьюпорта: «Ресурсы» → «Композиция» → смена
+  // модели. Старый EditorScene не должен оставлять свои оверлеи.
+  await _capture('remount_before');
+  await _tapText('Ресурсы');
+  await _frames(20);
+  await _tapText('Композиция');
+  await _frames(20);
+  app.selectModel('model_1');
+  await _frames(20);
+  await _capture('remount_after');
+  app.selectModel(_modelId);
+  await _frames(20);
+
   for (final id in _ids) {
     if (model.objectById(id) == null) continue;
     // Пауза больше окна двойного клика, чтобы клик не считался фокусом.
@@ -198,6 +211,48 @@ Future<void> _capture(String name) async {
     {'model': _modelId},
   );
   debugPrint('PERF снимок: temp/perf_screenshots/$name.png');
+}
+
+/// Тап по виджету [Text] с данным текстом настоящими pointer-событиями —
+/// переключение вкладок «Ресурсы»/«Композиция» для проверки пересоздания
+/// вьюпорта.
+Future<void> _tapText(String text) async {
+  RenderBox? box;
+  void walk(Element element) {
+    if (box != null) return;
+    final widget = element.widget;
+    if (widget is Text && widget.data == text) {
+      box = element.renderObject as RenderBox?;
+      return;
+    }
+    element.visitChildren(walk);
+  }
+
+  final root = WidgetsBinding.instance.rootElement;
+  if (root != null) walk(root);
+  if (box == null) {
+    debugPrint('PERF: текст «$text» не найден');
+    return;
+  }
+  final center = box!.localToGlobal(box!.size.center(Offset.zero));
+  final binding = GestureBinding.instance;
+  const pointer = 11;
+  binding.handlePointerEvent(
+    PointerDownEvent(
+      pointer: pointer,
+      position: center,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryButton,
+    ),
+  );
+  binding.handlePointerEvent(
+    PointerUpEvent(
+      pointer: pointer,
+      position: center,
+      kind: PointerDeviceKind.mouse,
+    ),
+  );
+  await _frames(2);
 }
 
 double _p50(List<double> values) {

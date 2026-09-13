@@ -33,6 +33,24 @@ void main() {
     expect(app.currentModelId, 'model_2');
   });
 
+  test('openProject без моделей выгружает прошлый документ', () async {
+    app.createModel();
+    expect(app.currentModel, isNotNull);
+
+    final empty = Directory.systemTemp.createTempSync('scene_editor_empty');
+    addTearDown(() {
+      if (empty.existsSync()) empty.deleteSync(recursive: true);
+    });
+    final ok = await app.createProject(empty.path, name: 'empty');
+    expect(ok, isTrue);
+    expect(app.currentModel, isNull,
+        reason: 'прошлая модель не должна переживать смену проекта');
+    expect(app.currentModelId, isNull);
+    expect(app.controller.model, isNull);
+    expect(app.selectedObjectId, isNull);
+    expect(app.selectedIds, isEmpty);
+  });
+
   test('create model floor covers the whole footprint', () {
     app.createModel();
     final floor = app.currentModel!.objects.single;

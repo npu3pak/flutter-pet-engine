@@ -280,6 +280,7 @@ class MetaOverlayLayer {
   ModelData? _model;
   double _yaw = 0;
   bool _needsProbe = false;
+  bool _disposed = false;
 
   MetaOverlayLayer({required this.controller});
 
@@ -289,6 +290,7 @@ class MetaOverlayLayer {
   /// Textures are cached by content key, so repositions and z-index edits
   /// never re-rasterize bubbles.
   void rebuild(ModelData? model) {
+    if (_disposed) return;
     root.removeAll();
     _views.clear();
     _model = model;
@@ -323,9 +325,30 @@ class MetaOverlayLayer {
       }
     }
     // Drop caches of metas/bubbles that no longer exist.
-    _textures.removeWhere((k, _) => !usedKeys.contains(k));
+    _textures.removeWhere((k, tex) {
+      if (usedKeys.contains(k)) return false;
+      tex.dispose();
+      return true;
+    });
     _specs.removeWhere((k, _) => !usedKeys.contains(k));
     _needsProbe = true;
+  }
+
+  /// Detaches the layer and releases the cached bubble textures. Called when
+  /// the owning EditorScene is disposed (the viewport is recreated on every
+  /// workspace-tab switch).
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    root.removeAll();
+    for (final texture in _textures.values) {
+      texture.dispose();
+    }
+    _textures.clear();
+    _loading.clear();
+    _specs.clear();
+    _views.clear();
+    _model = null;
   }
 
   /// Per-frame upkeep: fresh billboard yaw/anchor (positions may track a
@@ -338,7 +361,7 @@ class MetaOverlayLayer {
     vm.Vector3 eye, {
     required bool cameraMoved,
   }) {
-    if (_views.isEmpty) return;
+    if (_disposed || _views.isEmpty) return;
     _yaw = screenParallelYaw(fx, fz);
     for (final view in _views) {
       for (final b in view.billboards) {
@@ -412,6 +435,10 @@ class MetaOverlayLayer {
     );
     _loading[key] = future;
     future.then((tex) {
+      if (_disposed) {
+        tex?.dispose();
+        return;
+      }
       if (!identical(_loading[key], future)) return; // superseded
       _loading.remove(key);
       if (tex == null) return;
