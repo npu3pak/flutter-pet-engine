@@ -293,6 +293,102 @@ void main() {
       controller.dispose();
     });
 
+    testWidgets('keeps the input handler for the duration of a gesture', (
+      tester,
+    ) async {
+      final controller = SceneController();
+      final first = _RecordingInput();
+      final second = _RecordingInput();
+      Widget viewport(SceneInput input) => _host(
+        SizedBox(
+          width: 100,
+          height: 100,
+          child: SceneViewport(
+            controller: controller,
+            input: input,
+            backend: _FakeBackend(),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(viewport(first));
+      final topLeft = tester.getTopLeft(find.byType(SceneViewport));
+      final gesture = await tester.startGesture(topLeft + const Offset(10, 10));
+      await gesture.moveBy(const Offset(5, 0));
+
+      // Пересборка посреди жеста с новым обработчиком: указатель не теряется.
+      await tester.pumpWidget(viewport(second));
+      await gesture.moveBy(const Offset(5, 0));
+      await gesture.up();
+      await tester.pump();
+
+      expect(first.downs, hasLength(1));
+      expect(first.moves, hasLength(2));
+      expect(first.ups, hasLength(1));
+      expect(second.downs, isEmpty);
+      expect(second.moves, isEmpty);
+      expect(second.ups, isEmpty);
+
+      // После отпускания новый обработчик обслуживает следующий жест.
+      final next = await tester.startGesture(topLeft + const Offset(20, 20));
+      await next.moveBy(const Offset(5, 0));
+      await next.up();
+      await tester.pump();
+
+      expect(second.downs, hasLength(1));
+      expect(second.moves, hasLength(1));
+      expect(second.ups, hasLength(1));
+      controller.dispose();
+    });
+
+    testWidgets('camera look survives an input swap mid-drag', (tester) async {
+      final controller = SceneController();
+      final fly = FlyCameraController(yaw: 0, pitch: 0);
+      controller.camera = fly;
+      Widget viewport(CameraInput input) => _host(
+        SizedBox(
+          width: 200,
+          height: 200,
+          child: SceneViewport(
+            controller: controller,
+            input: input,
+            backend: _FakeBackend(),
+          ),
+        ),
+      );
+      // Роли как в pet_demo: ЛКМ — осмотр, ПКМ — панорама.
+      CameraInput input() => CameraInput(
+        pointerLookButton: kPrimaryButton,
+        pointerFlyButton: kPrimaryButton,
+        pointerPanButton: kSecondaryButton,
+      );
+
+      await tester.pumpWidget(viewport(input()));
+      final topLeft = tester.getTopLeft(find.byType(SceneViewport));
+      final gesture = await tester.startGesture(
+        topLeft + const Offset(50, 50),
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      );
+      await gesture.moveBy(const Offset(10, 0));
+      final afterFirstMove = fly.yaw;
+      expect(afterFirstMove, greaterThan(0));
+
+      // Пересборка со свежим CameraInput — как перерисовка FPS-метра в игре.
+      // Раньше новые события уходили пустому экземпляру и камера замирала.
+      await tester.pumpWidget(viewport(input()));
+      await gesture.moveBy(const Offset(10, 0));
+      await gesture.up();
+      await tester.pump();
+
+      expect(
+        fly.yaw,
+        greaterThan(afterFirstMove),
+        reason: 'камера должна следовать за мышью и после пересборки',
+      );
+      controller.dispose();
+    });
+
     testWidgets('nodes added during a build do not break the viewport', (
       tester,
     ) async {

@@ -161,7 +161,13 @@ class SceneViewport extends StatefulWidget {
   /// The views (layer masks and order); null means one full view.
   final List<SceneViewSpec>? views;
 
-  /// The input handler; null means no default camera control.
+  /// The input handler; null means the default [CameraInput].
+  ///
+  /// The handler instance owns the pointer state of a gesture. While
+  /// pointers are held the viewport keeps serving the instance that received
+  /// their `onPointerDown`, even if the widget is rebuilt with a new one; a
+  /// deferred swap applies once the last pointer is released. Still, prefer
+  /// a stable instance (a `State` field) over constructing one in `build`.
   final SceneInput? input;
 
   /// 2D widgets drawn over the scene.
@@ -209,6 +215,19 @@ class SceneViewportState extends State<SceneViewport>
   late final SceneViewportBackend _backend =
       widget.backend ?? ForkSceneViewportBackend();
   late final SceneInput _defaultInput = CameraInput();
+
+  /// The handler serving the events right now. While pointers are held it
+  /// stays the handler that received their `onPointerDown`, even if the
+  /// widget is rebuilt with another instance: a fresh [CameraInput] has no
+  /// pointer state and would silently drop the gesture.
+  late SceneInput _activeInput;
+
+  /// The handler to switch to when the last pointer is released.
+  SceneInput? _pendingInput;
+
+  /// How many pointers the viewport is currently tracking.
+  int _activePointers = 0;
+
   Duration _lastTick = Duration.zero;
   Duration _lastTapAt = Duration.zero;
   Offset? _lastTapPosition;
@@ -222,6 +241,7 @@ class SceneViewportState extends State<SceneViewport>
   @override
   void initState() {
     super.initState();
+    _activeInput = widget.input ?? _defaultInput;
     _ticker = createTicker(_onTick);
     if (widget.autoTick) {
       _ticker.start();
@@ -238,6 +258,32 @@ class SceneViewportState extends State<SceneViewport>
     }
     if (oldWidget.autoTick != widget.autoTick) {
       widget.autoTick ? _ticker.start() : _ticker.stop();
+    }
+    if (!identical(oldWidget.input, widget.input)) {
+      _swapInput(widget.input ?? _defaultInput);
+    }
+  }
+
+  /// Switches to [next]: immediately when no pointers are held, otherwise
+  /// deferred until the current gesture ends.
+  void _swapInput(SceneInput next) {
+    if (_activePointers == 0) {
+      _activeInput = next;
+      _pendingInput = null;
+    } else {
+      _pendingInput = next;
+    }
+  }
+
+  /// Releases one tracked pointer and applies a deferred input swap after
+  /// the last one is up.
+  void _releasePointer() {
+    if (_activePointers > 0) _activePointers--;
+    if (_activePointers > 0) return;
+    final pending = _pendingInput;
+    if (pending != null) {
+      _activeInput = pending;
+      _pendingInput = null;
     }
   }
 
@@ -331,7 +377,7 @@ class SceneViewportState extends State<SceneViewport>
           onPointerDown: _onPointerDown,
           onPointerMove: (event) => _input.onPointerMove(event, _info),
           onPointerUp: _onPointerUp,
-          onPointerCancel: (event) => _input.onPointerCancel(event, _info),
+          onPointerCancel: _onPointerCancel,
           onPointerSignal: (event) => _input.onPointerSignal(event, _info),
           onPointerPanZoomStart: (event) => _input.onPanZoomStart(event, _info),
           onPointerPanZoomUpdate: (event) =>
@@ -366,9 +412,10 @@ class SceneViewportState extends State<SceneViewport>
     );
   }
 
-  SceneInput get _input => widget.input ?? _defaultInput;
+  SceneInput get _input => _activeInput;
 
   void _onPointerDown(PointerDownEvent event) {
+    _activePointers++;
     if (_primaryPointer == null) {
       _primaryPointer = event.pointer;
       _downPosition = event.localPosition;
@@ -391,6 +438,12 @@ class SceneViewportState extends State<SceneViewport>
       }
     }
     _input.onPointerUp(event, _info);
+    _releasePointer();
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _input.onPointerCancel(event, _info);
+    _releasePointer();
   }
 
   void _formTap(Offset position, Size viewportSize) {
