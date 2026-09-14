@@ -3,6 +3,7 @@ import 'polyhedra_all.dart';
 import 'polyhedra_bake.dart';
 import 'polyhedra_map.dart';
 import 'polyhedra_runtime.dart';
+import 'polyhedra_select.dart';
 
 /// Фичи группы «Многогранники» — примеры произвольной геометрии
 /// (`polyhedron`): ручная сборка, конверсия примитивов, фрагмент карты,
@@ -12,4 +13,5 @@ final List<FeatureSpec> polyhedraFeatures = [
   polyhedraBakeFeature,
   polyhedraMapFeature,
   polyhedraRuntimeFeature,
+  polyhedraSelectFeature,
 ];

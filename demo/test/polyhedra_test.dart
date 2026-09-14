@@ -5,6 +5,7 @@ import 'package:demo/src/features/polyhedra_bake.dart';
 import 'package:demo/src/features/polyhedra_common.dart';
 import 'package:demo/src/features/polyhedra_map.dart';
 import 'package:demo/src/features/polyhedra_runtime.dart';
+import 'package:demo/src/features/polyhedra_select.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/models.dart' as doc;
 import 'package:pet_engine_v2/pet_engine_v2.dart';
@@ -32,7 +33,7 @@ double _signedVolume(PolyMesh mesh) {
 
 void main() {
   test('группа «Многогранники» собрана и проходит проверку', () {
-    expect(polyhedraFeatures, hasLength(4));
+    expect(polyhedraFeatures, hasLength(5));
     expect(validateFeatureCatalog(polyhedraFeatures), isEmpty);
     expect(
       polyhedraFeatures.map((f) => f.id),
@@ -41,6 +42,7 @@ void main() {
         'polyhedra_bake',
         'polyhedra_map',
         'polyhedra_runtime',
+        'polyhedra_select',
       ]),
     );
     expect(polyhedraFeatures.first.group, 'Многогранники');
@@ -184,7 +186,7 @@ void main() {
   });
 
   test('группа выросла до четырёх фич', () {
-    expect(polyhedraFeatures, hasLength(4));
+    expect(polyhedraFeatures, hasLength(5));
     expect(
       polyhedraFeatures.map((f) => f.id),
       contains('polyhedra_runtime'),
@@ -220,5 +222,65 @@ void main() {
     final model = buildPolyhedraRuntimeScene(_buildContext());
     expect(model.objects, hasLength(1));
     expect(model.objects.single.kind, 'plane');
+  });
+
+  test('сцена выделения: площадка и три многогранника', () {
+    final model = buildPolyhedraSelectScene(_buildContext());
+    expect(model.objectById('ground')!.kind, 'plane');
+    expect(model.objectById('box')!.kind, doc.polyhedronKind);
+    expect(model.objectById('prism')!.kind, doc.polyhedronKind);
+    expect(model.objectById('slab')!.kind, doc.polyhedronKind);
+  });
+
+  test('контур грани — внешний плюс отверстия', () {
+    final model = buildPolyhedraSelectScene(_buildContext());
+    final slab = model.objectById('slab')!;
+    // Верхняя грань: 4 ребра внешнего контура + 4 ребра отверстия.
+    expect(faceOutlinePoints(model, slab, '+y'), hasLength((4 + 4) * 2));
+    final box = model.objectById('box')!;
+    expect(faceOutlinePoints(model, box, '+x'), hasLength(4 * 2));
+  });
+
+  test('ближайшая вершина: радиус и промах', () {
+    final vertices = <vm.Vector3>[
+      vm.Vector3(0, 0, 0),
+      vm.Vector3(10, 0, 0),
+    ];
+    Offset project(vm.Vector3 v) => Offset(v.x, v.y);
+    expect(
+      nearestVertexIndex(
+        worldVertices: vertices,
+        tap: const Offset(2, 1),
+        project: project,
+      ),
+      0,
+    );
+    expect(
+      nearestVertexIndex(
+        worldVertices: vertices,
+        tap: const Offset(8, 0),
+        project: project,
+      ),
+      1,
+    );
+    expect(
+      nearestVertexIndex(
+        worldVertices: vertices,
+        tap: const Offset(100, 100),
+        project: project,
+      ),
+      isNull,
+    );
+  });
+
+  test('мировая матрица объекта повторяет рендер (зеркальный якорь)', () {
+    final model = buildPolyhedraSelectScene(_buildContext());
+    final box = model.objectById('box')!;
+    final matrix = documentObjectWorld(model, box);
+    final anchor = matrix.getTranslation();
+    final expected = chunkWorld(box.x, box.z, model.size.w, model.size.l);
+    expect(anchor.x, closeTo(expected.x, 1e-9));
+    expect(anchor.y, closeTo(box.y, 1e-9));
+    expect(anchor.z, closeTo(expected.z, 1e-9));
   });
 }
