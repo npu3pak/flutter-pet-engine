@@ -43,8 +43,20 @@
   появился публичный `rightH`; тест — `engine/test/api/camera_test.dart`.
   Первый потребитель — `mypet-game/pet_demo`, переписанный на API v2
   (ветка `feature/engine-v2`), визуальные снимки режима `pet.shots`.
+- Обновление 14 сентября (ветка `feature/polyhedra`, см. `plan.md` §8):
+  - движок: вид `polyhedron` (сеть с дырками и явными UV), операции
+    редактирования сети, `PolyhedronNode`, `bakePolyhedron`,
+    `refreshObjectGeometry`, `objectWorldMatrix`, камера крупных карт;
+    версия `0.1.0-dev.3`; золотые эталоны совместимости не сдвинулись;
+  - demo: девятая группа «Многогранники» (54 фичи, 184 теста), журнал
+    `demo/visual_tests.json` (bug_61 — магента карты без проекта);
+  - scene_editor: режимы «Объект/Грани/Вершины», конверсия примитивов и
+    CSG, 1-px выделение, оранжевая рамка, адаптивная сетка, drag вершин
+    (381 тест); журнал `scene_editor/visual_tests.json` (bug_11).
+  - Числа §1 ниже — исторический базлайн; актуальные: engine 594,
+    demo 184, scene_editor 381.
 - Следующее: финальная приёмка владельцем (engine, docs, demo,
-  scene_editor).
+  scene_editor), затем отдельная ветка конвертера WAD.
 
 ## 1. Проверка базлайна
 

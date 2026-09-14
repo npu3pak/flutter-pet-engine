@@ -1125,3 +1125,39 @@ analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-ви
 визуальные проверки — `docs/perf_journal.md`. Хвост закрыт: мета-слой
 (`MetaOverlayLayer.sync`) и гизмо света (`LightGizmoLayer.sync(only:)`)
 обновляют только перемещённый элемент (0.10 мс/шаг, 0 пересборок).
+
+### Ветка `feature/polyhedra`: редактор многогранников (14 сентября 2026)
+
+Движок подготовлен к переносу сложных карт (будущий конвертер WAD — отдельная
+задача) и редактор получил режим правки произвольной геометрии:
+
+- **Движок.** Вид `polyhedron`: `PolyMesh`/`PolyFace`/`PolyLoop` с дырками и
+  явными UV, триангуляция «мостики + ear clipping», рендер/пикинг по граням,
+  `bakePolyhedron` (примитивы и CSG), дружелюбный `PolyMesh.box` и
+  `PolyFace.quad/triangle`, runtime-узел `PolyhedronNode`, редакторские
+  операции (`addVertexToFace` с интерполяцией UV, `moveVertices`,
+  `rotateVertices`, `deleteVertices`, `deleteFaces`, `compact`),
+  `SceneController.refreshObjectGeometry` (точечная пересборка узлов),
+  `objectWorldMatrix`, `faceLoops`, `objectScale`, точные контуры в
+  `ModelNode.wireframeSegments`; лимиты модели 16384×16384×4096, `round6`,
+  `configureForExtent` и динамические потолки камеры. Golden-эталоны
+  совместимости (`engine/test/fixtures/backward_compat/`) не сдвинулись.
+- **Демо.** Девятая группа «Многогранники» (54 фичи): `polyhedra_all`,
+  `polyhedra_bake`, `polyhedra_map` (фрагмент карты с явными UV),
+  `polyhedra_runtime`, `polyhedra_select` (подсветка граней/вершин).
+  Визуальный прогон: `poly_all`, `poly_bake`, `poly_map_textured`,
+  `poly_runtime`, `poly_select_faces/vertices`; найден и исправлен bug_61
+  (магента у карты из-за отсутствующего `project`).
+- **Редактор.** Кнопка «Многогранник» (`PolyMesh.box`), режимы
+  «Объект/Грани/Вершины», выбор граней лучом и вершин экранной проекцией,
+  Shift-группа, armed-добавление вершины, удаление, масштаб по осям с
+  точностью 4 знаков, конверсия примитивов и CSG в одну команду undo
+  (с удалением освободившихся операндов), 1-px выделение, оранжевая рамка
+  уровня, маркеры вершин, адаптивная сетка и камера крупных карт.
+  Визуальные снимки: `editor_poly_object`, `editor_poly_faces`,
+  `editor_poly_faces_group`, `editor_poly_vertices`; журнал
+  `scene_editor/visual_tests.json` (bug_11).
+- **Проверки.** `engine` — analyze чист, 594 теста; `demo` — analyze чист,
+  184 теста и визуальный прогон группы; `scene_editor` — analyze чист,
+  381 тест. Линейка API — `docs/api.md` §22, конвенции —
+  `docs/conventions.md` §8.

@@ -1741,3 +1741,85 @@ controller.dynamics.sync('enemies', ...);
 8. Размеры `SceneTexture.fromGpu`: заполняются для текстур/спрайтов из
    ресурсной сессии (кэш помнит размер декода, фаза 4); у GPU-обёрток без
    размера остаются 0.
+
+## 22. Многогранники (`polyhedron`)
+
+Произвольная геометрия для переноса сложных карт (в т.ч. 1:1 из WAD, см.
+`conventions.md` §8): индексные вершины, плоские n-угольные грани с дырками,
+явные UV и материалы по граням. Реализация — `engine/src/scene/polyhedron*.dart`,
+нода — `engine/src/api/nodes/polyhedron_node.dart`; ветка `feature/polyhedra`.
+
+### 22.1. Документ и данные
+
+```dart
+// Сборка куба: 8 вершин, 6 граней с ключами +x…-z.
+final mesh = PolyMesh.box(w: 2, h: 1, d: 3);
+
+// Ручная грань (треугольник/четырёхугольник) и грань с отверстием.
+final face = PolyFace.quad(key: '+y', a: 0, b: 1, c: 2, d: 3);
+final plate = PolyFace(
+  key: '+y',
+  outer: PolyLoop(vertices: [0, 1, 2, 3]),
+  holes: [PolyLoop(vertices: [4, 5, 6, 7])],
+);
+
+// Объект документа: mesh и неоднородный масштаб (scale: [x,y,z] в JSON).
+final object = ModelObject(
+  id: 'wall', name: 'Стена', kind: polyhedronKind,
+  mesh: mesh, scaleY: 2,
+);
+```
+
+- `kind == polyhedronKind` (`'polyhedron'`), `ModelObject.mesh`,
+  `ModelObject.scaleX/scaleY/scaleZ`, `facesOf(object)` = ключи граней,
+  `minCorner/maxCorner` учитывают вершины × масштаб.
+- Операции сети (чистые, тестируемые): `PolyMesh.addVertexToFace`
+  (вставка в ближайшее ребро с интерполяцией UV), `moveVertices`,
+  `rotateVertices`, `deleteVertices`, `deleteFaces`, `compact`,
+  `verticesOfFaces`, `sanitize` (загрузка).
+- Геометрия: `polyFaceNormal`, `polyFaceArea`, `polyFaceBasis`,
+  `triangulatePolyFace`, `triangulateLoops`.
+- Конверсия: `bakePolyhedron(model, object)` → `PolyBakeResult`
+  (`mesh`, `faces`, `rotationBaked`); `applyTo(object)` ставит вид/сеть и
+  материалы, чистит `dims` и операнды CSG; `pruneFaceMaterials(object)`
+  убирает устаревшие материалы граней.
+
+### 22.2. Runtime-узел `PolyhedronNode`
+
+```dart
+final wall = PolyhedronNode(
+  name: 'Стена',
+  mesh: PolyMesh.box(w: 2, h: 3, d: 0.2),
+  material: SceneMaterial.pbr(color: const Color(0xFF8A8F99)),
+  faceMaterials: {'+y': SceneMaterial.pbr(color: const Color(0xFF60BA70))},
+);
+wall.position = vm.Vector3(4, 0, 2);
+wall.scale = vm.Vector3(1, 2, 1);   // SceneNode.scale — per-axis
+controller.add(wall);
+```
+
+- Один `PickPart` на грань с `faceKey` — `SceneHit.face!.key` называет
+  грань; `localBounds` из вершин; `wireframeSegments` — контуры граней.
+- `faceMaterials`/`faceMaterial(key)`/`setFaceMaterial(key, null)`.
+
+### 22.3. Сцена и редактор
+
+- `objectWorldMatrix(model, object)` — мировая матрица локальной геометрии
+  (якорь · поворот · per-axis масштаб), общая с рендером;
+  `objectScale(object)`, `faceLoops(object, key)` (внешний контур + дырки).
+- `SceneController.refreshObjectGeometry(id)` — пересборка узлов одного
+  объекта после правки сети; `ModelNode.invalidatePicking()` — сброс кэша
+  pick-партов.
+- `FlyCameraController.configureForExtent(extent)` — near/far/скорость
+  полёта для крупных карт (до 200 единиц диагонали — дефолты).
+
+### 22.4. Совместимость
+
+- Формат аддитивен: старые виды и их JSON не меняются; `round3` остаётся,
+  `round6` применяется только к вершинам/UV/масштабу многогранника.
+- Эталоны старого поведения — `engine/test/fixtures/backward_compat/`
+  (10 фикстур, сверяются `backward_compat_test.dart`); перегенерация только
+  осознанно: `fvm flutter test test/backward_compat_test.dart
+  --dart-define=UPDATE_BACKWARD_COMPAT=true`.
+- Лимиты `ModelSize` расширены (16384×16384×4096), старые диапазоны читаются
+  как прежде; многогранник не участвует в CSG и всегда печётся как node.

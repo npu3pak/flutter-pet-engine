@@ -1187,3 +1187,67 @@
 | Связка качества с вьюпортом | `QualityController.attach`, раздел 15 |
 | Снимок вьюпорта | `SceneViewport.capture`, разделы 2 и 18 |
 | Переименования | `SceneFog`, `SceneAntiAliasing`, `AnimationPlayer`, `docs/migration.md` |
+
+## 22. Многогранники (ветка `feature/polyhedra`)
+
+Добавлено 14 сентября 2026 как подготовка к переносу карт из WAD (будущий
+конвертер — отдельная задача) и для правки произвольной геометрии в
+редакторе. Номера — продолжение сквозной нумерации разделов реестра.
+
+### B13. Вид документа `polyhedron`
+
+- **Что делает.** Хранит произвольную сеть: индексные вершины, плоские
+  n-угольные грани (вогнутые и с дырками), явные UV на контурах,
+  неоднородный масштаб `scale: [x,y,z]`. Рендер, пикинг по граням и
+  материалы по граням работают как у примитивов.
+- **Где используется.** Конвертер WAD → pet_engine_v2 (будущий), редактор
+  сцены, демо.
+- **API v2.** `polyhedronKind`, `PolyMesh`/`PolyFace`/`PolyLoop`,
+  `ModelObject.mesh`/`scaleX/Y/Z`, `facesOf`, `minCorner/maxCorner`,
+  `faceLoops`, `polyFaceNormal/Area/Basis`, `triangulatePolyFace/Loops`,
+  `bakePolyhedron`/`PolyBakeResult.applyTo`, `pruneFaceMaterials`.
+- **Код.** `engine/src/scene/polyhedron.dart`,
+  `engine/src/scene/polyhedron_bake.dart`,
+  `engine/src/scene/polyhedron_geometry.dart`,
+  `engine/src/models/model_scene.dart`.
+- **Статус.** Покрыто (594 теста движка).
+
+### C11. Редактирование сети и runtime-узел
+
+- **Что делает.** Правка вершин/граней (вставка в ребро с интерполяцией
+  UV, перенос, поворот, удаление, компакт) и прямой рендер сети узлом с
+  материалами по граням и пикингом по ключам.
+- **Где используется.** Редактор (режимы «Объект/Грани/Вершины»),
+  конвертер/игры (превью карты без документа).
+- **API v2.** `PolyMesh.addVertexToFace`, `moveVertices`,
+  `rotateVertices`, `deleteVertices`, `deleteFaces`, `compact`,
+  `verticesOfFaces`; `PolyhedronNode`; `objectWorldMatrix`, `objectScale`,
+  `SceneController.refreshObjectGeometry`, `ModelNode.invalidatePicking`,
+  `FlyCameraController.configureForExtent`.
+- **Код.** `engine/src/api/nodes/polyhedron_node.dart`,
+  `engine/src/api/scene_controller.dart`,
+  `engine/src/scene/model_renderer.dart`.
+- **Статус.** Покрыто.
+
+### D8. Демо-группа «Многогранники»
+
+- **Что делает.** Пять фич: ручная сборка (`polyhedra_all`), конверсия
+  (`polyhedra_bake`), фрагмент карты с явными UV (`polyhedra_map`),
+  runtime-узел (`polyhedra_runtime`), выделение граней/вершин
+  (`polyhedra_select`).
+- **Код.** `demo/lib/src/features/polyhedra*.dart`; каталог — 54 фичи в
+  девяти группах; журнал `demo/visual_tests.json` (bug_61).
+- **Статус.** Покрыто (184 теста demo).
+
+### ED1. Режим многогранника в редакторе
+
+- **Что делает.** Кнопка «Многогранник» (куб), конверсия любого примитива
+  и CSG, режимы «Объект/Грани/Вершины» с выбором лучом/экранной проекцией,
+  Shift-группой, гизмо по центроиду, armed-добавлением вершины, удалением,
+  масштабом по осям, 1-px выделением и оранжевой рамкой уровня, адаптивной
+  сеткой и камерой крупных карт.
+- **Код.** `scene_editor/lib/src/state/app_state.dart`,
+  `scene_editor/lib/src/scene/editor_scene.dart`,
+  `scene_editor/lib/src/ui/{right_panel,editor_viewport,main_screen,form_fields}.dart`.
+- **Статус.** Покрыто (381 тест; журнал `scene_editor/visual_tests.json`,
+  bug_11).

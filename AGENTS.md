@@ -140,5 +140,16 @@ capability) so math_quest's grass keeps its one-instanced-batch
 camera-facing; the consumer migration is the `math_quest` branch
 `feature/engine-v2` (September 13, 2026).
 
+Post-acceptance addition (branch `feature/polyhedra`, September 14, 2026):
+the engine is ready for lossless arbitrary geometry — the `polyhedron`
+document kind (`PolyMesh`/`PolyFace`/`PolyLoop` with holes and explicit UVs,
+`bakePolyhedron`, mesh edit operations, `refreshObjectGeometry`,
+`objectWorldMatrix`, `faceLoops`), the runtime `PolyhedronNode`, and the
+large-map camera (`configureForExtent`); engine version `0.1.0-dev.3`.
+The demo has a ninth group «Многогранники» (54 features, 184 tests) and the
+scene editor a full Object/Faces/Vertices editing mode (381 tests); the
+WAD converter itself is a separate future task. Backward-compat goldens live
+in `engine/test/fixtures/backward_compat/`.
+
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).
