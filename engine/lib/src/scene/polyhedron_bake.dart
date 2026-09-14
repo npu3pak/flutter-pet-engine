@@ -36,6 +36,20 @@ class PolyBakeResult {
 /// world convention). Model-space sources (csg, rounded cuboid) come back
 /// with [PolyBakeResult.rotationBaked]; the caller then keeps the object
 /// position and zeroes the rotation.
+///
+/// ```dart
+/// final bake = bakePolyhedron(model, object);
+/// if (bake == null) return; // у вида нет своей геометрии
+/// object
+///   ..kind = polyhedronKind
+///   ..mesh = bake.mesh
+///   ..faces = bake.faces
+///   ..dims.clear();
+/// if (bake.rotationBaked) object
+///   ..rotX = 0
+///   ..rotY = 0
+///   ..rotZ = 0;
+/// ```
 PolyBakeResult? bakePolyhedron(ModelData model, ModelObject obj) {
   switch (obj.kind) {
     case 'cuboid':
@@ -59,28 +73,17 @@ PolyBakeResult? bakePolyhedron(ModelData model, ModelObject obj) {
 }
 
 PolyBakeResult _bakeCuboid(ModelObject obj) {
-  final w = obj.dim('w', 1), h = obj.dim('h', 1), d = obj.dim('d', 1);
-  final hx = w / 2, hz = d / 2;
-  final v = [
-    vm.Vector3(-hx, 0, -hz),
-    vm.Vector3(hx, 0, -hz),
-    vm.Vector3(hx, 0, hz),
-    vm.Vector3(-hx, 0, hz),
-    vm.Vector3(-hx, h, -hz),
-    vm.Vector3(hx, h, -hz),
-    vm.Vector3(hx, h, hz),
-    vm.Vector3(-hx, h, hz),
-  ];
-  // Face loops match `cuboidFaceCorners` order (outward CCW).
-  final loops = <String, List<int>>{
-    '+x': [2, 1, 5, 6],
-    '-x': [0, 3, 7, 4],
-    '+y': [7, 6, 5, 4],
-    '-y': [0, 1, 2, 3],
-    '+z': [3, 2, 6, 7],
-    '-z': [1, 0, 4, 5],
-  };
-  return _direct(obj, v, loops);
+  final mesh = PolyMesh.box(
+    w: obj.dim('w', 1),
+    h: obj.dim('h', 1),
+    d: obj.dim('d', 1),
+  );
+  final mats = <String, ModelMaterial>{};
+  for (final face in mesh.faces) {
+    final m = obj.faces[face.key];
+    if (m != null) mats[face.key] = ModelMaterial.copy(m);
+  }
+  return PolyBakeResult(mesh, mats);
 }
 
 PolyBakeResult _bakeTrapezoid(ModelObject obj) {

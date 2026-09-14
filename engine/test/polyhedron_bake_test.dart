@@ -40,6 +40,11 @@ void main() {
       expect(bake.mesh.vertices, hasLength(8));
       expect(bake.mesh.faces.map((f) => f.key).toSet(),
           {'+x', '-x', '+y', '-y', '+z', '-z'});
+      // Конверсия кубоида — это в точности удобный PolyMesh.box.
+      expect(
+        bake.mesh.toJson(),
+        PolyMesh.box(w: 2, h: 3, d: 4).toJson(),
+      );
       final expected = {
         '+x': vm.Vector3(1, 0, 0),
         '-x': vm.Vector3(-1, 0, 0),

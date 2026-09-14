@@ -220,6 +220,45 @@ void main() {
     });
   });
 
+  group('PolyMesh: удобные конструкторы', () {
+    test('PolyFace.triangle/quad создают контуры и UV', () {
+      final triangle = PolyFace.triangle(
+        key: 't',
+        a: 0,
+        b: 1,
+        c: 2,
+        uvs: [vm.Vector2(0, 0), vm.Vector2(1, 0), vm.Vector2(0, 1)],
+      );
+      expect(triangle.outer.vertices, [0, 1, 2]);
+      expect(triangle.outer.hasUvs, isTrue);
+      final quad = PolyFace.quad(key: 'q', a: 3, b: 2, c: 1, d: 0);
+      expect(quad.outer.vertices, [3, 2, 1, 0]);
+      expect(quad.outer.hasUvs, isFalse);
+    });
+
+    test('PolyMesh.box: 8 вершин, 6 граней, нормали наружу', () {
+      final box = PolyMesh.box(w: 2, h: 3, d: 4);
+      expect(box.vertices, hasLength(8));
+      expect(box.faces.map((f) => f.key).toSet(),
+          {'+x', '-x', '+y', '-y', '+z', '-z'});
+      final expected = {
+        '+x': vm.Vector3(1, 0, 0),
+        '-x': vm.Vector3(-1, 0, 0),
+        '+y': vm.Vector3(0, 1, 0),
+        '-y': vm.Vector3(0, -1, 0),
+        '+z': vm.Vector3(0, 0, 1),
+        '-z': vm.Vector3(0, 0, -1),
+      };
+      for (final face in box.faces) {
+        final n = polyFaceNormal(box, face).normalized();
+        expect(n.dot(expected[face.key]!), closeTo(1, 1e-9),
+            reason: face.key);
+      }
+      final back = PolyMesh.fromJson(box.toJson());
+      expect(back.toJson(), box.toJson());
+    });
+  });
+
   group('PolyMesh: JSON и sanitize', () {
     test('полный круг с UV и дырками сохраняется без потерь', () {
       final mesh = PolyMesh(

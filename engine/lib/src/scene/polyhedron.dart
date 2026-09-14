@@ -11,6 +11,33 @@
 /// - the UV list of a loop is parallel to its vertex list. Explicit UVs are
 ///   final texture coordinates (texture repeats, as authored by an importer);
 ///   an empty list means "compute planar UVs from the material".
+///
+/// ## Пример: плита с отверстием
+///
+/// ```dart
+/// import 'package:pet_engine_v2/pet_engine_v2.dart';
+/// import 'package:vector_math/vector_math.dart' as vm;
+///
+/// final plate = PolyMesh(
+///   vertices: [
+///     vm.Vector3(0, 0, 0), vm.Vector3(4, 0, 0),   // внешний контур, CCW
+///     vm.Vector3(4, 0, 4), vm.Vector3(0, 0, 4),
+///     vm.Vector3(1, 0, 1), vm.Vector3(3, 0, 1),   // отверстие
+///     vm.Vector3(3, 0, 3), vm.Vector3(1, 0, 3),
+///   ],
+///   faces: [
+///     PolyFace(
+///       key: '+y',
+///       outer: PolyLoop(vertices: [0, 1, 2, 3]),
+///       holes: [PolyLoop(vertices: [4, 5, 6, 7])],
+///     ),
+///   ],
+/// );
+/// ```
+///
+/// Готовые формы: [PolyMesh.box] (куб с ключами `+x`…`-z`),
+/// [bakePolyhedron] (конверсия примитива или CSG в многогранник),
+/// [PolyhedronNode] (рендер сети напрямую, без документа).
 library;
 
 import 'package:vector_math/vector_math.dart' as vm;
@@ -84,6 +111,29 @@ class PolyFace {
     required this.outer,
     List<PolyLoop>? holes,
   }) : holes = holes == null ? <PolyLoop>[] : List<PolyLoop>.of(holes);
+
+  /// A triangular face (`a`, `b`, `c` — CCW from outside). [uvs] are
+  /// parallel to the vertices when given.
+  factory PolyFace.triangle({
+    required String key,
+    required int a,
+    required int b,
+    required int c,
+    List<vm.Vector2>? uvs,
+  }) =>
+      PolyFace(key: key, outer: PolyLoop(vertices: [a, b, c], uvs: uvs));
+
+  /// A quadrilateral face (`a`, `b`, `c`, `d` — CCW from outside). [uvs]
+  /// are parallel to the vertices when given.
+  factory PolyFace.quad({
+    required String key,
+    required int a,
+    required int b,
+    required int c,
+    required int d,
+    List<vm.Vector2>? uvs,
+  }) =>
+      PolyFace(key: key, outer: PolyLoop(vertices: [a, b, c, d], uvs: uvs));
 
   PolyFace copy() => PolyFace(
         key: key,
@@ -167,6 +217,38 @@ class PolyMesh {
     required List<PolyFace> faces,
   })  : vertices = [for (final v in vertices) v.clone()],
         faces = List<PolyFace>.of(faces);
+
+  /// A rectangular box centred on X/Z with its base at y = 0 — the same
+  /// local frame as the document cuboid, with the same face keys
+  /// (`+x`, `-x`, `+y`, `-y`, `+z`, `-z`), loops wound CCW from outside.
+  ///
+  /// ```dart
+  /// final cube = PolyMesh.box(w: 2, h: 1, d: 3);
+  /// controller.add(PolyhedronNode(mesh: cube, material: SceneMaterial.pbr()));
+  /// ```
+  factory PolyMesh.box({double w = 1, double h = 1, double d = 1}) {
+    final hx = w / 2, hz = d / 2;
+    return PolyMesh(
+      vertices: [
+        vm.Vector3(-hx, 0, -hz),
+        vm.Vector3(hx, 0, -hz),
+        vm.Vector3(hx, 0, hz),
+        vm.Vector3(-hx, 0, hz),
+        vm.Vector3(-hx, h, -hz),
+        vm.Vector3(hx, h, -hz),
+        vm.Vector3(hx, h, hz),
+        vm.Vector3(-hx, h, hz),
+      ],
+      faces: [
+        PolyFace.quad(key: '+x', a: 2, b: 1, c: 5, d: 6),
+        PolyFace.quad(key: '-x', a: 0, b: 3, c: 7, d: 4),
+        PolyFace.quad(key: '+y', a: 7, b: 6, c: 5, d: 4),
+        PolyFace.quad(key: '-y', a: 0, b: 1, c: 2, d: 3),
+        PolyFace.quad(key: '+z', a: 3, b: 2, c: 6, d: 7),
+        PolyFace.quad(key: '-z', a: 1, b: 0, c: 4, d: 5),
+      ],
+    );
+  }
 
   PolyMesh copy() => PolyMesh(
         vertices: vertices,
