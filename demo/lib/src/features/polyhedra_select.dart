@@ -172,7 +172,7 @@ class _PolyhedraSelectControls extends StatefulWidget {
 class _PolyhedraSelectControlsState extends State<_PolyhedraSelectControls> {
   static const activeColor = Color(0xFFFFD91A);
   static const groupColor = Color(0xFF35D0FF);
-  static const markerColor = Color(0x66FFFFFF);
+  static const markerColor = Color(0xE6FFFFFF);
 
   GroupNode? _root;
   GroupNode? _highlight;
@@ -336,14 +336,14 @@ class _PolyhedraSelectControlsState extends State<_PolyhedraSelectControls> {
         _addCross(target, world);
       }
     }
-    for (final (points, color) in [
-      (normal, markerColor),
-      (groupPoints, groupColor),
-      (activePoints, activeColor),
+    for (final (points, color, width) in [
+      (normal, markerColor, 1.6),
+      (groupPoints, groupColor, 2.0),
+      (activePoints, activeColor, 2.0),
     ]) {
       if (points.isEmpty) continue;
       final node = LineNode(
-        geometry: LineGeometry(points, widthPx: 1),
+        geometry: LineGeometry(points, widthPx: width),
         color: color,
       );
       node.layer = SceneLayer.overlay;
@@ -352,7 +352,7 @@ class _PolyhedraSelectControlsState extends State<_PolyhedraSelectControls> {
   }
 
   void _addCross(List<vm.Vector3> out, vm.Vector3 point) {
-    const m = 0.07;
+    const m = 0.09;
     out
       ..add(point + vm.Vector3(-m, 0, 0))
       ..add(point + vm.Vector3(m, 0, 0))

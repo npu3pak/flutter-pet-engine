@@ -1634,9 +1634,13 @@ class EditorScene {
     return face != null && obj != null && key == '$obj:$face';
   }
 
-  LineNode _outlineNode(List<(double, double, double)> points, Color color) {
+  LineNode _outlineNode(
+    List<(double, double, double)> points,
+    Color color, {
+    double widthPx = 1,
+  }) {
     final node = LineNode(
-      geometry: lineSegments(points, widthPx: 1),
+      geometry: lineSegments(points, widthPx: widthPx),
       color: color,
     );
     node.layer = SceneLayer.overlay;
@@ -1644,15 +1648,15 @@ class EditorScene {
   }
 
   /// Крестики вершин многогранника: активная — жёлтая, выбранные в группе —
-  /// голубые, остальные — полупрозрачные белые. Размер крестика — 2 %
-  /// диагонали сети (в разумных пределах), толщина 1 пиксель.
+  /// голубые, остальные — белые. Крестики яркие и чуть крупнее линий
+  /// выделения (3 % диагонали сети, 1.6–2 px), иначе теряются на сцене.
   List<LineNode> _buildVertexMarkers(ModelData model, ModelObject obj) {
     final mesh = obj.mesh;
     if (mesh == null) return const [];
     final matrix = objectWorldMatrix(model, obj);
     final bounds = mesh.vertexBounds;
     final diag = bounds == null ? 1.0 : (bounds.$2 - bounds.$1).length;
-    final m = (diag * 0.02).clamp(0.02, 0.5);
+    final m = (diag * 0.03).clamp(0.03, 0.6);
     final normal = <(double, double, double)>[];
     final group = <(double, double, double)>[];
     final active = <(double, double, double)>[];
@@ -1676,9 +1680,11 @@ class EditorScene {
     }
     return [
       if (normal.isNotEmpty)
-        _outlineNode(normal, const Color(0x66FFFFFF)),
-      if (group.isNotEmpty) _outlineNode(group, const Color(0xFF35D0FF)),
-      if (active.isNotEmpty) _outlineNode(active, const Color(0xFFFFD91A)),
+        _outlineNode(normal, const Color(0xE6FFFFFF), widthPx: 1.6),
+      if (group.isNotEmpty)
+        _outlineNode(group, const Color(0xFF35D0FF), widthPx: 2),
+      if (active.isNotEmpty)
+        _outlineNode(active, const Color(0xFFFFD91A), widthPx: 2),
     ];
   }
 
