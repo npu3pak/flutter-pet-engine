@@ -1182,8 +1182,9 @@ class _PolyhedronProperties extends StatelessWidget {
       if (app.polyAddVertexArmed) ...[
         const SizedBox(height: 4),
         const Text(
-          'Нажмите на грань: вершина встанет в точку нажатия и в ближайшее '
-          'ребро контура (UV интерполируются).',
+          'Нажмите на грань: клик по ребру вставит вершину в него, клик '
+          'внутри разобьёт грань на треугольники от новой вершины (дыры '
+          'не будет). UV интерполируются.',
           style: TextStyle(color: Colors.white38, fontSize: 11),
         ),
       ],

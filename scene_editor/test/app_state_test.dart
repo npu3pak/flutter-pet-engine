@@ -1305,6 +1305,31 @@ void main() {
       expect(poly.mesh!.vertices, hasLength(8));
     });
 
+    test('добавление вершины внутри грани пробивает её без дыры', () {
+      final poly = addPoly();
+      poly.faces['+y'] = ModelMaterial(color: [9, 8, 7]);
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.togglePolyAddVertex();
+      app.addPolyVertex('+y', vm.Vector3(0, 1, 0)); // центр верхней грани
+      expect(app.activeVertexIndex, 8);
+      expect(poly.mesh!.vertices, hasLength(9));
+      expect(poly.mesh!.faces, hasLength(9),
+          reason: 'верхняя грань стала четырьмя треугольниками');
+      final triangles = poly.mesh!.faces
+          .where((f) => f.outer.vertices.contains(8))
+          .toList();
+      expect(triangles, hasLength(4));
+      for (final face in triangles) {
+        expect(face.outer.vertices, hasLength(3));
+        expect(poly.faces[face.key]?.color, [9, 8, 7],
+            reason: 'материал грани перенесён на ${face.key}');
+      }
+      app.undo();
+      expect(poly.mesh!.vertices, hasLength(8));
+      expect(poly.mesh!.faces, hasLength(6));
+      expect(poly.faces['+y']?.color, [9, 8, 7]);
+    });
+
     test('конверсия кубоида в многогранник и undo', () {
       app.createModel();
       final floor = app.currentModel!.objects.first;

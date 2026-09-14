@@ -1151,14 +1151,27 @@ class AppState extends ChangeNotifier {
   }
 
   /// Вставляет вершину в грань [faceKey] в локальной точке [localPoint]
-  /// (мировой луч переводит вьюпорт) и сразу выбирает её. Режим остаётся
-  /// включённым — можно добавить несколько вершин подряд.
+  /// (мировой луч переводит вьюпорт) и сразу выбирает её. Клик по ребру
+  /// расщепляет его, клик внутри пробивает грань треугольниками (без дыры);
+  /// материал исходной грани переносится новым треугольникам. Режим
+  /// остаётся включённым — можно добавить несколько вершин подряд.
   void addPolyVertex(String faceKey, vm.Vector3 localPoint) {
     final obj = selectedObject();
     if (obj?.mesh == null) return;
     int? index;
     _objectEdit(obj!.id, description: 'Добавить вершину', mutate: (o) {
-      index = o.mesh?.addVertexToFace(faceKey, localPoint);
+      final before = {for (final f in o.mesh!.faces) f.key};
+      index = o.mesh!.addVertexToFace(faceKey, localPoint);
+      if (index == null) return;
+      // Исходный ключ остаётся первой новой грани; остальным копируем
+      // материал переопределения грани (иначе они наследуют материал
+      // объекта, и цвет «расщепится»).
+      final spec = o.faces[faceKey];
+      if (spec == null) return;
+      for (final f in o.mesh!.faces) {
+        if (before.contains(f.key)) continue;
+        o.faces[f.key] = ModelMaterial.copy(spec);
+      }
     });
     if (index == null) return;
     final added = index!;

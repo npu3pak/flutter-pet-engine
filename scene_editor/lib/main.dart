@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:vector_math/vector_math.dart' as vm;
 
 import 'src/app_info.dart';
 import 'src/deeplink.dart';
@@ -168,6 +169,35 @@ class SceneEditorAppState extends State<SceneEditorApp> {
         if (index == null) continue;
         app.selectPolyVertex(index, shift: !first);
         first = false;
+      }
+    }
+    // Визуальные проверки poke и переноса вершины: polyadd=<грань>,x,y,z;
+    // polyvertpos=x,y,z (для активной вершины).
+    final polyAdd = values['polyadd'];
+    if (polyAdd != null) {
+      final parts = polyAdd.split(',');
+      if (parts.length == 4) {
+        final x = double.tryParse(parts[1]);
+        final y = double.tryParse(parts[2]);
+        final z = double.tryParse(parts[3]);
+        if (x != null && y != null && z != null) {
+          app.addPolyVertex(parts[0], vm.Vector3(x, y, z));
+        }
+      }
+    }
+    final vertexPos = values['polyvertpos'];
+    if (vertexPos != null && app.activeVertexIndex != null) {
+      final parts = vertexPos.split(',');
+      if (parts.length == 3) {
+        final x = double.tryParse(parts[0]);
+        final y = double.tryParse(parts[1]);
+        final z = double.tryParse(parts[2]);
+        if (x != null && y != null && z != null) {
+          app.setPolyVertexPosition(
+            app.activeVertexIndex!,
+            vm.Vector3(x, y, z),
+          );
+        }
       }
     }
   }
