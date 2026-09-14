@@ -158,11 +158,17 @@ class DoubleField extends StatefulWidget {
   final double initial;
   final double step;
   final ValueChanged<double> onChanged;
+
+  /// Число знаков после запятой при отображении и шаге спиннера. Точность
+  /// вершин/масштаба многогранника — 4 знака; обычные поля — 2.
+  final int precision;
+
   const DoubleField({
     super.key,
     required this.initial,
     required this.onChanged,
     this.step = 0.1,
+    this.precision = 2,
   });
 
   @override
@@ -172,7 +178,7 @@ class DoubleField extends StatefulWidget {
 class _DoubleFieldState extends State<DoubleField> {
   late final TextEditingController _c = TextEditingController(text: _fmt(widget.initial));
 
-  static String _fmt(double v) => fmtDouble(v);
+  String _fmt(double v) => fmtDouble(v, precision: widget.precision);
 
   @override
   void didUpdateWidget(DoubleField old) {
@@ -190,7 +196,9 @@ class _DoubleFieldState extends State<DoubleField> {
 
   void _step(double dir) {
     final base = parseDoubleInput(_c.text) ?? widget.initial;
-    final next = double.parse((base + dir * widget.step).toStringAsFixed(2));
+    final next = double.parse(
+      (base + dir * widget.step).toStringAsFixed(widget.precision),
+    );
     if (next == base) return;
     _c.text = _fmt(next);
     widget.onChanged(next);
@@ -231,10 +239,11 @@ class _DoubleFieldState extends State<DoubleField> {
 }
 
 /// Formats a value compactly: whole numbers without decimals, fractions
-/// with up to 2 places and trailing zeros stripped ("1.1", "0.25", "3").
-String fmtDouble(double v) {
+/// with up to [precision] places and trailing zeros stripped ("1.1", "0.25",
+/// "3"; with precision 4 — "0.0625").
+String fmtDouble(double v, {int precision = 2}) {
   if (v == v.roundToDouble()) return v.toInt().toString();
-  return v.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+  return v.toStringAsFixed(precision).replaceFirst(RegExp(r'0+$'), '');
 }
 
 /// Parses a numeric input, treating ',' as the decimal separator. Returns

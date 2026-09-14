@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scene_editor/src/scene/editor_scene.dart';
 import 'package:scene_editor/src/state/app_state.dart';
 import 'package:scene_editor/src/ui/right_panel.dart';
+import 'package:pet_engine_v2/pet_engine_v2.dart';
 
 void main() {
   late AppState app;
@@ -171,5 +172,41 @@ void main() {
     expect(find.text('солнце'), findsWidgets);
     app.deleteLight(id);
     expect(app.currentModel!.lighting.lights, isEmpty);
+  });
+
+  // ── Многогранник ────────────────────────────────────────────────────
+
+  testWidgets('панель многогранника: режим, масштаб, операции',
+      (tester) async {
+    app.addObject('polyhedron'); // выбран автоматически
+    await pumpPanel(tester);
+    expect(find.text('Многогранник'), findsWidgets);
+    expect(find.text('Объект'), findsOneWidget);
+    expect(find.text('Грани'), findsOneWidget);
+    expect(find.text('Вершины'), findsOneWidget);
+    expect(find.text('Масштаб (вытягивание по осям)'), findsOneWidget);
+    // Режим граней: кнопка удаления и счётчик.
+    await tapVisible(tester, 'Грани');
+    expect(app.polyEditMode, PolyEditMode.faces);
+    expect(find.textContaining('Граней: 6'), findsOneWidget);
+    expect(find.text('Удалить грань'), findsOneWidget);
+    // Режим вершин: кнопки добавления/удаления.
+    await tapVisible(tester, 'Вершины');
+    expect(app.polyEditMode, PolyEditMode.vertices);
+    await tapVisible(tester, 'Добавить вершину');
+    expect(app.polyAddVertexArmed, isTrue);
+    expect(find.text('Удалить вершину'), findsOneWidget);
+  });
+
+  testWidgets('у кубоида есть кнопка конверсии в многогранник',
+      (tester) async {
+    app.addObject('cuboid');
+    await pumpPanel(tester);
+    await tapVisible(tester, 'Преобразовать в многогранник');
+    final obj = app.currentModel!.objects.last;
+    expect(obj.kind, polyhedronKind);
+    expect(obj.mesh!.faces, hasLength(6));
+    await pumpPanel(tester);
+    expect(find.text('Многогранник'), findsWidgets);
   });
 }

@@ -10,6 +10,7 @@ import 'model_ref_dialog.dart';
 import 'resource_picker.dart';
 import 'package:pet_engine_v2/pet_engine_v2.dart';
 import 'package:pet_engine_v2/models.dart' as cs;
+import 'package:vector_math/vector_math.dart' as vm;
 
 class RightPanel extends StatefulWidget {
   final AppState app;
@@ -109,6 +110,8 @@ class _RightPanelState extends State<RightPanel> {
             _ModelRefProperties(app: app, obj: obj)
           else if (obj.isGltfRef)
             _GltfRefProperties(app: app, obj: obj)
+          else if (obj.isPolyhedron)
+            _PolyhedronProperties(app: app, obj: obj)
           else
             _ObjectProperties(app: app, obj: obj),
         ],
@@ -536,9 +539,21 @@ class _CsgProperties extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             OutlinedButton.icon(
+              onPressed: () => app.convertToPolyhedron(obj.id),
+              icon: const Icon(Icons.polyline, size: 15),
+              label: const Text('Преобразовать в многогранник'),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
               onPressed: app.duplicateObject,
               icon: const Icon(Icons.copy, size: 15),
               label: const Text('Дублировать (с исходниками)'),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
+              onPressed: app.duplicateObject,
+              icon: const Icon(Icons.copy, size: 15),
+              label: const Text('Дублировать'),
             ),
             const SizedBox(height: 6),
             OutlinedButton.icon(
@@ -590,9 +605,10 @@ class _ModelSettings extends StatelessWidget {
         Row(
           children: [
             for (final (key, value, min, max) in [
-              ('w', model.size.w, 1, 64),
-              ('l', model.size.l, 1, 64),
-              ('h', model.size.h, 1, 32),
+              // Лимиты согласованы с model_v1 (карты 1:1 больше легаси-сетки).
+              ('w', model.size.w, 1, 16384),
+              ('l', model.size.l, 1, 16384),
+              ('h', model.size.h, 1, 4096),
             ])
               Expanded(
                 child: Padding(
@@ -881,6 +897,12 @@ class _ObjectProperties extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             OutlinedButton.icon(
+              onPressed: () => app.convertToPolyhedron(obj.id),
+              icon: const Icon(Icons.polyline, size: 15),
+              label: const Text('Преобразовать в многогранник'),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
               onPressed: app.duplicateObject,
               icon: const Icon(Icons.copy, size: 15),
               label: const Text('Дублировать'),
@@ -940,6 +962,284 @@ class _ObjectProperties extends StatelessWidget {
   Widget _label(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 3),
         child: Text(t, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+      );
+}
+
+// ── Многогранник ──────────────────────────────────────────────────────
+
+/// Свойства многогранника: режим правки (объект/грани/вершины), масштаб по
+/// осям и операции над гранями/вершинами. Материалы граней редактируются в
+/// режиме «Текстурирование» (клик по грани выбирает её материал).
+class _PolyhedronProperties extends StatelessWidget {
+  final AppState app;
+  final cs.ModelObject obj;
+  const _PolyhedronProperties({required this.app, required this.obj});
+
+  @override
+  Widget build(BuildContext context) {
+    final mesh = obj.mesh;
+    final mode = app.polyEditMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(color: Color(0xFF3A4250)),
+        const SectionTitle('Многогранник'),
+        NameField(
+          initial: obj.name,
+          onChanged: (v) => app.setObjectName(obj.id, v),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const SizedBox(
+              width: 90,
+              child: Text(
+                'Wireframe',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ),
+            Switch(
+              key: const Key('object-wireframe'),
+              value: app.objectWireframe(obj.id),
+              onChanged: (v) => app.setObjectWireframe(obj.id, v),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _label('Режим правки'),
+        SegmentedButton<PolyEditMode>(
+          showSelectedIcon: false,
+          style: appSegmentedStyle(),
+          segments: const [
+            ButtonSegment(value: PolyEditMode.object, label: Text('Объект')),
+            ButtonSegment(value: PolyEditMode.faces, label: Text('Грани')),
+            ButtonSegment(value: PolyEditMode.vertices, label: Text('Вершины')),
+          ],
+          selected: {mode},
+          onSelectionChanged: (selection) =>
+              app.setPolyEditMode(selection.first),
+        ),
+        const SizedBox(height: 10),
+        if (mode == PolyEditMode.object) ..._objectFields(),
+        if (mode == PolyEditMode.faces) ..._faceFields(mesh),
+        if (mode == PolyEditMode.vertices) ..._vertexFields(mesh),
+        const SizedBox(height: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              onPressed: app.duplicateObject,
+              icon: const Icon(Icons.copy, size: 15),
+              label: const Text('Дублировать'),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.redAccent,
+              ),
+              onPressed: () => app.deleteObject(obj.id),
+              icon: const Icon(Icons.delete_outline, size: 15),
+              label: const Text('Удалить'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Материал — в режиме «Текстурирование»',
+          style: TextStyle(color: Colors.white38, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _objectFields() => [
+        _label('Позиция (центр основания)'),
+        Row(
+          children: [
+            for (final (key, value) in [
+              ('X', obj.x),
+              ('Y', obj.y),
+              ('Z', obj.z),
+            ])
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: DoubleField(
+                    initial: value,
+                    step: app.snapStep <= 0 ? 0.05 : app.snapStep,
+                    onChanged: (v) => app.setObjectPos(
+                      obj.id,
+                      key == 'X' ? v : obj.x,
+                      key == 'Y' ? v : obj.y,
+                      key == 'Z' ? v : obj.z,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _label('Поворот (градусы)'),
+        Row(
+          children: [
+            for (final (key, value) in [
+              ('X', obj.rotX),
+              ('Y', obj.rotY),
+              ('Z', obj.rotZ),
+            ])
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: DoubleField(
+                    initial: value,
+                    step: 5,
+                    onChanged: (v) => app.setObjectRot(
+                      obj.id,
+                      key == 'X' ? v : obj.rotX,
+                      key == 'Y' ? v : obj.rotY,
+                      key == 'Z' ? v : obj.rotZ,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _label('Масштаб (вытягивание по осям)'),
+        Row(
+          children: [
+            for (final (axis, value) in [
+              (0, obj.scaleX),
+              (1, obj.scaleY),
+              (2, obj.scaleZ),
+            ])
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: DoubleField(
+                    initial: value,
+                    step: 0.1,
+                    precision: 4,
+                    onChanged: (v) => app.setPolyScale(obj.id, axis, v),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ];
+
+  List<Widget> _faceFields(cs.PolyMesh? mesh) {
+    final total = mesh?.faces.length ?? 0;
+    final prefix = '${obj.id}:';
+    final count =
+        app.selectedFaces.where((key) => key.startsWith(prefix)).length;
+    return [
+      Text(
+        'Граней: $total · выбрано: $count',
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+      const SizedBox(height: 6),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+        onPressed: count == 0 ? null : app.deleteSelectedPolyFaces,
+        icon: const Icon(Icons.delete_outline, size: 15),
+        label: const Text('Удалить грань'),
+      ),
+      const SizedBox(height: 4),
+      const Text(
+        'Клик по грани выбирает её, Shift добавляет к группе. '
+        'Контуры выбранных граней подсвечены на сцене.',
+        style: TextStyle(color: Colors.white38, fontSize: 11),
+      ),
+    ];
+  }
+
+  List<Widget> _vertexFields(cs.PolyMesh? mesh) {
+    final total = mesh?.vertices.length ?? 0;
+    final count = app.selectedVertexIndices.length;
+    final active = app.activeVertexIndex;
+    final vertex = mesh != null && active != null && active < total
+        ? mesh.vertices[active]
+        : null;
+    return [
+      Text(
+        'Вершин: $total · выбрано: $count',
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+      const SizedBox(height: 6),
+      OutlinedButton.icon(
+        onPressed: app.togglePolyAddVertex,
+        icon: Icon(
+          app.polyAddVertexArmed ? Icons.close : Icons.add,
+          size: 15,
+        ),
+        label: Text(
+          app.polyAddVertexArmed
+              ? 'Отменить добавление'
+              : 'Добавить вершину',
+        ),
+      ),
+      if (app.polyAddVertexArmed) ...[
+        const SizedBox(height: 4),
+        const Text(
+          'Нажмите на грань: вершина встанет в точку нажатия и в ближайшее '
+          'ребро контура (UV интерполируются).',
+          style: TextStyle(color: Colors.white38, fontSize: 11),
+        ),
+      ],
+      const SizedBox(height: 6),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+        onPressed: count == 0 ? null : app.deleteSelectedPolyVertices,
+        icon: const Icon(Icons.delete_outline, size: 15),
+        label: const Text('Удалить вершину'),
+      ),
+      if (vertex != null) ...[
+        const SizedBox(height: 8),
+        _label('Вершина $active (координаты)'),
+        Row(
+          children: [
+            for (final (axis, value) in [
+              (0, vertex.x),
+              (1, vertex.y),
+              (2, vertex.z),
+            ])
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: DoubleField(
+                    initial: value,
+                    step: 0.01,
+                    precision: 4,
+                    onChanged: (v) => app.setPolyVertexPosition(
+                      active!,
+                      vm.Vector3(
+                        axis == 0 ? v : vertex.x,
+                        axis == 1 ? v : vertex.y,
+                        axis == 2 ? v : vertex.z,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ] else if (count > 1) ...[
+        const SizedBox(height: 4),
+        const Text(
+          'Для точного ввода выберите одну вершину.',
+          style: TextStyle(color: Colors.white38, fontSize: 11),
+        ),
+      ],
+    ];
+  }
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Text(
+          t,
+          style: const TextStyle(color: Colors.white54, fontSize: 11),
+        ),
       );
 }
 

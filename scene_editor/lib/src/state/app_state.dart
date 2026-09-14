@@ -1072,6 +1072,16 @@ class AppState extends ChangeNotifier {
     _refreshPolyGeometry(obj);
   }
 
+  /// Точная установка координат вершины из полей панели (один undo).
+  void setPolyVertexPosition(int index, vm.Vector3 value) {
+    final obj = selectedObject();
+    final mesh = obj?.mesh;
+    if (mesh == null || index < 0 || index >= mesh.vertices.length) return;
+    _objectEdit(obj!.id, description: 'Вершина', mutate: (o) {
+      o.mesh!.vertices[index] = value.clone();
+    });
+  }
+
   ModelObject? _polyDragSnapshot;
 
   /// Снимок перед drag вершин (один undo на весь жест).

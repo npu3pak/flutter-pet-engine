@@ -103,4 +103,35 @@ void main() {
       expect(values, [4, 5]);
     });
   });
+
+  group('DoubleField precision', () {
+    test('fmtDouble хранит заданное число знаков', () {
+      expect(fmtDouble(0.5, precision: 4), '0.5');
+      expect(fmtDouble(0.0625, precision: 4), '0.0625');
+      expect(fmtDouble(1088.0, precision: 4), '1088');
+      // При точности 2 те же числа короче — поведение по умолчанию цело.
+      expect(fmtDouble(0.0625), '0.06');
+    });
+
+    testWidgets('поле вершины показывает 4 знака и шагает мелко',
+        (tester) async {
+      final values = <double>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DoubleField(
+              initial: 0.0625,
+              step: 0.0625,
+              precision: 4,
+              onChanged: values.add,
+            ),
+          ),
+        ),
+      );
+      expect(find.text('0.0625'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_drop_up));
+      expect(values.single, closeTo(0.125, 1e-9));
+      expect(find.text('0.125'), findsOneWidget);
+    });
+  });
 }
