@@ -931,6 +931,7 @@ class _InspectorTabState extends State<_InspectorTab> {
       'cylinder' => Icons.crop_landscape,
       'plane' => Icons.crop_16_9,
       'sprite' => Icons.image,
+      'polyhedron' => Icons.polyline,
       'model' => Icons.view_in_ar,
       'gltf' => Icons.animation,
       _ => Icons.square_outlined,

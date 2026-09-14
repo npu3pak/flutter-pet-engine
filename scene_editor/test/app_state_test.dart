@@ -75,6 +75,19 @@ void main() {
     expect(app.currentModel!.objects.length, before + 1);
   });
 
+  test('addObject многогранника создаёт куб с сетью', () {
+    app.createModel();
+    app.addObject('polyhedron');
+    final obj = app.currentModel!.objects.last;
+    expect(obj.kind, polyhedronKind);
+    expect(obj.mesh, isNotNull);
+    expect(obj.mesh!.faces, hasLength(6));
+    expect(obj.mesh!.vertices, hasLength(8));
+    expect(app.selectedObjectId, obj.id);
+    app.undo();
+    expect(app.currentModel!.objects.contains(obj), isFalse);
+  });
+
   test('duplicate object undo/redo', () {
     app.createModel();
     app.selectObject(app.currentModel!.objects.first.id);

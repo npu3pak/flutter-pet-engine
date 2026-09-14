@@ -57,5 +57,25 @@ void main() {
       await tester.pump();
       expect(app.rotateGizmoMode, isFalse);
     });
+
+    testWidgets('кнопка «Многогранник» добавляет куб-сеть', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: app,
+            builder: (context, _) => TopBar(app: app),
+          ),
+        ),
+      ));
+      await tester.tap(find.byIcon(Icons.polyline));
+      await tester.pump();
+      final added = app.currentModel!.objects.last;
+      expect(added.kind, 'polyhedron');
+      expect(added.mesh!.faces, hasLength(6));
+      expect(app.selectedObjectId, added.id);
+    });
   });
 }

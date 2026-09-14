@@ -21,6 +21,7 @@ class TopBar extends StatelessWidget {
     (kind: 'cone', label: 'Конус', icon: Icons.change_history),
     (kind: 'plane', label: 'Плоскость', icon: Icons.crop_16_9),
     (kind: 'sprite', label: 'Спрайт', icon: Icons.image),
+    (kind: 'polyhedron', label: 'Многогранник', icon: Icons.polyline),
   ];
 
   /// Meta tools of the «Разметка» mode (meta objects appear at the cursor).

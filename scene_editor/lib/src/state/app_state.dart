@@ -1054,6 +1054,9 @@ class AppState extends ChangeNotifier {
       y: cursorY,
       z: cursorZ,
       dims: dims,
+      // Новый многогранник стартует как куб: его сразу можно тянуть за
+      // грани и вершины.
+      mesh: kind == 'polyhedron' ? PolyMesh.box() : null,
     );
     if (kind == 'sprite' && spriteKey != null) {
       obj.material = ModelMaterial(type: MaterialType.sprite, key: spriteKey);
