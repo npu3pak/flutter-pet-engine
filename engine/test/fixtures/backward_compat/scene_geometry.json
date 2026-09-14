@@ -1,0 +1,30 @@
+{
+  "cuboid": {
+    "faceKey": null,
+    "side": "double",
+    "vertexCount": 24,
+    "positionDigest": "f4ad97b5",
+    "indexDigest": "38218cd6"
+  },
+  "cylinder": {
+    "faceKey": null,
+    "side": "double",
+    "vertexCount": 38,
+    "positionDigest": "6b7af20e",
+    "indexDigest": "6c700061"
+  },
+  "sphere": {
+    "faceKey": null,
+    "side": "double",
+    "vertexCount": 28,
+    "positionDigest": "544baeab",
+    "indexDigest": "61b61921"
+  },
+  "ring": {
+    "faceKey": null,
+    "side": "double",
+    "vertexCount": 45,
+    "positionDigest": "cb74fc69",
+    "indexDigest": "7b92f1d9"
+  }
+}

@@ -4,6 +4,7 @@ import 'package:vector_math/vector_math.dart' as vm;
 
 import '../models/model_scene.dart';
 import 'model_renderer.dart';
+import 'polyhedron.dart';
 
 /// Face-snap math for the «Перенести к грани» / «Параллельно грани» tools and
 /// the level layer's `BuildOps`: a face's model-local outward normal and
@@ -28,7 +29,7 @@ vm.Vector3 _cornerChunkLocal(
 ) {
   final rot = obj.kind == 'sprite'
       ? vm.Matrix4.diagonal3Values(-1, 1, 1) * vm.Matrix4.rotationY(billboardYaw)
-      : objectRotation(obj);
+      : objectRotation(obj) * objectScale(obj);
   final r = rot.transform3(local);
   return vm.Vector3(obj.x + r.x, obj.y + r.y, obj.z + r.z);
 }
@@ -98,6 +99,22 @@ vm.Vector3? faceNormalAt(
     final local = roundBoxLocalNormal(obj, click);
     if (local == null) return null;
     return objectRotation(obj).transform3(local).normalized();
+  }
+  if (obj.kind == polyhedronKind) {
+    // The Newell normal of the loop is the outward direction by the mesh
+    // convention; the per-axis scale transforms it through S⁻ᵀ (diagonal),
+    // then the object rotation applies.
+    final mesh = obj.mesh;
+    final face = mesh?.faceByKey(faceKey);
+    if (mesh == null || face == null) return null;
+    final local = polyFaceNormal(mesh, face);
+    if (local.length2 < 1e-18) return null;
+    final scaled = vm.Vector3(
+      local.x / obj.scaleX,
+      local.y / obj.scaleY,
+      local.z / obj.scaleZ,
+    );
+    return objectRotation(obj).transform3(scaled).normalized();
   }
   final corners = flatFaceCorners(obj, faceKey, billboardYaw);
   if (corners == null) return null;
@@ -221,8 +238,13 @@ vm.Vector3? roundBoxLocalNormal(ModelObject obj, vm.Vector3 click) {
   return diff.normalized();
 }
 
-vm.Vector3 _quadCenter(List<vm.Vector3> c) =>
-    (c[0] + c[1] + c[2] + c[3]) / 4;
+vm.Vector3 _quadCenter(List<vm.Vector3> c) {
+  var sum = vm.Vector3.zero();
+  for (final p in c) {
+    sum += p;
+  }
+  return sum / c.length.toDouble();
+}
 
 /// Euler angles (degrees, Rz·Rx·Ry — the renderer's order) that orient the
 /// object so its primary axis is parallel to [normal]:

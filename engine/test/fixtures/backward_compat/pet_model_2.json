@@ -1,0 +1,512 @@
+{
+  "format": "model_v1",
+  "id": "model_2",
+  "name": "Комната 5×5",
+  "size": {
+    "w": 5,
+    "l": 5,
+    "h": 3
+  },
+  "objects": [
+    {
+      "id": "obj_2",
+      "name": "Стена Север",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        0.0,
+        -0.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        5.0,
+        2.2,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "wallpaper_beige.png"
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "Окно Север",
+      "kind": "plane",
+      "pos": [
+        2.0,
+        0.425,
+        -0.25
+      ],
+      "rotY": 180.0,
+      "size": {
+        "w": 1.45,
+        "d": 1.45,
+        "vertical": 1
+      },
+      "material": {
+        "type": "sprite",
+        "flipX": true,
+        "side": "both",
+        "key": "window_4.png"
+      }
+    },
+    {
+      "id": "obj_6",
+      "name": "Стена Юг",
+      "kind": "cuboid",
+      "pos": [
+        0.5,
+        0.0,
+        4.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        2.0,
+        2.2,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_7",
+      "name": "Стена Юг",
+      "kind": "cuboid",
+      "pos": [
+        3.5,
+        0.0,
+        4.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        2.0,
+        2.2,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_8",
+      "name": "Стена Юг",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        1.2,
+        4.4
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        1.0,
+        0.2
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_9",
+      "name": "Стена Запад",
+      "kind": "cuboid",
+      "pos": [
+        -0.4,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.2,
+        2.2,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 2.0,
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_10",
+      "name": "Стена Восток",
+      "kind": "cuboid",
+      "pos": [
+        4.4,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.2,
+        2.2,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 2.0,
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_11",
+      "name": "Пол",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        0.0,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        5.0,
+        0.06,
+        5.0
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 1.5,
+        "key": "furniture_texture_3.png"
+      }
+    },
+    {
+      "id": "obj_12",
+      "name": "Потолок",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        2.2,
+        2.0
+      ],
+      "rotY": 0.0,
+      "size": [
+        5.0,
+        0.15,
+        5.0
+      ]
+    },
+    {
+      "id": "obj_1",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        0.5,
+        -0.75
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.25,
+        1.25,
+        1.0
+      ]
+    },
+    {
+      "id": "csg_1",
+      "name": "Вычитание",
+      "kind": "csg",
+      "op": "difference",
+      "operands": [
+        "obj_2",
+        "obj_1"
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 2.0,
+        "key": "wallpaper_blue.png"
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "plane",
+      "kind": "plane",
+      "pos": [
+        0.0,
+        0.7,
+        -17.0
+      ],
+      "rotY": 0.0,
+      "rotX": 90.0,
+      "size": {
+        "w": 42.0,
+        "d": 18.0,
+        "vertical": 0
+      },
+      "material": {
+        "type": "texture",
+        "key": "skybox_1.png"
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "sprite",
+      "kind": "sprite",
+      "pos": [
+        3.75,
+        0.0,
+        0.33
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.25,
+        "h": 0.25
+      },
+      "material": {
+        "type": "sprite",
+        "key": "cat_bowl_blue_empty.png"
+      }
+    },
+    {
+      "id": "obj_13",
+      "name": "Кресло",
+      "kind": "model",
+      "pos": [
+        0.5,
+        0.0,
+        0.5
+      ],
+      "rotY": 325.0,
+      "modelId": "model_1",
+      "scale": 0.6,
+      "size": {
+        "w": 3,
+        "l": 3,
+        "h": 3
+      }
+    },
+    {
+      "id": "obj_14",
+      "name": "cat",
+      "kind": "gltf",
+      "pos": [
+        2.0,
+        0.063,
+        1.5
+      ],
+      "rotY": 0.0,
+      "gltf": "cat",
+      "scale": 0.5,
+      "anim": "SKM_Cat|SKM_Cat|Cat_Ilde02"
+    },
+    {
+      "id": "obj_15",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.136,
+        0.03,
+        -0.213
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.65,
+        2.2,
+        0.05
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 0.4,
+        "key": "curtain_green.png"
+      }
+    },
+    {
+      "id": "obj_16",
+      "name": "cuboid_2",
+      "kind": "cuboid",
+      "pos": [
+        2.864,
+        0.03,
+        -0.213
+      ],
+      "rotY": 0.0,
+      "size": [
+        0.65,
+        2.2,
+        0.05
+      ],
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "tileScale": 0.4,
+        "key": "curtain_green.png"
+      }
+    },
+    {
+      "id": "obj_17",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        2.167,
+        -0.3
+      ],
+      "rotY": 0.0,
+      "size": [
+        2.4,
+        0.1,
+        0.3
+      ]
+    },
+    {
+      "id": "obj_18",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        2.0,
+        0.0,
+        -0.33
+      ],
+      "rotY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    },
+    {
+      "id": "obj_19",
+      "name": "cuboid_3",
+      "kind": "cuboid",
+      "pos": [
+        4.326,
+        0.0,
+        2.089
+      ],
+      "rotY": 90.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    },
+    {
+      "id": "obj_20",
+      "name": "cuboid_3_2",
+      "kind": "cuboid",
+      "pos": [
+        -0.33,
+        0.0,
+        2.09
+      ],
+      "rotY": 90.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    },
+    {
+      "id": "obj_21",
+      "name": "cuboid_4",
+      "kind": "cuboid",
+      "pos": [
+        2.002,
+        2.167,
+        -0.33
+      ],
+      "rotY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    },
+    {
+      "id": "obj_22",
+      "name": "cuboid_3_3",
+      "kind": "cuboid",
+      "pos": [
+        4.328,
+        2.167,
+        2.089
+      ],
+      "rotY": 90.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    },
+    {
+      "id": "obj_23",
+      "name": "cuboid_3_2_2",
+      "kind": "cuboid",
+      "pos": [
+        -0.328,
+        2.167,
+        2.09
+      ],
+      "rotY": 90.0,
+      "size": [
+        5.0,
+        0.2,
+        0.1
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1",
+      "name": "Окна",
+      "members": [
+        "obj_5"
+      ]
+    },
+    {
+      "id": "group_2",
+      "name": "Плинтус напольный",
+      "members": [
+        "obj_18",
+        "obj_19",
+        "obj_20"
+      ]
+    },
+    {
+      "id": "group_3",
+      "name": "Плинтус потолочный",
+      "members": []
+    }
+  ],
+  "lighting": {
+    "ambient": 1.08,
+    "gizmos": false,
+    "shadows": true,
+    "ssao": true,
+    "lights": [
+      {
+        "id": "light_1",
+        "kind": "directional",
+        "name": "Направленный свет",
+        "pos": [
+          2.5,
+          1.5,
+          -2.0
+        ],
+        "color": [
+          1.0,
+          0.949,
+          0.878
+        ],
+        "intensity": 6.817,
+        "dir": [
+          -0.085,
+          -0.615,
+          0.784
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,237 @@
+{
+  "cuboid": {
+    "id": "o1",
+    "name": "cuboid",
+    "kind": "cuboid",
+    "pos": [
+      1.5,
+      2.0,
+      -0.25
+    ],
+    "rotY": 45.0,
+    "size": [
+      2.0,
+      3.0,
+      4.0
+    ]
+  },
+  "cuboid_rounded": {
+    "id": "o2",
+    "name": "rounded",
+    "kind": "cuboid",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "w": 2.0,
+      "h": 3.0,
+      "d": 4.0,
+      "roundR": 0.2,
+      "roundSegments": 12
+    },
+    "material": {
+      "type": "texture",
+      "uvDir": 90,
+      "flipX": true,
+      "side": "both",
+      "stretch": "tile",
+      "tileScale": 2.0,
+      "tileScaleU": 1.5,
+      "tileScaleV": 0.75,
+      "key": "wall.png"
+    }
+  },
+  "trapezoid": {
+    "id": "o3",
+    "name": "trapezoid",
+    "kind": "trapezoid",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "rotX": 10.0,
+    "rotZ": -5.0,
+    "size": {
+      "bottomW": 2,
+      "bottomD": 3,
+      "topW": 1,
+      "topD": 1.5,
+      "h": 2
+    }
+  },
+  "cylinder": {
+    "id": "o4",
+    "name": "cylinder",
+    "kind": "cylinder",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "bottomR": 0.5,
+      "topR": 0.25,
+      "h": 2,
+      "segments": 24
+    }
+  },
+  "cone": {
+    "id": "o5",
+    "name": "cone",
+    "kind": "cylinder",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "bottomR": 0.5,
+      "topR": 0,
+      "h": 2,
+      "segments": 16
+    }
+  },
+  "plane_h": {
+    "id": "o6",
+    "name": "plane",
+    "kind": "plane",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "w": 3,
+      "d": 4,
+      "vertical": 0
+    }
+  },
+  "plane_v": {
+    "id": "o7",
+    "name": "plane",
+    "kind": "plane",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "w": 3,
+      "d": 4,
+      "vertical": 1
+    }
+  },
+  "sprite": {
+    "id": "o8",
+    "name": "sprite",
+    "kind": "sprite",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "w": 1,
+      "h": 2
+    },
+    "material": {
+      "type": "sprite",
+      "key": "tree.png"
+    }
+  },
+  "csg": {
+    "id": "o9",
+    "name": "csg",
+    "kind": "csg",
+    "op": "difference",
+    "operands": [
+      "o1",
+      "o2"
+    ],
+    "material": {
+      "type": "color",
+      "color": [
+        10,
+        20,
+        30
+      ]
+    }
+  },
+  "model_ref": {
+    "id": "o10",
+    "name": "ref",
+    "kind": "model",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 30.0,
+    "modelId": "model_1",
+    "scale": 1.5,
+    "size": {
+      "w": 3,
+      "l": 3,
+      "h": 3
+    }
+  },
+  "gltf_ref": {
+    "id": "o11",
+    "name": "gltf",
+    "kind": "gltf",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "gltf": "cat",
+    "scale": 0.5,
+    "bounds": [
+      -1.0,
+      0.0,
+      -1.0,
+      1.0,
+      2.0,
+      1.0
+    ],
+    "anim": "Cat_Walk"
+  },
+  "unknown_kind": {
+    "id": "o12",
+    "name": "future",
+    "kind": "future_kind",
+    "pos": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotY": 0.0,
+    "size": {
+      "w": 1,
+      "h": 2,
+      "d": 3,
+      "extra": 7
+    },
+    "faces": {
+      "+x": {
+        "type": "color",
+        "color": [
+          10,
+          20,
+          30
+        ]
+      }
+    }
+  }
+}

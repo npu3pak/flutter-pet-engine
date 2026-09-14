@@ -11,3 +11,4 @@ export 'src/models/model3d_entry.dart';
 export 'src/models/model_scene.dart';
 export 'src/models/project_meta.dart';
 export 'src/models/scene_loader.dart';
+export 'src/scene/polyhedron.dart' show PolyMesh, PolyFace, PolyLoop;

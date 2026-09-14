@@ -1,0 +1,18 @@
+{
+  "projection": {
+    "fovY": 0.959931,
+    "near": 0.05,
+    "far": 300.0
+  },
+  "flySpeed": 12.0,
+  "eye": [
+    0.0,
+    8.0,
+    8.0
+  ],
+  "yaw": 3.141593,
+  "pitch": 0.45,
+  "zoomMax_64_64_32": 288.0,
+  "zoomMax_3_3_3": 60.0,
+  "focusDistance_10": 32.0
+}

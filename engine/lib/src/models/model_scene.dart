@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../scene/polyhedron.dart';
+
 /// Model scene model — the JSON format `model_v1`. Legacy chunk formats
 /// (`chunk_v1/v2/v3`) are not handled here: read files through
 /// `loadModelData` (`scene_loader.dart`), which converts them (see
@@ -45,6 +47,14 @@ const modelRefKind = 'model';
 /// resource renders as a fuchsia cube of the cached footprint
 /// ([ModelObject.gltfBounds]).
 const gltfRefKind = 'gltf';
+
+/// Arbitrary-mesh object kind: a polyhedron with indexed vertices, flat
+/// faces (holes allowed) and explicit UVs — the lossless carrier for
+/// imported maps. Vertices live in the object's local frame (y = 0 is the
+/// base, x/z are centered like the other primitives); the object's
+/// [ModelObject.scaleX]/[ModelObject.scaleY]/[ModelObject.scaleZ] stretch
+/// it into the model. Per-face materials use [PolyFace.key].
+const polyhedronKind = 'polyhedron';
 const csgOpUnion = 'union';
 const csgOpDifference = 'difference';
 const csgOpIntersect = 'intersect';
@@ -117,6 +127,9 @@ List<String> facesOf(ModelObject obj) => switch (obj.kind) {
         ],
       'plane' => [if (obj.flag('vertical')) '+z' else '+y'],
       'sprite' => ['*'],
+      polyhedronKind => [
+          for (final face in obj.mesh?.faces ?? const <PolyFace>[]) face.key,
+        ],
       'csg' => const [], // a csg result is textured whole (no per-face keys)
       modelRefKind => const [], // a model instance is textured by its content
       gltfRefKind => const [], // a gltf instance is textured by its content
@@ -147,10 +160,12 @@ class ModelSize {
   factory ModelSize.fromJson(Object? json) {
     final m = (json as Map?) ?? {};
     int asInt(Object? v, int fallback) => v is num ? v.toInt() : fallback;
+    // The legacy limits (64×64×32) stay valid; the range is extended so
+    // imported 1:1 maps (e.g. Doom) fit without clamping.
     return ModelSize(
-      w: asInt(m['w'], 3).clamp(1, 64),
-      l: asInt(m['l'], 3).clamp(1, 64),
-      h: asInt(m['h'], 3).clamp(1, 32),
+      w: asInt(m['w'], 3).clamp(1, 16384),
+      l: asInt(m['l'], 3).clamp(1, 16384),
+      h: asInt(m['h'], 3).clamp(1, 4096),
     );
   }
 }
@@ -306,6 +321,17 @@ class ModelObject {
   /// none — the model keeps its rest pose).
   String anim;
 
+  /// polyhedron only: the mesh (indexed vertices + planar faces with holes)
+  /// in the object's local frame. Null for other kinds.
+  PolyMesh? mesh;
+
+  /// polyhedron only: per-axis object scale (1 = as authored). Stretches the
+  /// mesh around the anchor; unlike the uniform [scale] of refs, the editor
+  /// exposes each axis separately.
+  double scaleX;
+  double scaleY;
+  double scaleZ;
+
   /// Construction-model hint (level layer): how the element is baked —
   /// `'merge'` (default, null), `'batch'` or `'node'`. The editor renderer
   /// ignores it; the level baker consumes it. Part of `model_v1` so a
@@ -347,6 +373,10 @@ class ModelObject {
   /// as one, content follows the referenced resource.
   bool get isGltfRef => kind == gltfRefKind;
 
+  /// True for a polyhedron object (kind [polyhedronKind]): arbitrary indexed
+  /// mesh with editable faces/vertices and per-axis scale.
+  bool get isPolyhedron => kind == polyhedronKind;
+
   ModelObject({
     required this.id,
     required this.name,
@@ -368,6 +398,10 @@ class ModelObject {
     this.gltfName = '',
     List<double>? gltfBounds,
     this.anim = '',
+    PolyMesh? mesh,
+    this.scaleX = 1,
+    this.scaleY = 1,
+    this.scaleZ = 1,
     this.bake,
     this.tag,
   })  : // Normalize the runtime map type: a literal like {'w': 3, 'h': 0.05}
@@ -377,7 +411,8 @@ class ModelObject {
         dims = Map<String, num>.from(dims ?? const {}),
         faces = faces ?? {},
         refSize = refSize == null ? null : ModelSize.copy(refSize),
-        gltfBounds = gltfBounds == null ? null : List.of(gltfBounds);
+        gltfBounds = gltfBounds == null ? null : List.of(gltfBounds),
+        mesh = mesh?.copy();
 
   ModelObject.copy(ModelObject o)
       : this(
@@ -404,6 +439,10 @@ class ModelObject {
           gltfName: o.gltfName,
           gltfBounds: o.gltfBounds == null ? null : List.of(o.gltfBounds!),
           anim: o.anim,
+          mesh: o.mesh?.copy(),
+          scaleX: o.scaleX,
+          scaleY: o.scaleY,
+          scaleZ: o.scaleZ,
           bake: o.bake,
           tag: o.tag,
         );
@@ -466,6 +505,30 @@ class ModelObject {
         m['bounds'] = [for (final v in gltfBounds!) round3(v)];
       }
       if (anim.isNotEmpty) m['anim'] = anim;
+      return m;
+    }
+    // A polyhedron stores its indexed mesh (+ explicit UVs) and a per-axis
+    // scale; it has no dims — the geometry defines the size.
+    if (kind == polyhedronKind) {
+      m['pos'] = [round3(x), round3(y), round3(z)];
+      m['rotY'] = round3(rotY);
+      if (rotX != 0) m['rotX'] = round3(rotX);
+      if (rotZ != 0) m['rotZ'] = round3(rotZ);
+      if (scaleX == scaleY && scaleY == scaleZ) {
+        if (scaleX != 1) m['scale'] = round6(scaleX);
+      } else {
+        m['scale'] = [round6(scaleX), round6(scaleY), round6(scaleZ)];
+      }
+      m['mesh'] =
+          (mesh ?? PolyMesh(vertices: const [], faces: const [])).toJson();
+      if (material != null && !material!.isDefault) {
+        m['material'] = material!.toJson();
+      }
+      if (faces.isNotEmpty) {
+        m['faces'] = {
+          for (final e in faces.entries) e.key: e.value.toJson(),
+        };
+      }
       return m;
     }
     m['pos'] = [round3(x), round3(y), round3(z)];
@@ -566,6 +629,24 @@ class ModelObject {
           ]
         : null;
     final anim = kind == gltfRefKind ? (m['anim'] as String?) ?? '' : '';
+    // polyhedron: the indexed mesh (sanitized on load) + per-axis scale.
+    final mesh = kind == polyhedronKind && m['mesh'] != null
+        ? PolyMesh.fromJson(m['mesh'])
+        : null;
+    var scaleX = 1.0, scaleY = 1.0, scaleZ = 1.0;
+    if (kind == polyhedronKind) {
+      final s = m['scale'];
+      if (s is num) {
+        scaleX = scaleY = scaleZ = s.toDouble();
+      } else if (s is List && s.length >= 3) {
+        if (s[0] is num) scaleX = (s[0] as num).toDouble();
+        if (s[1] is num) scaleY = (s[1] as num).toDouble();
+        if (s[2] is num) scaleZ = (s[2] as num).toDouble();
+      }
+      if (scaleX <= 0) scaleX = 0.01;
+      if (scaleY <= 0) scaleY = 0.01;
+      if (scaleZ <= 0) scaleZ = 0.01;
+    }
     final faces = <String, ModelMaterial>{};
     final facesJson = m['faces'];
     if (facesJson is Map) {
@@ -594,6 +675,10 @@ class ModelObject {
       gltfName: gltfName,
       gltfBounds: gltfBounds,
       anim: anim,
+      mesh: mesh,
+      scaleX: scaleX,
+      scaleY: scaleY,
+      scaleZ: scaleZ,
       bake: m['bake'] is String ? m['bake'] as String : null,
       tag: m['tag'] is String ? m['tag'] as String : null,
     );
@@ -602,11 +687,29 @@ class ModelObject {
   /// World-space AABB (model-local units, y = height above model floor).
   /// Computed per kind — cuboid dims only exist for cuboids.
   (double, double, double) minCorner() {
+    if (kind == polyhedronKind) {
+      final b = mesh?.vertexBounds;
+      if (b == null) return (x, y, z);
+      return (
+        x + b.$1.x * scaleX,
+        y + b.$1.y * scaleY,
+        z + b.$1.z * scaleZ,
+      );
+    }
     final (hw, h, hd) = _halfExtents();
     return (x - hw, y, z - hd);
   }
 
   (double, double, double) maxCorner() {
+    if (kind == polyhedronKind) {
+      final b = mesh?.vertexBounds;
+      if (b == null) return (x, y, z);
+      return (
+        x + b.$2.x * scaleX,
+        y + b.$2.y * scaleY,
+        z + b.$2.z * scaleZ,
+      );
+    }
     final (hw, h, hd) = _halfExtents();
     return (x + hw, y + h, z + hd);
   }

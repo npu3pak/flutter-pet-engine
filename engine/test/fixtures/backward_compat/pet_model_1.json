@@ -1,0 +1,126 @@
+{
+  "format": "model_v1",
+  "id": "model_1",
+  "name": "Кресло",
+  "size": {
+    "w": 3,
+    "l": 3,
+    "h": 3
+  },
+  "objects": [
+    {
+      "id": "obj_1",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.0,
+        1.151
+      ],
+      "rotY": 0.0,
+      "size": [
+        1.0,
+        0.75,
+        1.3
+      ],
+      "material": {
+        "type": "texture",
+        "uvDir": 90,
+        "stretch": "tile",
+        "key": "fabric_beige.png"
+      }
+    },
+    {
+      "id": "obj_2",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.68,
+        0.7
+      ],
+      "rotY": 0.0,
+      "rotX": 355.0,
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 0.4,
+        "roundR": 0.04
+      },
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "fabric_beige.png"
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "cuboid",
+      "kind": "cuboid",
+      "pos": [
+        0.369,
+        0.0,
+        1.162
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.25,
+        "h": 1.0,
+        "d": 1.3,
+        "roundR": 0.04,
+        "roundSegments": 3.0
+      },
+      "material": {
+        "type": "texture",
+        "uvDir": 90,
+        "stretch": "tile",
+        "key": "fabric_beige.png"
+      }
+    },
+    {
+      "id": "obj_4",
+      "name": "cuboid_2",
+      "kind": "cuboid",
+      "pos": [
+        1.615,
+        0.0,
+        1.162
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 0.25,
+        "h": 1.0,
+        "d": 1.3,
+        "roundR": 0.04
+      },
+      "material": {
+        "type": "texture",
+        "uvDir": 90,
+        "stretch": "tile",
+        "key": "fabric_beige.png"
+      }
+    },
+    {
+      "id": "obj_5",
+      "name": "cuboid_3",
+      "kind": "cuboid",
+      "pos": [
+        1.0,
+        0.414,
+        1.31
+      ],
+      "rotY": 0.0,
+      "size": {
+        "w": 1.0,
+        "h": 0.35,
+        "d": 1.3,
+        "roundR": 0.04
+      },
+      "material": {
+        "type": "texture",
+        "stretch": "tile",
+        "key": "fabric_beige.png"
+      }
+    }
+  ]
+}

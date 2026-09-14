@@ -87,13 +87,27 @@ export 'src/render/sprite_atlas.dart'
     show SpriteAtlas, buildSpriteAtlas, composeSpriteAtlas, spriteFrameMap;
 export 'src/scene/face_snap.dart'
     show faceCenterAt, faceNormalAt, parallelToFaceAngles;
+export 'src/scene/polyhedron.dart'
+    show
+        PolyFace,
+        PolyLoop,
+        PolyMesh,
+        polyFaceArea,
+        polyFaceBasis,
+        polyFaceNormal,
+        triangulateLoops,
+        triangulatePolyFace;
+export 'src/scene/polyhedron_bake.dart'
+    show PolyBakeResult, bakePolyhedron;
 export 'src/scene/model_renderer.dart'
     show
         faceCorners,
+        faceLoops,
         gltfFootprintBox,
         modelRefCubeProxy,
         modelRefFootprintBox,
         objectRotation,
+        objectScale,
         sourceAnchor,
         spriteBillboardMatrix,
         spriteBillboardRotation,

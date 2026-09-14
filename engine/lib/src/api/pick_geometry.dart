@@ -11,10 +11,12 @@ import '../scene/model_renderer.dart'
         gltfFootprintBox,
         modelRefFootprintBox,
         objectRotation,
+        objectScale,
         sideFor,
         sourceAnchor,
         spriteBillboardMatrix,
         spriteBillboardRotation;
+import '../scene/polyhedron_geometry.dart';
 import 'geometry/geometry_builder.dart';
 import 'geometry/scene_geometry.dart';
 import 'nodes/scene_node.dart' show PickPart;
@@ -59,6 +61,8 @@ List<PickPart> buildObjectPickParts(
       );
     case 'cylinder':
       return _cylinderParts(model, object);
+    case polyhedronKind:
+      return _polyhedronParts(model, object);
     case 'csg':
       return _csgParts(model, object);
     case modelRefKind:
@@ -162,7 +166,10 @@ List<PickPart> _collectContentParts(
       out.addAll(_flatParts(obj, world));
       continue;
     }
-    final world = m * vm.Matrix4.translation(anchor) * objectRotation(obj);
+    final world = m *
+        vm.Matrix4.translation(anchor) *
+        objectRotation(obj) *
+        objectScale(obj);
     switch (obj.kind) {
       case 'cylinder':
         out.addAll(_cylinderParts(src, obj, world: world));
@@ -170,6 +177,8 @@ List<PickPart> _collectContentParts(
       case 'trapezoid':
       case 'plane':
         out.addAll(_flatParts(obj, world));
+      case polyhedronKind:
+        out.addAll(_polyhedronParts(src, obj, world: world));
     }
   }
   return out;
@@ -199,7 +208,9 @@ vm.Matrix4 _objectWorld(
     final yaw = billboardYaw ?? object.rotY * math.pi / 180;
     return spriteBillboardMatrix(anchor, yaw);
   }
-  return vm.Matrix4.translation(anchor) * objectRotation(object);
+  return vm.Matrix4.translation(anchor) *
+      objectRotation(object) *
+      objectScale(object);
 }
 
 /// One quad part per flat face (`faceCorners` covers cuboid, trapezoid,
@@ -225,6 +236,33 @@ List<PickPart> _flatParts(ModelObject object, vm.Matrix4 world) {
         geometry.build(),
         faceKey: key,
         side: side ?? sideFor(object, key),
+      ),
+    );
+  }
+  return parts;
+}
+
+/// Per-face pick parts of a polyhedron: one ear-clipped geometry per face
+/// (holes included), carrying its face key and side. [world] overrides the
+/// top-level placement (nested instance content) and already includes the
+/// per-axis scale.
+List<PickPart> _polyhedronParts(
+  ModelData model,
+  ModelObject object, {
+  vm.Matrix4? world,
+}) {
+  final mesh = object.mesh;
+  if (mesh == null) return const [];
+  final placement = world ?? _objectWorld(model, object);
+  final parts = <PickPart>[];
+  for (final face in mesh.faces) {
+    final geometry = buildPolyFaceGeometry(object, mesh, face);
+    if (geometry == null) continue;
+    parts.add(
+      PickPart(
+        _inWorld(geometry, placement),
+        faceKey: face.key,
+        side: sideFor(object, face.key),
       ),
     );
   }

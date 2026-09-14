@@ -12,6 +12,8 @@ import '../services/app_log.dart';
 import '../services/gltf_asset_store.dart';
 import '../services/texture_cache.dart';
 import 'csg.dart';
+import 'polyhedron.dart';
+import 'polyhedron_geometry.dart';
 
 /// Node-name prefixes used by picking.
 const objectNodePrefix = 'obj:';
@@ -50,6 +52,13 @@ String sideFor(ModelObject obj, String faceKey) {
 
 /// 'both' renders both sides (no culling for opaque materials).
 bool sideDoubleSided(String side) => side == 'both';
+
+/// The object's local scale matrix: per-axis for polyhedra, identity for
+/// every legacy kind (their uniform [ModelObject.scale] applies to
+/// model/gltf instances only, through their own chains).
+vm.Matrix4 objectScale(ModelObject obj) => obj.kind == polyhedronKind
+    ? vm.Matrix4.diagonal3Values(obj.scaleX, obj.scaleY, obj.scaleZ)
+    : vm.Matrix4.identity();
 
 /// The union AABB of a list of objects (model-local): (minX, minY, minZ,
 /// maxX, maxY, maxZ). Empty list throws.
@@ -476,8 +485,43 @@ List<vm.Vector3> faceCorners(ModelObject obj, String faceKey) => switch (obj.kin
         ),
       'plane' => planeFaceCorners(obj.flag('vertical'), obj.dim('w', 1), obj.dim('d', 1)),
       'sprite' => spriteFaceCorners(obj.dim('w', 1), obj.dim('h', 1)),
+      polyhedronKind => _polyFaceCorners(obj, faceKey),
       _ => const [],
     };
+
+/// The outer loop of one polyhedron face in local coordinates (empty for an
+/// unknown key).
+List<vm.Vector3> _polyFaceCorners(ModelObject obj, String faceKey) {
+  final mesh = obj.mesh;
+  final face = mesh?.faceByKey(faceKey);
+  if (mesh == null || face == null) return const [];
+  return [
+    for (final i in face.outer.vertices)
+      if (i >= 0 && i < mesh.vertices.length) mesh.vertices[i],
+  ];
+}
+
+/// Every contour of one face in local coordinates: the outer loop first,
+/// then the holes. For flat primitive faces the list holds a single loop
+/// ([faceCorners]); polyhedron faces may carry holes. Used by the editor
+/// outlines and selection highlights.
+List<List<vm.Vector3>> faceLoops(ModelObject obj, String faceKey) {
+  if (obj.kind == polyhedronKind) {
+    final mesh = obj.mesh;
+    final face = mesh?.faceByKey(faceKey);
+    if (mesh == null || face == null) return const [];
+    List<vm.Vector3> loop(PolyLoop l) => [
+          for (final i in l.vertices)
+            if (i >= 0 && i < mesh.vertices.length) mesh.vertices[i],
+        ];
+    return [
+      loop(face.outer),
+      for (final h in face.holes) loop(h),
+    ];
+  }
+  final corners = faceCorners(obj, faceKey);
+  return corners.isEmpty ? const [] : [corners];
+}
 
 /// The centered u-inset of a narrowing face/ring: a texture keeps a uniform
 /// texel density when its u span shrinks to [ratio] (the top width relative
@@ -1171,7 +1215,9 @@ class ModelRenderer {
     final parts = _solidParts(obj);
     if (parts.isEmpty) return;
     final name = '$objectNodePrefix$ownerId';
-    final base = vm.Matrix4.translation(at) * objectRotation(obj);
+    final base = vm.Matrix4.translation(at) *
+        objectRotation(obj) *
+        objectScale(obj);
     for (final part in parts) {
       final material = resolveMaterial(obj, part.faceKey);
       if (material == null) continue; // texture not loaded yet
@@ -1575,7 +1621,9 @@ class ModelRenderer {
   }
 
   vm.Matrix4 _objTransform(ModelObject obj) =>
-      vm.Matrix4.translation(_anchorWorld(obj)) * objectRotation(obj);
+      vm.Matrix4.translation(_anchorWorld(obj)) *
+      objectRotation(obj) *
+      objectScale(obj);
 
   List<SolidPart> _solidParts(ModelObject obj) {
     switch (obj.kind) {
@@ -1631,9 +1679,25 @@ class ModelRenderer {
         return [
           SolidPart('*', _spriteGeometry(obj)),
         ];
+      case polyhedronKind:
+        return _polyhedronParts(obj);
       default:
         return const [];
     }
+  }
+
+  /// The per-face parts of a polyhedron: one ear-clipped n-gon (with holes)
+  /// per face, explicit or planar UVs, winding normalized like the quads.
+  List<SolidPart> _polyhedronParts(ModelObject obj) {
+    final mesh = obj.mesh;
+    if (mesh == null) return const [];
+    final parts = <SolidPart>[];
+    for (final face in mesh.faces) {
+      final geometry = buildPolyFaceGeometry(obj, mesh, face);
+      if (geometry == null) continue;
+      parts.add(SolidPart(face.key, geometry.raw));
+    }
+    return parts;
   }
 
   Geometry _spriteGeometry(ModelObject obj) {
