@@ -65,6 +65,17 @@ class _MainScreenState extends State<MainScreen> {
     final key = e.logicalKey;
     if (key != LogicalKeyboardKey.escape) return false;
     final app = widget.app;
+    // Правка многогранника: сначала отменяем armed-добавление, затем
+    // выходим из граней/вершин в режим «объект»; выделение объекта
+    // снимается следующим Esc (существующий каскад ниже).
+    if (app.polyAddVertexArmed) {
+      app.togglePolyAddVertex();
+      return true;
+    }
+    if (app.polyEditMode != PolyEditMode.object) {
+      app.resetPolyEdit();
+      return true;
+    }
     if (app.faceSnapMode != null) {
       // Esc cancels the armed face-snap operation.
       app.setFaceSnapMode(null);

@@ -1475,5 +1475,74 @@ void main() {
       expect(adaptiveGridCell(65, 40), 2);
       expect(adaptiveGridCell(4576, 2816), 128);
     });
+
+    testWidgets('гизмо двигает выбранные вершины многогранника', (
+      tester,
+    ) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 6, l: 6);
+      final obj = poly();
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0, 6, 0.01);
+      editor.yaw = 0;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setSelection(obj.id);
+      editor.syncPolyEdit(PolyEditMode.vertices, {4}, 4, null);
+      editor.rebuildOverlays();
+      editor.moveGizmo.applyScreenScale(1.0);
+      final anchor = editor.polySelectionAnchor(controller.model!, obj)!;
+      final handle = controller.worldToScreen(
+        anchor + gizmoAxisDirection(GizmoAxis.x),
+      )!;
+      final before = obj.mesh!.vertices[4].clone();
+      final other = obj.mesh!.vertices[0].clone();
+
+      editor.gizmoSnap = 0;
+      expect(controller.beginGizmoDrag(handle), isNotNull);
+      editor.beginGizmoDrag();
+      controller.updateGizmoDrag(handle + const Offset(40, 0));
+      controller.endGizmoDrag();
+      editor.endGizmoDrag();
+
+      expect(obj.mesh!.vertices[4].x, isNot(closeTo(before.x, 1e-6)));
+      expect(obj.mesh!.vertices[0].x, closeTo(other.x, 1e-9),
+          reason: 'невыбранные вершины не двигаются');
+      expect(editor.gizmoDragging, isFalse);
+
+      editor.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('pickPolyVertex выбирает ближайшую вершину', (tester) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 6, l: 6);
+      final obj = poly();
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0, 6, 0.01);
+      editor.yaw = 0;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      final matrix = objectWorldMatrix(model, obj);
+      final screen = controller.worldToScreen(
+        matrix.transform3(obj.mesh!.vertices[4].clone()),
+      )!;
+      expect(editor.pickPolyVertex(obj, screen), 4);
+      expect(
+        editor.pickPolyVertex(obj, screen + const Offset(80, 80)),
+        isNull,
+      );
+
+      editor.dispose();
+      controller.dispose();
+    });
   });
 }

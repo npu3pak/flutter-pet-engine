@@ -1,12 +1,15 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:scene_editor/src/scene/editor_scene.dart';
 import 'package:scene_editor/src/state/app_state.dart';
 import 'package:scene_editor/src/ui/editor_viewport.dart';
+import 'package:vector_math/vector_math.dart' as vm;
 
 class _FakeBackend extends SceneViewportBackend {
   @override
@@ -291,6 +294,38 @@ void main() {
       hasLength(4),
       reason: 'сетка, рамка, курсор и слой выделения — по одному',
     );
+
+    await tester.pumpWidget(const SizedBox());
+    app.dispose();
+  });
+
+  testWidgets('armed-добавление вершины ставит её на грань под нажатием',
+      (tester) async {
+    app.addObject('polyhedron');
+    final obj = app.currentModel!.objects.last;
+    app.setPolyEditMode(PolyEditMode.vertices);
+    app.togglePolyAddVertex();
+    await pumpViewport(tester);
+
+    // Камера сверху над кубом: наводим на центр верхней грани.
+    final fly = app.controller.camera as FlyCameraController;
+    final model = app.currentModel!;
+    final anchor = chunkWorld(obj.x, obj.z, model.size.w, model.size.l);
+    fly.eye = vm.Vector3(anchor.x, 6, anchor.z + 0.01);
+    fly.yaw = 0;
+    fly.pitch = math.pi / 2;
+    await tester.pump();
+    final top = vm.Vector3(anchor.x, 1, anchor.z);
+    final screen = app.controller.worldToScreen(top)!;
+    final viewportTopLeft = tester
+        .getTopLeft(find.byType(SceneViewport));
+    await tester.tapAt(viewportTopLeft + screen);
+    await tester.pump();
+
+    expect(obj.mesh!.vertices, hasLength(9),
+        reason: 'вершина добавлена в верхнюю грань');
+    expect(app.selectedVertexIndices, isNotEmpty);
+    expect(app.activeVertexIndex, 8);
 
     await tester.pumpWidget(const SizedBox());
     app.dispose();

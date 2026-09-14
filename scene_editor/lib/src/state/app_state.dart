@@ -1915,6 +1915,14 @@ class AppState extends ChangeNotifier {
   }
 
   void beginGizmoDrag() {
+    // Правка многогранника: снимок сети вместо позиций объектов.
+    final selected = selectedObject();
+    if (selected != null &&
+        selected.isPolyhedron &&
+        polyEditMode != PolyEditMode.object) {
+      beginPolyVertexDrag();
+      return;
+    }
     final model = currentModel;
     final objs = model?.moveExpansion(selectedIds);
     if (model == null || objs == null || objs.isEmpty) return;
@@ -1925,6 +1933,10 @@ class AppState extends ChangeNotifier {
   /// command): compares the pre-drag snapshots with the current state and
   /// pushes ONE undo command when anything moved.
   void endGizmoDrag({String action = 'Перенос'}) {
+    if (_polyDragSnapshot != null) {
+      endPolyVertexDrag(action: action);
+      return;
+    }
     final model = currentModel;
     if (model == null) return;
     final objs = model.moveExpansion(selectedIds);

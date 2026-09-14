@@ -815,6 +815,30 @@ class EditorScene {
     return null;
   }
 
+  /// Индекс ближайшей к экранной точке вершины многогранника (радиус в
+  /// пикселях). Чистая математика поверх worldToScreen — тестируется
+  /// headless.
+  int? pickPolyVertex(ModelObject obj, ui.Offset pos, {double radius = 12}) {
+    final model = controller.model;
+    final mesh = obj.mesh;
+    if (model == null || mesh == null) return null;
+    final matrix = objectWorldMatrix(model, obj);
+    int? best;
+    var bestDistance = radius * radius;
+    for (var i = 0; i < mesh.vertices.length; i++) {
+      final screen = controller.worldToScreen(
+        matrix.transform3(mesh.vertices[i].clone()),
+      );
+      if (screen == null) continue;
+      final distance = (screen - pos).distanceSquared;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    return best;
+  }
+
   /// Raycast for a meta-object node; returns (metaId, isBubble). The bubble
   /// nodes are pickable too — a click on the text toggles the collapse.
   (String, bool)? pickMeta(ui.Offset pos, ui.Size size) {
@@ -879,6 +903,12 @@ class EditorScene {
   /// Per-object model-local start rotations at grab time (group drag).
   final Map<String, (double, double, double)> _gizmoStartRotations = {};
 
+  /// Снимок вершин многогранника на старте drag (локальные координаты).
+  Map<int, vm.Vector3>? _polyStartVertices;
+
+  /// Локальный пивот поворота выбранных вершин.
+  vm.Vector3? _polyLocalPivot;
+
   vm.Vector3? _metaStartPos;
   vm.Vector3? _lightStartPos;
   vm.Vector3? _lightStartDir;
@@ -891,6 +921,7 @@ class EditorScene {
     final model = controller.model;
     final objs = model?.moveExpansion(selectedIds);
     if (model == null || objs == null || objs.isEmpty) return;
+    if (_beginPolyDrag(objs.first)) return;
     _gizmoTarget = 'object';
     _gizmoStartPositions
       ..clear()
@@ -899,12 +930,34 @@ class EditorScene {
       ]);
   }
 
+  /// Начинает drag вершин многогранника (перевод или поворот): снимок
+  /// вершин и локальный пивот для поворота. Возвращает false, когда правка
+  /// многогранника не активна.
+  bool _beginPolyDrag(ModelObject obj) {
+    if (!obj.isPolyhedron || polyEditMode == PolyEditMode.object) return false;
+    final indices = _polySelectionVertices(obj);
+    final mesh = obj.mesh;
+    if (mesh == null || indices.isEmpty) return false;
+    _gizmoTarget = 'poly';
+    _polyStartVertices = {
+      for (final i in indices)
+        if (i >= 0 && i < mesh.vertices.length) i: mesh.vertices[i].clone(),
+    };
+    var pivot = vm.Vector3.zero();
+    for (final v in _polyStartVertices!.values) {
+      pivot += v;
+    }
+    _polyLocalPivot = pivot / _polyStartVertices!.length.toDouble();
+    return true;
+  }
+
   /// Starts an object rotate drag: snapshots the expanded selection (csg
   /// results rotate their leaves; hidden operands fall back to a rebuild).
   void beginRotateDrag() {
     final model = controller.model;
     final objs = model?.moveExpansion(selectedIds);
     if (model == null || objs == null || objs.isEmpty) return;
+    if (_beginPolyDrag(objs.first)) return;
     _gizmoTarget = 'object';
     _gizmoStartRotations
       ..clear()
@@ -944,6 +997,8 @@ class EditorScene {
     _gizmoTarget = null;
     _gizmoStartPositions.clear();
     _gizmoStartRotations.clear();
+    _polyStartVertices = null;
+    _polyLocalPivot = null;
     _metaStartPos = null;
     _lightStartPos = null;
     _lightStartDir = null;
@@ -971,6 +1026,8 @@ class EditorScene {
         _moveMeta(model, delta);
       case 'light':
         _moveLight(model, delta);
+      case 'poly':
+        _movePolyVertices(model, world);
       default:
         _moveObjects(model, world);
     }
@@ -986,7 +1043,74 @@ class EditorScene {
       _aimLight(model, event.axis, deg);
       return;
     }
+    if (_gizmoTarget == 'poly') {
+      _rotatePolyVertices(model, event.axis, deg);
+      return;
+    }
     _rotateObjects(model, event.axis, deg);
+  }
+
+  /// Сдвиг выбранных вершин многогранника: дельта снапится, к снимку
+  /// прибавляется абсолютно (повторные события не накапливают ошибку).
+  void _movePolyVertices(ModelData model, vm.Vector3 world) {
+    final obj = selectedObject(model);
+    final mesh = obj?.mesh;
+    final start = _polyStartVertices;
+    if (obj == null || mesh == null || start == null) return;
+    final delta = _modelDelta(world);
+    final step = vm.Vector3(
+      _snapDelta(delta.x),
+      _snapDelta(delta.y),
+      _snapDelta(delta.z),
+    );
+    for (final e in start.entries) {
+      mesh.vertices[e.key] = e.value + step;
+    }
+    _syncAfterPolyGeometry(model, obj);
+  }
+
+  /// Поворот выбранных вершин вокруг локального пивота; знаки согласованы с
+  /// поворотом объектов (мировой X → −rotX модели).
+  void _rotatePolyVertices(ModelData model, GizmoAxis axis, double deg) {
+    final obj = selectedObject(model);
+    final mesh = obj?.mesh;
+    final start = _polyStartVertices;
+    final pivot = _polyLocalPivot;
+    if (obj == null || mesh == null || start == null || pivot == null) return;
+    final signed = axis == GizmoAxis.x ? -deg : deg;
+    final modelAxis = switch (axis) {
+      GizmoAxis.x => vm.Vector3(1, 0, 0),
+      GizmoAxis.y => vm.Vector3(0, 1, 0),
+      GizmoAxis.z => vm.Vector3(0, 0, 1),
+    };
+    final rotation = vm.Quaternion.axisAngle(
+      modelAxis,
+      signed * math.pi / 180,
+    );
+    for (final e in start.entries) {
+      final offset = e.value - pivot;
+      offset.applyQuaternion(rotation);
+      mesh.vertices[e.key] = pivot + offset;
+    }
+    _syncAfterPolyGeometry(model, obj);
+  }
+
+  double _snapDelta(double v) =>
+      gizmoSnap > 0 ? (v / gizmoSnap).roundToDouble() * gizmoSnap : v;
+
+  /// Обновляет геометрию объекта и оверлеи после правки вершин (точечная
+  /// пересборка узлов, без полного rebuild документа).
+  void _syncAfterPolyGeometry(ModelData model, ModelObject obj) {
+    controller.refreshObjectGeometry(obj.id);
+    _selectionDirty = true;
+    _refreshSelection(model, force: true);
+    _syncGizmo(
+      model,
+      selectedObjects(model),
+      selectedMeta(model),
+      selectedLight(model),
+    );
+    _overlayRevision = controller.revision;
   }
 
   /// Moves the selected objects by the gizmo's world translation. The

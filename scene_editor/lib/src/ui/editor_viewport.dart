@@ -190,6 +190,14 @@ class _EditorViewportState extends State<EditorViewport> {
     final size = context.size ?? Size.zero;
     final shift = HardwareKeyboard.instance.isShiftPressed ||
         HardwareKeyboard.instance.isControlPressed;
+    // Armed vertex insertion (polyhedron, vertices submode): the click lands
+    // the vertex on the face under the cursor; picking/gizmo are bypassed.
+    if (app.mode == EditorMode.compose &&
+        app.polyAddVertexArmed &&
+        app.polyEditMode == PolyEditMode.vertices) {
+      _addPolyVertexAt(e.localPosition);
+      return true;
+    }
     final isMarkup = app.mode == EditorMode.markup;
     final isLighting = app.mode == EditorMode.lighting;
     // Named cell-meta brush: paints a 1×1 box at the cell under the pointer;
@@ -303,6 +311,25 @@ class _EditorViewportState extends State<EditorViewport> {
       // A csg result has no per-face surfaces: any click selects the whole
       // result object even in the faces submode.
       final isCsg = app.currentModel?.objectById(id)?.isCsg == true;
+      if (app.mode == EditorMode.compose &&
+          app.polyEditMode == PolyEditMode.faces) {
+        final obj = app.currentModel?.objectById(id);
+        if (obj != null && obj.isPolyhedron) {
+          app.selectFace(id, faceKey ?? facesOf(obj).first, shift: shift);
+          return true;
+        }
+      }
+      if (app.mode == EditorMode.compose &&
+          app.polyEditMode == PolyEditMode.vertices) {
+        final obj = app.selectedObject();
+        if (obj != null && obj.isPolyhedron) {
+          final index = editor.pickPolyVertex(obj, e.localPosition);
+          if (index != null) {
+            app.selectPolyVertex(index, shift: shift);
+            return true;
+          }
+        }
+      }
       if (app.mode == EditorMode.texture &&
           app.texSubmode == TexSubmode.faces &&
           !isCsg) {
@@ -327,6 +354,32 @@ class _EditorViewportState extends State<EditorViewport> {
 
   DateTime? _lastClickTime;
   String? _lastClickObject;
+
+  /// Вставляет вершину в грань выбранного многогранника под нажатием:
+  /// луч попадает в грань, мировая точка переводится в локальную рамку сети
+  /// и отдаётся состоянию (одна команда undo).
+  void _addPolyVertexAt(Offset position) {
+    final model = app.currentModel;
+    final obj = app.selectedObject();
+    if (model == null || obj?.mesh == null) return;
+    final targetId = obj!.id;
+    final ray = app.controller.screenPointToRay(position);
+    final hits = app.controller.raycastAll(
+      ray,
+      options: RaycastOptions(
+        where: (node) => node is ModelNode && node.object.id == targetId,
+      ),
+    );
+    for (final hit in hits) {
+      final face = hit.face;
+      if (hit.node is! ModelNode || face == null) continue;
+      final matrix = objectWorldMatrix(model, obj);
+      final inverse = vm.Matrix4.identity()..copyInverse(matrix);
+      final local = inverse.transform3(hit.worldPoint);
+      app.addPolyVertex(face.key, local);
+      return;
+    }
+  }
 
   bool _isDoubleClick(String id) {
     final now = DateTime.now();
