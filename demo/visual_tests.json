@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "updated": "2026-09-13T10:35:06.137311Z",
+  "updated": "2026-09-14T04:38:17.371Z",
   "appVersion": "0.1.0+1",
-  "engineVersion": "0.1.0-dev.1",
+  "engineVersion": "0.1.0-dev.2",
   "platform": "macOS · Metal",
   "checks": {
     "primitives_textured": {
@@ -333,6 +333,41 @@
       "updatedAt": "2026-09-13T10:09:53.693007Z",
       "phase": 2,
       "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+    },
+    "polyhedra_all": {
+      "status": "ok",
+      "comment": "Визуальный прогон 14.09.2026: poly_all.png",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "phase": 6,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
+    },
+    "polyhedra_bake": {
+      "status": "ok",
+      "comment": "Визуальный прогон 14.09.2026: poly_bake.png",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "phase": 6,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
+    },
+    "polyhedra_map": {
+      "status": "ok",
+      "comment": "Визуальный прогон 14.09.2026: poly_map_textured.png (после фикса; до фикса — poly_map.png)",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "phase": 6,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
+    },
+    "polyhedra_runtime": {
+      "status": "ok",
+      "comment": "Визуальный прогон 14.09.2026: poly_runtime.png",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "phase": 6,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
+    },
+    "polyhedra_select": {
+      "status": "ok",
+      "comment": "Визуальный прогон 14.09.2026: poly_select_faces.png, poly_select_vertices.png",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "phase": 6,
+      "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
     }
   },
   "bugs": [
@@ -2129,6 +2164,31 @@
           "kind": "fixed",
           "status": "fixed",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
+        }
+      ]
+    },
+    {
+      "id": "bug_61",
+      "featureId": "polyhedra_map",
+      "status": "fixed",
+      "createdAt": "2026-09-14T04:38:17.371Z",
+      "updatedAt": "2026-09-14T04:38:17.371Z",
+      "events": [
+        {
+          "at": "2026-09-14T04:38:17.371Z",
+          "author": "agent",
+          "kind": "reported",
+          "status": "open",
+          "text": "Визуальный прогон новых фич: polyhedra_map отрисовался магентой — у фичи не был указан project: 'Pet', поэтому текстуры пола и стен не подключались (снимок poly_map.png).",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
+        },
+        {
+          "at": "2026-09-14T04:38:17.371Z",
+          "author": "agent",
+          "kind": "fixed",
+          "status": "fixed",
+          "text": "Добавлен project: 'Pet'; повторный снимок poly_map_textured.png показывает текстуры пола и стен с повтором по длине/мировым координатам. Остальные четыре фичи группы отрисовались корректно (poly_all, poly_bake, poly_runtime, poly_select_faces/vertices).",
+          "version": "app 0.1.0+1 · engine 0.1.0-dev.2"
         }
       ]
     }

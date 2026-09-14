@@ -140,6 +140,7 @@ final FeatureSpec polyhedraMapFeature = FeatureSpec(
   id: 'polyhedra_map',
   group: kFeatureGroups[8],
   title: 'Фрагмент карты',
+  project: 'Pet',
   phase: 6,
   description:
       'Фрагмент карты как у Doom: вогнутый Г-образный сектор пола, '

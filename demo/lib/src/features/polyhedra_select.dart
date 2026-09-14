@@ -185,6 +185,18 @@ class _PolyhedraSelectControlsState extends State<_PolyhedraSelectControls> {
   @override
   void initState() {
     super.initState();
+    // Параметры сцены: mode=faces|vertices и select=id:ключ,id:ключ —
+    // начальное выделение (в т.ч. для снимков визуальной проверки).
+    final params = widget.feature.params;
+    final mode = params['mode'];
+    if (mode == 'faces' || mode == 'vertices') _mode = mode as String;
+    final select = params['select'];
+    if (select is String && select.isNotEmpty) {
+      final keys = select.split(',');
+      _selected.addAll(keys);
+      _active = keys.first;
+      _report = 'выбрано: $_active (всего ${_selected.length})';
+    }
     widget.feature.setTap(_handleTap);
     final controller = widget.feature.controller;
     if (controller == null) return;
