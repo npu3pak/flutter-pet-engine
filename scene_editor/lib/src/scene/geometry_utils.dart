@@ -30,10 +30,12 @@ Float32List packSegmentPairs(List<(double, double, double)> points) {
 /// Thick line segments from a list of point pairs (xyz triples). Each pair
 /// of consecutive points is ONE segment — a degenerate (zero-length) segment
 /// would collapse to an invisible hairline in the line shader. A trailing odd
-/// point is dropped.
+/// point is dropped. With [widthPx] the thickness stays constant in screen
+/// pixels (selection outlines use 1px, the level frame 1px orange).
 LineGeometry lineSegments(
   List<(double, double, double)> points, {
   double width = 0.012,
+  double? widthPx,
 }) {
   final count = points.length ~/ 2;
   final segments = <vm.Vector3>[];
@@ -44,7 +46,7 @@ LineGeometry lineSegments(
       ..add(vm.Vector3(ax, ay, az))
       ..add(vm.Vector3(bx, by, bz));
   }
-  return LineGeometry(segments, width: width);
+  return LineGeometry(segments, width: width, widthPx: widthPx);
 }
 
 /// The ring-tube (torus) vertex positions for [ringTubeGeometry] — the

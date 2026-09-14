@@ -96,7 +96,7 @@ void _appendShapeEdges(
   double billboardYaw,
 ) {
   vm.Vector3 w(double lx, double ly, double lz) =>
-      m.transform3(vm.Vector3(lx, ly, lz));
+      (m * objectScale(obj)).transform3(vm.Vector3(lx, ly, lz));
 
   switch (obj.kind) {
     case 'cuboid':
@@ -177,6 +177,22 @@ void _appendShapeEdges(
       for (var i = 0; i < 4; i++) {
         _appendEdge(out, c[i], c[(i + 1) % 4]);
       }
+    case polyhedronKind:
+      // Рёбра многогранника — контуры его граней (внешние и дырки), без
+      // диагоналей триангуляции.
+      final mesh = obj.mesh;
+      if (mesh == null) return;
+      for (final face in mesh.faces) {
+        for (final loop in [face.outer, ...face.holes]) {
+          final count = loop.vertices.length;
+          if (count < 2) continue;
+          for (var i = 0; i < count; i++) {
+            final a = mesh.vertices[loop.vertices[i]];
+            final b = mesh.vertices[loop.vertices[(i + 1) % count]];
+            _appendEdge(out, w(a.x, a.y, a.z), w(b.x, b.y, b.z));
+          }
+        }
+      }
   }
 }
 
@@ -252,6 +268,17 @@ enum TexSubmode { objects, faces }
 /// Правка выбранного многогранника: весь объект, его грани или вершины.
 /// По умолчанию всегда [object] — в грани/вершины переходят явно.
 enum PolyEditMode { object, faces, vertices }
+
+/// Шаг адаптивной сетки: легаси-модели (≤ 64 клеток) сохраняют клетку 1,
+/// крупные карты 1:1 удваивают шаг, пока число линий на ось не станет ≤ 64.
+double adaptiveGridCell(int w, int l) {
+  final span = math.max(w, l);
+  var cell = 1.0;
+  while (span / cell > 64) {
+    cell *= 2;
+  }
+  return cell;
+}
 
 /// Owns the editor's overlay world: grid/frame/cursor/selection, the
 /// transform gizmo, meta-object overlays, light-source markers and picking.
@@ -382,6 +409,13 @@ class EditorScene {
   /// Selected faces ('id:faceKey') in the faces submode.
   final Set<String> faceSelection = {};
 
+  /// Правка многогранника: режим, выбранные вершины и активные элементы —
+  /// зеркало состояния AppState для подсветки и гизмо.
+  PolyEditMode polyEditMode = PolyEditMode.object;
+  final Set<int> vertexSelection = {};
+  int? activeVertexIndex;
+  String? activeFaceKey;
+
   /// Fired when an overlay-affecting change happens (selection, cursor,
   /// camera-ready state) — the viewport rebuilds overlays.
   void Function()? onChanged;
@@ -420,6 +454,9 @@ class EditorScene {
 
   void frameModel(ModelData model) {
     final w = model.size.w, l = model.size.l, h = model.size.h;
+    // Камера готова к крупным картам 1:1: клип-плоскости и скорость полёта
+    // масштабируются; для легаси-габаритов значения не меняются.
+    fly.configureForExtent(math.sqrt((w * w + l * l + h * h).toDouble()));
     // The model center: cell-center coords ((w−1)/2, (l−1)/2) map to
     // world (0,0,0) — the model stays centered in the view.
     final center = chunkWorld((w - 1) / 2, (l - 1) / 2, w, l);
@@ -430,8 +467,12 @@ class EditorScene {
     // need backing away too (vertical fov 55°, viewport is wider than tall).
     final span = math.max(l.toDouble(), w * 0.8);
     final dist = span * 0.9 + 3;
-    var y = math.max(2.5, h * 1.2 + 2).clamp(2.5, 60).toDouble();
-    y = math.max(y, span * 0.55).clamp(2.5, 120).toDouble();
+    final height = math.max(2.5, h * 1.2 + 2);
+    var y = height.clamp(2.5, math.max(60.0, height)).toDouble();
+    y = math
+        .max(y, span * 0.55)
+        .clamp(2.5, math.max(120.0, span * 0.55))
+        .toDouble();
     fly.eye = vm.Vector3(center.x, y, center.z + dist);
     fly.yaw = math.pi;
     fly.pitch = 0.5;
@@ -469,7 +510,18 @@ class EditorScene {
   void panCamera(double dx, double dy, {required double viewportHeight}) =>
       fly.pan(dx, dy, focus: _focusPoint(), viewportHeight: viewportHeight);
 
-  void scrollZoom(double delta) => fly.scrollZoom(delta, focus: _zoomFocus());
+  void scrollZoom(double delta) {
+    final size = controller.model?.size;
+    // Крупные карты (1:1) требуют большего потолка отдаления; для
+    // легаси-моделей максимум не меньше прежнего (расчёт по 64×64×32).
+    final maxDistance = size == null
+        ? FlyCameraController.zoomMaxDistance(64, 64, 32)
+        : math.max(
+            FlyCameraController.zoomMaxDistance(64, 64, 32),
+            FlyCameraController.zoomMaxDistance(size.w, size.l, size.h),
+          );
+    fly.scrollZoom(delta, focus: _zoomFocus(), maxDistance: maxDistance);
+  }
 
   /// Per-frame upkeep after the controller's own frame: deduplicated gizmo
   /// drag, meta bubbles and occlusion ghosts, plus the billboard selection
@@ -698,6 +750,23 @@ class EditorScene {
     faceSelection
       ..clear()
       ..addAll(faces);
+    _selectionDirty = true;
+    onChanged?.call();
+  }
+
+  /// Синхронизирует режим правки многогранника и его подвыделения.
+  void syncPolyEdit(
+    PolyEditMode mode,
+    Set<int> vertices,
+    int? activeVertex,
+    String? activeFace,
+  ) {
+    polyEditMode = mode;
+    vertexSelection
+      ..clear()
+      ..addAll(vertices);
+    activeVertexIndex = activeVertex;
+    activeFaceKey = activeFace;
     _selectionDirty = true;
     onChanged?.call();
   }
@@ -1165,9 +1234,10 @@ class EditorScene {
       _cursorCross = null;
       _removeOverlayNode(_cursorCell);
       _cursorCell = null;
-      final stale = _outlineNode;
-      if (stale != null) selectionOverlay.remove(stale);
-      _outlineNode = null;
+      for (final node in _selectionNodes) {
+        selectionOverlay.remove(node);
+      }
+      _selectionNodes.clear();
       _selectionDirty = true;
       metaOverlay.rebuild(null);
       lightGizmos.clear();
@@ -1199,6 +1269,7 @@ class EditorScene {
   GridNode? _gridNode;
   int? _gridW;
   int? _gridL;
+  double? _gridCell;
   LineNode? _frameNode;
   int? _frameW;
   int? _frameH;
@@ -1208,8 +1279,9 @@ class EditorScene {
   int? _cursorW;
   int? _cursorL;
 
-  /// The persistent selection outline node (null when nothing is selected).
-  LineNode? _outlineNode;
+  /// The persistent selection overlay nodes (outline segments and vertex
+  /// markers); empty when nothing is selected.
+  final List<LineNode> _selectionNodes = [];
 
   /// Whether the outline/selection metadata must be rebuilt on the next sync.
   bool _selectionDirty = true;
@@ -1226,7 +1298,13 @@ class EditorScene {
   }
 
   void _syncGrid(ModelData model) {
-    if (_gridNode != null && _gridW == model.size.w && _gridL == model.size.l) {
+    // Адаптивная клетка: легаси-сетка (≤ 64) остаётся единичной; у карт 1:1
+    // шаг удваивается, чтобы число линий не росло с размером карты.
+    final cell = adaptiveGridCell(model.size.w, model.size.l);
+    if (_gridNode != null &&
+        _gridW == model.size.w &&
+        _gridL == model.size.l &&
+        _gridCell == cell) {
       return;
     }
     _removeOverlayNode(_gridNode);
@@ -1234,7 +1312,7 @@ class EditorScene {
     final node = GridNode(
       width: model.size.w.toDouble(),
       depth: model.size.l.toDouble(),
-      cell: 1,
+      cell: cell,
       lineWidthPx: 1.5,
       color: const Color(0xFF737380),
     );
@@ -1243,6 +1321,7 @@ class EditorScene {
     _gridNode = node;
     _gridW = model.size.w;
     _gridL = model.size.l;
+    _gridCell = cell;
   }
 
   void _syncFrame(ModelData model) {
@@ -1252,12 +1331,13 @@ class EditorScene {
     }
     _removeOverlayNode(_frameNode);
     // Origin is the model center: the frame box is centered at world (0,0,0).
+    // Рамка уровня — 1 пиксель и оранжевая (выделение объектов — жёлтое).
     final node = wireframeBox(
       vm.Vector3(0, h / 2, 0),
       vm.Vector3(w.toDouble(), h.toDouble(), l.toDouble()),
-      width: 0.02,
-      color: vm.Vector4(1, 0.85, 0.35, 1),
+      color: vm.Vector4(1, 0.54, 0, 1),
     );
+    node.widthPx = 1;
     node.layer = SceneLayer.overlay;
     overlays.add(node);
     _frameNode = node;
@@ -1334,20 +1414,20 @@ class EditorScene {
   }
 
   /// Rebuilds the selection outline when it is dirty (selection, mode,
-  /// rotation) or forced. A pure translation drag shifts the cached node
+  /// rotation) or forced. A pure translation drag shifts the cached nodes
   /// instead (see [_syncAfterObjectTransform]).
   void _refreshSelection(ModelData model, {bool force = false}) {
     if (!force && !_selectionDirty) return;
     final recomputeBillboards = _selectionDirty;
     final objs = selectedObjects(model);
-    final stale = _outlineNode;
-    if (stale != null) selectionOverlay.remove(stale);
-    _outlineNode = null;
+    for (final node in _selectionNodes) {
+      selectionOverlay.remove(node);
+    }
+    _selectionNodes.clear();
     if (objs.isNotEmpty) {
-      final node = _buildOutlineNode(model, objs);
-      if (node != null) {
+      _selectionNodes.addAll(_buildSelectionNodes(model, objs));
+      for (final node in _selectionNodes) {
         selectionOverlay.add(node);
-        _outlineNode = node;
       }
     }
     if (recomputeBillboards) _selectionBillboards = _selectionHasBillboard;
@@ -1355,16 +1435,175 @@ class EditorScene {
     _selectionYaw = screenParallelYaw(forwardH.x, forwardH.z);
   }
 
+  /// Builds the selection overlay nodes: the active face yellow, the rest of
+  /// the face group cyan, object outlines yellow, and — in the vertices
+  /// submode — cross markers for every vertex of the edited polyhedron
+  /// (active yellow, group cyan, the rest translucent white). Everything is
+  /// drawn with 1-pixel screen width.
+  List<LineNode> _buildSelectionNodes(ModelData model, List<ModelObject> objs) {
+    const activeColor = Color(0xFFFFD91A);
+    const groupColor = Color(0xFF35D0FF);
+    final yaw = screenParallelYaw(forwardH.x, forwardH.z);
+    final originX = (model.size.w - 1) / 2;
+    final originZ = (model.size.l - 1) / 2;
+    final nodes = <LineNode>[];
+    final faceEdit = textureMode || polyEditMode == PolyEditMode.faces;
+    if (faceEdit && faceSelection.isNotEmpty) {
+      final active = <(double, double, double)>[];
+      final group = <(double, double, double)>[];
+      for (final key in faceSelection) {
+        final target = _isActiveFace(key) ? active : group;
+        for (final (a, b) in faceEdgeSegments(
+          model,
+          key,
+          originX,
+          originZ,
+          billboardYaw: yaw,
+        )) {
+          target
+            ..add(a)
+            ..add(b);
+        }
+      }
+      if (active.isNotEmpty) nodes.add(_outlineNode(active, activeColor));
+      if (group.isNotEmpty) nodes.add(_outlineNode(group, groupColor));
+    } else {
+      final pts = <(double, double, double)>[];
+      for (final obj in objs) {
+        if (obj.isCsg) {
+          // The evaluated result, not the raw operands.
+          final edges =
+              controller.objectNode(obj.id)?.edges() ?? const <vm.Vector3>[];
+          for (var i = 0; i + 1 < edges.length; i += 2) {
+            final a = edges[i];
+            final b = edges[i + 1];
+            pts
+              ..add((a.x, a.y, a.z))
+              ..add((b.x, b.y, b.z));
+          }
+          continue;
+        }
+        for (final (a, b) in objectEdgeSegments(
+          obj,
+          billboardYaw: yaw,
+          originX: originX,
+          originZ: originZ,
+          modelOf: (id) => _resolveInstance(id),
+        )) {
+          pts
+            ..add(a)
+            ..add(b);
+        }
+      }
+      if (pts.isNotEmpty) nodes.add(_outlineNode(pts, activeColor));
+    }
+    // Vertices submode: markers over the outlines (all vertices visible).
+    if (polyEditMode == PolyEditMode.vertices && objs.length == 1) {
+      nodes.addAll(_buildVertexMarkers(model, objs.first));
+    }
+    return nodes;
+  }
+
+  bool _isActiveFace(String key) {
+    final face = activeFaceKey;
+    final obj = selectedObjectId;
+    return face != null && obj != null && key == '$obj:$face';
+  }
+
+  LineNode _outlineNode(List<(double, double, double)> points, Color color) {
+    final node = LineNode(
+      geometry: lineSegments(points, widthPx: 1),
+      color: color,
+    );
+    node.layer = SceneLayer.overlay;
+    return node;
+  }
+
+  /// Крестики вершин многогранника: активная — жёлтая, выбранные в группе —
+  /// голубые, остальные — полупрозрачные белые. Размер крестика — 2 %
+  /// диагонали сети (в разумных пределах), толщина 1 пиксель.
+  List<LineNode> _buildVertexMarkers(ModelData model, ModelObject obj) {
+    final mesh = obj.mesh;
+    if (mesh == null) return const [];
+    final matrix = objectWorldMatrix(model, obj);
+    final bounds = mesh.vertexBounds;
+    final diag = bounds == null ? 1.0 : (bounds.$2 - bounds.$1).length;
+    final m = (diag * 0.02).clamp(0.02, 0.5);
+    final normal = <(double, double, double)>[];
+    final group = <(double, double, double)>[];
+    final active = <(double, double, double)>[];
+    void cross(List<(double, double, double)> out, vm.Vector3 p) {
+      out
+        ..add((p.x - m, p.y, p.z))
+        ..add((p.x + m, p.y, p.z))
+        ..add((p.x, p.y - m, p.z))
+        ..add((p.x, p.y + m, p.z))
+        ..add((p.x, p.y, p.z - m))
+        ..add((p.x, p.y, p.z + m));
+    }
+
+    for (var i = 0; i < mesh.vertices.length; i++) {
+      final world = matrix.transform3(mesh.vertices[i].clone());
+      if (vertexSelection.contains(i)) {
+        cross(i == activeVertexIndex ? active : group, world);
+      } else {
+        cross(normal, world);
+      }
+    }
+    return [
+      if (normal.isNotEmpty)
+        _outlineNode(normal, const Color(0x66FFFFFF)),
+      if (group.isNotEmpty) _outlineNode(group, const Color(0xFF35D0FF)),
+      if (active.isNotEmpty) _outlineNode(active, const Color(0xFFFFD91A)),
+    ];
+  }
+
+  /// Мировая точка якоря гизмо для правки многогранника: центроид выбранных
+  /// вершин (в режиме вершин) или вершин выбранных граней (в режиме граней).
+  /// null — правка не активна, гизмо ставится обычным [groupAnchor].
+  vm.Vector3? polySelectionAnchor(ModelData model, ModelObject obj) {
+    if (!obj.isPolyhedron || polyEditMode == PolyEditMode.object) return null;
+    final indices = _polySelectionVertices(obj);
+    final mesh = obj.mesh;
+    if (mesh == null || indices.isEmpty) return null;
+    var sum = vm.Vector3.zero();
+    for (final i in indices) {
+      if (i < 0 || i >= mesh.vertices.length) continue;
+      sum += mesh.vertices[i];
+    }
+    return objectWorldMatrix(model, obj)
+        .transform3(sum / indices.length.toDouble());
+  }
+
+  /// Индексы вершин текущего подвыделения многогранника: сами вершины или
+  /// вершины выбранных граней.
+  Set<int> _polySelectionVertices(ModelObject obj) {
+    if (polyEditMode == PolyEditMode.vertices) return vertexSelection;
+    final mesh = obj.mesh;
+    if (mesh == null) return const {};
+    final prefix = '${obj.id}:';
+    final keys = [
+      for (final key in faceSelection)
+        if (key.startsWith(prefix)) key.substring(prefix.length),
+    ];
+    return mesh.verticesOfFaces(keys);
+  }
+
+  /// Публичный доступ к вершинам подвыделения (drag гизмо).
+  Set<int> polySelectionVertices(ModelObject obj) =>
+      _polySelectionVertices(obj);
+
   /// Syncs the overlays after a move/rotate drag step: the outline shifts
   /// with a uniform translation (rebuilt otherwise) and the gizmo follows
   /// the group anchor. The grid/frame/cursor/meta/light layers are untouched.
   void _syncAfterObjectTransform({vm.Vector3? uniformStep}) {
     final model = controller.model;
     if (model == null) return;
-    final outline = _outlineNode;
-    if (!_selectionDirty && outline != null && uniformStep != null) {
-      outline.transform =
-          vm.Matrix4.translation(uniformStep) * outline.transform;
+    final nodes = List<LineNode>.of(_selectionNodes);
+    if (!_selectionDirty && nodes.isNotEmpty && uniformStep != null) {
+      for (final node in nodes) {
+        node.transform = vm.Matrix4.translation(uniformStep) * node.transform;
+      }
     } else {
       _selectionDirty = true;
       _refreshSelection(model, force: true);
@@ -1429,7 +1668,9 @@ class EditorScene {
       } else if (markupMode && metaSel != null) {
         anchor = metaAnchor(metaSel, model);
       } else if (objs.isNotEmpty) {
-        anchor = groupAnchor(model);
+        // Правка многогранника: гизмо стоит на центроиде выбранных
+        // граней/вершин; в режиме «объект» — как раньше, на якоре.
+        anchor = polySelectionAnchor(model, objs.first) ?? groupAnchor(model);
         rotate = rotationActive;
       }
     }
@@ -1440,68 +1681,6 @@ class EditorScene {
       moveGizmo.anchor = anchor;
       rotateGizmo.anchor = anchor;
     }
-  }
-
-  /// Builds the selection outline node: real edges (rotY-aware, per kind)
-  /// for EVERY selected object, drawn on the overlay layer so they show
-  /// through other objects' geometry. A model instance outlines its resolved
-  /// content (recursively); a csg result outlines its evaluated geometry.
-  /// Face submode outlines every selected face's edges instead.
-  LineNode? _buildOutlineNode(ModelData model, List<ModelObject> objs) {
-    final yaw = screenParallelYaw(forwardH.x, forwardH.z);
-    final originX = (model.size.w - 1) / 2;
-    final originZ = (model.size.l - 1) / 2;
-    final pts = <(double, double, double)>[];
-    if (textureMode && faceSelection.isNotEmpty) {
-      // Faces submode: outline every selected face's edges.
-      for (final key in faceSelection) {
-        for (final (a, b) in faceEdgeSegments(
-          model,
-          key,
-          originX,
-          originZ,
-          billboardYaw: yaw,
-        )) {
-          pts
-            ..add(a)
-            ..add(b);
-        }
-      }
-    } else {
-      for (final obj in objs) {
-        if (obj.isCsg) {
-          // The evaluated result, not the raw operands.
-          final edges =
-              controller.objectNode(obj.id)?.edges() ?? const <vm.Vector3>[];
-          for (var i = 0; i + 1 < edges.length; i += 2) {
-            final a = edges[i];
-            final b = edges[i + 1];
-            pts
-              ..add((a.x, a.y, a.z))
-              ..add((b.x, b.y, b.z));
-          }
-          continue;
-        }
-        for (final (a, b) in objectEdgeSegments(
-          obj,
-          billboardYaw: yaw,
-          originX: originX,
-          originZ: originZ,
-          modelOf: (id) => _resolveInstance(id),
-        )) {
-          pts
-            ..add(a)
-            ..add(b);
-        }
-      }
-    }
-    if (pts.isEmpty) return null;
-    final outline = LineNode(
-      geometry: lineSegments(pts, width: 0.02),
-      color: const Color(0xFFFFD91A),
-    );
-    outline.layer = SceneLayer.overlay;
-    return outline;
   }
 
   void dispose() {
@@ -1540,6 +1719,27 @@ List<((double, double, double), (double, double, double))> faceEdgeSegments(
   final faceKey = key.substring(i + 1);
   final obj = model.objects.where((o) => o.id == id).firstOrNull;
   if (obj == null) return const [];
+
+  // Многогранник: контуры выбранной грани (внешний + дырки) ровно в мировой
+  // рамке рендера.
+  if (obj.isPolyhedron) {
+    final mesh = obj.mesh;
+    final face = mesh?.faceByKey(faceKey);
+    if (mesh == null || face == null) return const [];
+    final matrix = objectWorldMatrix(model, obj);
+    final out = <((double, double, double), (double, double, double))>[];
+    for (final loop in [face.outer, ...face.holes]) {
+      final count = loop.vertices.length;
+      if (count < 2) continue;
+      for (var i = 0; i < count; i++) {
+        final a = matrix.transform3(mesh.vertices[loop.vertices[i]].clone());
+        final b = matrix
+            .transform3(mesh.vertices[loop.vertices[(i + 1) % count]].clone());
+        out.add(((a.x, a.y, a.z), (b.x, b.y, b.z)));
+      }
+    }
+    return out;
+  }
 
   // Flat faces rotate with the object (sprites: the billboard yaw) — the
   // same convention as objectEdgeSegments, so the outline follows the

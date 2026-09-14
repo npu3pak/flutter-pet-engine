@@ -112,6 +112,12 @@ class _EditorViewportState extends State<EditorViewport> {
     editor.setSelection(app.selectedObjectId, faceKey: app.selectedFaceKey);
     editor.syncSelectionIds(app.selectedIds);
     editor.syncFaces(app.selectedFaces);
+    editor.syncPolyEdit(
+      app.polyEditMode,
+      app.selectedVertexIndices,
+      app.activeVertexIndex,
+      app.selectedFaceKey,
+    );
     editor.cursor = vm.Vector3(app.cursorX, app.cursorY, app.cursorZ);
     editor.cellCursor = app.cellBrushArmed;
     // Mode changes swap whole layers (meta/light/texture gizmos): rebuild.

@@ -1357,4 +1357,123 @@ void main() {
       controller.dispose();
     });
   });
+
+  group('многогранник: контуры, якоря и сетка', () {
+    ModelObject poly({
+      String id = 'p',
+      double x = 0,
+      double y = 0,
+      double z = 0,
+      double scaleY = 1,
+      PolyMesh? mesh,
+    }) =>
+        ModelObject(
+          id: id,
+          name: id,
+          kind: polyhedronKind,
+          x: x,
+          y: y,
+          z: z,
+          scaleY: scaleY,
+          mesh: mesh ?? PolyMesh.box(w: 2, h: 1, d: 2),
+        );
+
+    test('objectEdgeSegments обводит контуры всех граней', () {
+      final obj = poly();
+      final edges = objectEdgeSegments(obj, billboardYaw: 0.5);
+      // 6 граней × 4 ребра (каждое ребро принадлежит двум граням).
+      expect(edges, hasLength(24));
+      final points = [for (final e in edges) ...[e.$1, e.$2]];
+      expect(_hasPoint(points, -1, 0, -1), isTrue);
+      expect(_hasPoint(points, 1, 1, 1), isTrue);
+    });
+
+    test('per-axis масштаб растягивает контуры по осям', () {
+      final obj = poly(scaleY: 2);
+      final edges = objectEdgeSegments(obj, billboardYaw: 0);
+      final points = [for (final e in edges) ...[e.$1, e.$2]];
+      expect(_hasPoint(points, -1, 2, -1), isTrue);
+      expect(_hasPoint(points, -1, 1, -1), isFalse);
+    });
+
+    test('faceEdgeSegments грани с отверстием обходит оба контура', () {
+      final model = _model(w: 6, l: 6);
+      final slab = poly(
+        id: 's',
+        mesh: PolyMesh(
+          vertices: [
+            vm.Vector3(-1, 0, -1),
+            vm.Vector3(1, 0, -1),
+            vm.Vector3(1, 0, 1),
+            vm.Vector3(-1, 0, 1),
+            vm.Vector3(-0.5, 0, -0.5),
+            vm.Vector3(0.5, 0, -0.5),
+            vm.Vector3(0.5, 0, 0.5),
+            vm.Vector3(-0.5, 0, 0.5),
+          ],
+          faces: [
+            PolyFace(
+              key: '+y',
+              outer: PolyLoop(vertices: [0, 1, 2, 3]),
+              holes: [PolyLoop(vertices: [4, 5, 6, 7])],
+            ),
+          ],
+        ),
+      );
+      model.objects.add(slab);
+      final edges = faceEdgeSegments(
+        model,
+        's:+y',
+        (model.size.w - 1) / 2,
+        (model.size.l - 1) / 2,
+        billboardYaw: 0,
+      );
+      expect(edges, hasLength(8));
+    });
+
+    test('polySelectionAnchor — центроид выбранных вершин в мире', () {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 6, l: 6);
+      final obj = poly(x: 2, z: 3);
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      editor.syncPolyEdit(PolyEditMode.vertices, {0, 1}, 0, null);
+      final anchor = editor.polySelectionAnchor(controller.model!, obj)!;
+      final expected = objectWorldMatrix(model, obj)
+          .transform3(vm.Vector3(0, 0, -1));
+      expect(anchor.x, closeTo(expected.x, 1e-9));
+      expect(anchor.y, closeTo(expected.y, 1e-9));
+      expect(anchor.z, closeTo(expected.z, 1e-9));
+      // В режиме «объект» якорь не используется (null).
+      editor.syncPolyEdit(PolyEditMode.object, const {}, null, null);
+      expect(editor.polySelectionAnchor(controller.model!, obj), isNull);
+      editor.dispose();
+      controller.dispose();
+    });
+
+    test('polySelectionAnchor учитывает масштаб по осям', () {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 6, l: 6);
+      final obj = poly(scaleY: 3);
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      // Вершина 4 куба (−1, 1, −1) при scaleY = 3 → мировой y = 3.
+      editor.syncPolyEdit(PolyEditMode.vertices, {4}, 4, null);
+      final anchor = editor.polySelectionAnchor(controller.model!, obj)!;
+      final expected = objectWorldMatrix(model, obj)
+          .transform3(vm.Vector3(-1, 1, -1));
+      expect(anchor.y, closeTo(expected.y, 1e-9));
+      editor.dispose();
+      controller.dispose();
+    });
+
+    test('adaptiveGridCell: легаси единица, крупные карты удваиваются', () {
+      expect(adaptiveGridCell(3, 3), 1);
+      expect(adaptiveGridCell(64, 64), 1);
+      expect(adaptiveGridCell(65, 40), 2);
+      expect(adaptiveGridCell(4576, 2816), 128);
+    });
+  });
 }
