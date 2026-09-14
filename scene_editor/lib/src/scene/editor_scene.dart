@@ -249,6 +249,10 @@ enum EditorMode { compose, texture, lighting, markup }
 /// Texture-mode submode: click picks whole objects or individual faces.
 enum TexSubmode { objects, faces }
 
+/// Правка выбранного многогранника: весь объект, его грани или вершины.
+/// По умолчанию всегда [object] — в грани/вершины переходят явно.
+enum PolyEditMode { object, faces, vertices }
+
 /// Owns the editor's overlay world: grid/frame/cursor/selection, the
 /// transform gizmo, meta-object overlays, light-source markers and picking.
 /// The document itself is rendered by the [SceneController]; this class
@@ -930,7 +934,7 @@ class EditorScene {
       if (start == null) continue;
       final prev = vm.Vector3(o.x, o.y, o.z);
       o.x = _snapV(start.x + delta.x);
-      o.y = _snapV(start.y + delta.y).clamp(0.0, 64.0);
+      o.y = _snapV(start.y + delta.y).clamp(-4096.0, 4096.0);
       o.z = _snapV(start.z + delta.z);
       final step = vm.Vector3(o.x - prev.x, o.y - prev.y, o.z - prev.z);
       if (step.length2 > 1e-18) {

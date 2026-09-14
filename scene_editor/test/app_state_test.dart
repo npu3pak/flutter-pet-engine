@@ -1184,4 +1184,176 @@ void main() {
     app.pickResource('sprite', 'tree.png');
     expect(app.currentModel!.objects.length, 2);
   });
+
+  group('правка многогранника', () {
+    ModelObject addPoly() {
+      app.createModel();
+      app.addObject('polyhedron');
+      return app.currentModel!.objects.last;
+    }
+
+    test('режим сбрасывается при смене объекта и держится на нём же', () {
+      final poly = addPoly();
+      expect(app.polyEditMode, PolyEditMode.object);
+      app.setPolyEditMode(PolyEditMode.faces);
+      expect(app.polyEditMode, PolyEditMode.faces);
+
+      app.selectObject(app.currentModel!.objects.first.id);
+      expect(app.polyEditMode, PolyEditMode.object);
+
+      app.selectObject(poly.id);
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.selectObject(poly.id);
+      expect(app.polyEditMode, PolyEditMode.vertices,
+          reason: 'повторный выбор того же объекта не выходит из режима');
+
+      app.resetPolyEdit();
+      expect(app.polyEditMode, PolyEditMode.object);
+    });
+
+    test('в грани/вершины нельзя войти у не-многогранника', () {
+      app.createModel();
+      final floor = app.currentModel!.objects.first;
+      app.selectObject(floor.id);
+      app.setPolyEditMode(PolyEditMode.faces);
+      expect(app.polyEditMode, PolyEditMode.object);
+    });
+
+    test('выбор вершин: замена, Shift-группа, снятие', () {
+      final poly = addPoly();
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.selectPolyVertex(2);
+      expect(app.selectedVertexIndices, {2});
+      expect(app.activeVertexIndex, 2);
+      app.selectPolyVertex(3, shift: true);
+      expect(app.selectedVertexIndices, {2, 3});
+      expect(app.activeVertexIndex, 3);
+      app.selectPolyVertex(2, shift: true);
+      expect(app.selectedVertexIndices, {3});
+      app.selectPolyVertex(null);
+      expect(app.selectedVertexIndices, isEmpty);
+      expect(app.activeVertexIndex, isNull);
+      expect(poly.mesh!.vertices, hasLength(8));
+    });
+
+    test('масштаб по осям и undo', () {
+      final poly = addPoly();
+      app.setPolyScale(poly.id, 1, 2.5);
+      expect(poly.scaleY, 2.5);
+      expect(poly.scaleX, 1);
+      app.undo();
+      expect(poly.scaleY, 1);
+    });
+
+    test('drag вершин: один undo на жест', () {
+      final poly = addPoly();
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.selectPolyVertex(0);
+      final before = poly.mesh!.vertices[0].clone();
+      app.beginPolyVertexDrag();
+      app.moveSelectedPolyVertices(vm.Vector3(1, 0.5, 0));
+      app.endPolyVertexDrag();
+      expect(poly.mesh!.vertices[0].x, closeTo(before.x + 1, 1e-9));
+      expect(poly.mesh!.vertices[0].y, closeTo(before.y + 0.5, 1e-9));
+      app.undo();
+      expect(poly.mesh!.vertices[0].x, closeTo(before.x, 1e-9));
+      app.redo();
+      expect(poly.mesh!.vertices[0].x, closeTo(before.x + 1, 1e-9));
+    });
+
+    test('удаление грани убирает её и материал, undo возвращает', () {
+      final poly = addPoly();
+      poly.faces['+y'] = ModelMaterial(color: [1, 2, 3]);
+      app.setPolyEditMode(PolyEditMode.faces);
+      app.selectFace(poly.id, '+y');
+      app.deleteSelectedPolyFaces();
+      expect(poly.mesh!.faces, hasLength(5));
+      expect(poly.mesh!.faceByKey('+y'), isNull);
+      expect(poly.faces.containsKey('+y'), isFalse);
+      expect(app.selectedFaces, isEmpty);
+      app.undo();
+      expect(poly.mesh!.faces, hasLength(6));
+      expect(poly.mesh!.faceByKey('+y'), isNotNull);
+      expect(poly.faces['+y']?.color, [1, 2, 3]);
+    });
+
+    test('удаление вершины и undo', () {
+      final poly = addPoly();
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.selectPolyVertex(0);
+      app.deleteSelectedPolyVertices();
+      expect(poly.mesh!.vertices, hasLength(7));
+      expect(app.selectedVertexIndices, isEmpty);
+      app.undo();
+      expect(poly.mesh!.vertices, hasLength(8));
+    });
+
+    test('добавление вершины на ребро и undo', () {
+      final poly = addPoly();
+      app.setPolyEditMode(PolyEditMode.vertices);
+      app.togglePolyAddVertex();
+      expect(app.polyAddVertexArmed, isTrue);
+      // Ребро верхней грани куба 1×1×1: (−0.5, 1, 0.5) → (0.5, 1, 0.5).
+      app.addPolyVertex('+y', vm.Vector3(0, 1, 0.5));
+      expect(poly.mesh!.vertices, hasLength(9));
+      final index = app.activeVertexIndex;
+      expect(index, 8);
+      expect(app.selectedVertexIndices, {8});
+      expect(app.polyAddVertexArmed, isTrue,
+          reason: 'режим остаётся включённым для следующих вершин');
+      app.undo();
+      expect(poly.mesh!.vertices, hasLength(8));
+    });
+
+    test('конверсия кубоида в многогранник и undo', () {
+      app.createModel();
+      final floor = app.currentModel!.objects.first;
+      app.convertToPolyhedron(floor.id);
+      expect(floor.kind, polyhedronKind);
+      expect(floor.mesh!.faces, hasLength(6));
+      expect(floor.dims, isEmpty);
+      app.undo();
+      expect(floor.kind, 'cuboid');
+      expect(floor.dims['w'], isNotNull);
+    });
+
+    test('конверсия CSG удаляет освободившиеся операнды, undo их вернёт',
+        () {
+      app.createModel();
+      app.addObject('cuboid');
+      app.addObject('cuboid');
+      final objs = app.currentModel!.objects;
+      final a = objs[objs.length - 2].id;
+      final b = objs.last.id;
+      app.selectObject(a);
+      app.selectObject(b, shift: true);
+      app.createCsgOperation('union');
+      final csg = app.currentModel!.objects.last;
+      expect(csg.isCsg, isTrue);
+      final countBefore = app.currentModel!.objects.length;
+
+      app.convertToPolyhedron(csg.id);
+      expect(csg.kind, polyhedronKind);
+      expect(csg.mesh!.faces, isNotEmpty);
+      expect(app.currentModel!.objects.length, countBefore - 2,
+          reason: 'операнды CSG больше не нужны');
+      expect(app.currentModel!.objectById(a), isNull);
+
+      app.undo();
+      expect(csg.isCsg, isTrue);
+      expect(app.currentModel!.objects.length, countBefore);
+      expect(app.currentModel!.objectById(a), isNotNull);
+    });
+
+    test('лимиты: отрицательная высота и крупная модель', () {
+      app.createModel();
+      final floor = app.currentModel!.objects.first;
+      app.setObjectPos(floor.id, 0, -50, 0);
+      expect(floor.y, -50);
+      app.setModelSize(200, 150, 40);
+      expect(app.currentModel!.size.w, 200);
+      expect(app.currentModel!.size.l, 150);
+      expect(app.currentModel!.size.h, 40);
+    });
+  });
 }

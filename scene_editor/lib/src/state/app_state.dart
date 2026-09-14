@@ -119,6 +119,19 @@ class AppState extends ChangeNotifier {
   /// Selected faces in faces mode — keys `'<objectId>:<faceKey>'`.
   final Set<String> selectedFaces = {};
 
+  /// Правка многогранника: объект/грани/вершины. Сбрасывается в
+  /// [PolyEditMode.object] при смене объекта и по Esc.
+  PolyEditMode polyEditMode = PolyEditMode.object;
+
+  /// Выбранные вершины текущего многогранника (индексы в его сети).
+  final Set<int> selectedVertexIndices = {};
+
+  /// Активная (последняя выбранная) вершина — подсвечивается жёлтым.
+  int? activeVertexIndex;
+
+  /// Режим добавления вершины: следующий клик по объекту вставит вершину.
+  bool polyAddVertexArmed = false;
+
   /// Multi-selection: all currently selected object ids (always includes
   /// [selectedObjectId], the primary/last-clicked).
   final Set<String> selectedIds = {};
@@ -689,9 +702,10 @@ class AppState extends ChangeNotifier {
     final model = currentModel;
     if (model == null) return;
     final old = ModelSize.copy(model.size);
-    model.size.w = w.clamp(1, 64);
-    model.size.l = l.clamp(1, 64);
-    model.size.h = h.clamp(1, 32);
+    // Лимиты согласованы с model_v1: карты 1:1 (импорт) больше легаси-сетки.
+    model.size.w = w.clamp(1, 16384);
+    model.size.l = l.clamp(1, 16384);
+    model.size.h = h.clamp(1, 4096);
     _push(_restoreSizeCmd(model, old, ModelSize.copy(model.size)));
     _touchScene();
     notifyListeners();
@@ -840,6 +854,7 @@ class AppState extends ChangeNotifier {
   /// Restores [snapshot]'s values into [target] in place, keeping object
   /// identity stable (renderer nodes and selections reference it by id).
   void _restoreInto(ModelObject target, ModelObject snapshot) {
+    target.kind = snapshot.kind;
     target.name = snapshot.name;
     target.op = snapshot.op;
     target.operands = snapshot.operands == null
@@ -855,6 +870,12 @@ class AppState extends ChangeNotifier {
         ? null
         : List.of(snapshot.gltfBounds!);
     target.anim = snapshot.anim;
+    target.mesh = snapshot.mesh?.copy();
+    target.scaleX = snapshot.scaleX;
+    target.scaleY = snapshot.scaleY;
+    target.scaleZ = snapshot.scaleZ;
+    target.bake = snapshot.bake;
+    target.tag = snapshot.tag;
     target.x = snapshot.x;
     target.y = snapshot.y;
     target.z = snapshot.z;
@@ -901,7 +922,9 @@ class AppState extends ChangeNotifier {
   void setObjectPos(String id, double x, double y, double z) =>
       _objectEdit(id, description: 'Позиция', mutate: (o) {
         o.x = x;
-        o.y = y.clamp(0.0, 128.0);
+        // Импортированные карты 1:1 живут и ниже нуля; прежний потолок 128
+        // поднят вместе с лимитами модели.
+        o.y = y.clamp(-4096.0, 4096.0);
         o.z = z;
       });
 
@@ -938,6 +961,279 @@ class AppState extends ChangeNotifier {
       _objectEdit(id, description: 'Имя', mutate: (o) {
         o.name = name.isEmpty ? o.id : name;
       });
+
+  // ── правка многогранника (объект / грани / вершины) ─────────────────
+
+  /// Переключает режим правки выбранного многогранника. В грани и вершины
+  /// входят только явно; подвыделения при переключении сбрасываются.
+  void setPolyEditMode(PolyEditMode m) {
+    final obj = selectedObject();
+    if (obj == null || !obj.isPolyhedron || polyEditMode == m) return;
+    polyEditMode = m;
+    selectedVertexIndices.clear();
+    activeVertexIndex = null;
+    polyAddVertexArmed = false;
+    if (m != PolyEditMode.faces) {
+      selectedFaces.clear();
+      selectedFaceKey = null;
+    }
+    selectedIds
+      ..clear()
+      ..add(obj.id);
+    notifyListeners();
+  }
+
+  /// Выходит из правки многогранника в режим «объект» (Esc, смена модели).
+  /// Само выделение объекта не снимается — это делает следующий Esc.
+  void resetPolyEdit() {
+    if (polyEditMode == PolyEditMode.object &&
+        selectedVertexIndices.isEmpty &&
+        activeVertexIndex == null &&
+        !polyAddVertexArmed) {
+      return;
+    }
+    polyEditMode = PolyEditMode.object;
+    selectedVertexIndices.clear();
+    activeVertexIndex = null;
+    polyAddVertexArmed = false;
+    notifyListeners();
+  }
+
+  /// Выбор вершины текущего многогранника. [shift] добавляет/снимает
+  /// вершину (группа), иначе выбор заменяется. null снимает выделение.
+  void selectPolyVertex(int? index, {bool shift = false}) {
+    final obj = selectedObject();
+    final mesh = obj?.mesh;
+    if (mesh == null) return;
+    if (index == null) {
+      if (!shift) {
+        selectedVertexIndices.clear();
+        activeVertexIndex = null;
+      }
+    } else if (index >= 0 && index < mesh.vertices.length) {
+      if (shift) {
+        if (!selectedVertexIndices.remove(index)) {
+          selectedVertexIndices.add(index);
+        }
+        activeVertexIndex = selectedVertexIndices.contains(index)
+            ? index
+            : (selectedVertexIndices.isEmpty
+                ? null
+                : selectedVertexIndices.last);
+      } else {
+        selectedVertexIndices
+          ..clear()
+          ..add(index);
+        activeVertexIndex = index;
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Масштаб многогранника по оси: 0 = X, 1 = Y, 2 = Z. Объект
+  /// вытягивается в заданных пропорциях, положение якоря сохраняется.
+  void setPolyScale(String id, int axis, double value) {
+    final v = value <= 0 ? 0.01 : value;
+    _objectEdit(id, description: 'Масштаб', mutate: (o) {
+      switch (axis) {
+        case 0:
+          o.scaleX = v;
+        case 1:
+          o.scaleY = v;
+        default:
+          o.scaleZ = v;
+      }
+    });
+  }
+
+  /// Сдвиг выбранных вершин на [delta] — без undo: вызывается покадрово
+  /// во время drag, историю пишет [endPolyVertexDrag].
+  void moveSelectedPolyVertices(vm.Vector3 delta) {
+    final obj = selectedObject();
+    if (obj?.mesh == null || selectedVertexIndices.isEmpty) return;
+    obj!.mesh!.moveVertices(selectedVertexIndices, delta);
+    _refreshPolyGeometry(obj);
+  }
+
+  /// Поворот выбранных вершин вокруг [pivot] — без undo (см. выше).
+  void rotateSelectedPolyVertices(
+    vm.Vector3 axis,
+    double radians, {
+    required vm.Vector3 pivot,
+  }) {
+    final obj = selectedObject();
+    if (obj?.mesh == null || selectedVertexIndices.isEmpty) return;
+    obj!.mesh!.rotateVertices(
+          selectedVertexIndices,
+          axis,
+          radians,
+          pivot: pivot,
+        );
+    _refreshPolyGeometry(obj);
+  }
+
+  ModelObject? _polyDragSnapshot;
+
+  /// Снимок перед drag вершин (один undo на весь жест).
+  void beginPolyVertexDrag() {
+    final obj = selectedObject();
+    if (obj?.mesh == null) return;
+    _polyDragSnapshot = ModelObject.copy(obj!);
+  }
+
+  /// Завершает drag вершин: сравнивает со снимком и кладёт один undo.
+  void endPolyVertexDrag({String action = 'Правка вершин'}) {
+    final obj = selectedObject();
+    final snapshot = _polyDragSnapshot;
+    _polyDragSnapshot = null;
+    if (obj?.mesh == null || snapshot == null) return;
+    final mutated = ModelObject.copy(obj!);
+    if (mutated.toJson().toString() == snapshot.toJson().toString()) return;
+    _touchScene();
+    final target = obj;
+    _push(_Cmd(
+      action,
+      () => _restoreInto(target, ModelObject.copy(mutated)),
+      () => _restoreInto(target, snapshot),
+    ));
+    notifyListeners();
+  }
+
+  /// Удаляет выбранные грани текущего многогранника (один undo).
+  void deleteSelectedPolyFaces() {
+    final obj = selectedObject();
+    if (obj?.mesh == null || selectedFaces.isEmpty) return;
+    final prefix = '${obj!.id}:';
+    final keys = [
+      for (final key in selectedFaces)
+        if (key.startsWith(prefix)) key.substring(prefix.length),
+    ];
+    if (keys.isEmpty) return;
+    _objectEdit(obj.id, description: 'Удалить грани', mutate: (o) {
+      o.mesh?.deleteFaces(keys);
+      pruneFaceMaterials(o);
+    });
+    selectedFaces.clear();
+    selectedFaceKey = null;
+    notifyListeners();
+  }
+
+  /// Удаляет выбранные вершины (и вырожденные ими грани) — один undo.
+  void deleteSelectedPolyVertices() {
+    final obj = selectedObject();
+    if (obj?.mesh == null || selectedVertexIndices.isEmpty) return;
+    final indices = List<int>.of(selectedVertexIndices);
+    _objectEdit(obj!.id, description: 'Удалить вершины', mutate: (o) {
+      o.mesh?.deleteVertices(indices);
+      pruneFaceMaterials(o);
+    });
+    selectedVertexIndices.clear();
+    activeVertexIndex = null;
+    notifyListeners();
+  }
+
+  /// Включает/выключает armed-режим добавления вершины: следующий клик по
+  /// объекту вставит вершину в ближайшее ребро грани под курсором.
+  void togglePolyAddVertex() {
+    if (polyEditMode != PolyEditMode.vertices) return;
+    polyAddVertexArmed = !polyAddVertexArmed;
+    notifyListeners();
+  }
+
+  /// Вставляет вершину в грань [faceKey] в локальной точке [localPoint]
+  /// (мировой луч переводит вьюпорт) и сразу выбирает её. Режим остаётся
+  /// включённым — можно добавить несколько вершин подряд.
+  void addPolyVertex(String faceKey, vm.Vector3 localPoint) {
+    final obj = selectedObject();
+    if (obj?.mesh == null) return;
+    int? index;
+    _objectEdit(obj!.id, description: 'Добавить вершину', mutate: (o) {
+      index = o.mesh?.addVertexToFace(faceKey, localPoint);
+    });
+    if (index == null) return;
+    final added = index!;
+    selectedVertexIndices
+      ..clear()
+      ..add(added);
+    activeVertexIndex = added;
+    notifyListeners();
+  }
+
+  /// Преобразует объект в многогранник: `bakePolyhedron`, перенос
+  /// материалов граней, удаление неиспользуемых скрытых операндов CSG —
+  /// одна команда undo.
+  void convertToPolyhedron(String id) {
+    final model = currentModel;
+    final obj = _findObject(id);
+    if (model == null || obj == null) return;
+    final bake = bakePolyhedron(model, obj);
+    if (bake == null) return;
+
+    final snapshot = ModelObject.copy(obj);
+    final removed = <int, ModelObject>{};
+    if (obj.isCsg) {
+      for (final operandId in obj.operands ?? const <String>[]) {
+        final stillUsed = model.objects.any(
+          (o) =>
+              o.isCsg &&
+              o.id != obj.id &&
+              (o.operands?.contains(operandId) ?? false),
+        );
+        if (stillUsed) continue;
+        final operand = model.objectById(operandId);
+        if (operand == null) continue;
+        final index = model.objects.indexOf(operand);
+        if (index >= 0) removed[index] = operand;
+      }
+    }
+
+    void removeOperands() {
+      for (final operand in removed.values) {
+        model.objects.remove(operand);
+      }
+      model.pruneGroupMembers();
+    }
+
+    void restoreOperands() {
+      final indices = removed.keys.toList()..sort();
+      for (final index in indices) {
+        model.objects.insert(
+          index.clamp(0, model.objects.length),
+          removed[index]!,
+        );
+      }
+    }
+
+    bake.applyTo(obj);
+    pruneFaceMaterials(obj);
+    removeOperands();
+    final converted = ModelObject.copy(obj);
+    polyEditMode = PolyEditMode.object;
+    selectedFaceKey = null;
+    selectedFaces.clear();
+    selectedVertexIndices.clear();
+    activeVertexIndex = null;
+    _touchScene();
+    _push(_Cmd(
+      'Преобразовать в многогранник',
+      () {
+        _restoreInto(obj, ModelObject.copy(converted));
+        removeOperands();
+      },
+      () {
+        _restoreInto(obj, snapshot);
+        restoreOperands();
+      },
+    ));
+    notifyListeners();
+  }
+
+  void _refreshPolyGeometry(ModelObject obj) {
+    // Точечная пересборка узлов объекта: drag вершин не пересобирает всю
+    // модель (у моделей/gltf движок сам откатится на полный rebuild).
+    controller.refreshObjectGeometry(obj.id);
+    notifyListeners();
+  }
 
   // ── face snap («Перенести к грани» / «Параллельно грани») ───────────
 
@@ -2542,6 +2838,7 @@ class AppState extends ChangeNotifier {
   }
 
   void selectObject(String? id, {String? faceKey, bool shift = false}) {
+    final previousId = selectedObjectId;
     if (shift) {
       if (id == null) {
         // Shift-click on empty keeps the group.
@@ -2571,6 +2868,14 @@ class AppState extends ChangeNotifier {
     }
     // Object selection is mutually exclusive with face selection.
     selectedFaces.clear();
+    // Смена объекта выходит из правки многогранника: режим по умолчанию —
+    // «объект», подвыделения сбрасываются.
+    if (selectedObjectId != previousId) {
+      polyEditMode = PolyEditMode.object;
+      selectedVertexIndices.clear();
+      activeVertexIndex = null;
+      polyAddVertexArmed = false;
+    }
     notifyListeners();
   }
 
