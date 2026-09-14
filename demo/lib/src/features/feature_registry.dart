@@ -10,6 +10,7 @@ import 'level.dart';
 import 'light_picture.dart';
 import 'particles.dart';
 import 'placement.dart';
+import 'polyhedra.dart';
 import 'ready_scenes.dart';
 import 'render_sprites.dart';
 
@@ -238,6 +239,7 @@ const List<String> kFeatureGroups = [
   'Уровневый слой',
   'Операции размещения',
   'Готовые сцены',
+  'Многогранники',
 ];
 
 /// Полный каталог фич в порядке групп.
@@ -250,6 +252,7 @@ List<FeatureSpec> get kFeatureCatalog => List.unmodifiable(<FeatureSpec>[
   ...levelFeatures,
   ...placementFeatures,
   ...readySceneFeatures,
+  ...polyhedraFeatures,
 ]);
 
 /// Проверяет каталог на целостность: уникальные идентификаторы, непустые
