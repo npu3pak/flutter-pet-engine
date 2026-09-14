@@ -1,6 +1,7 @@
 import 'package:demo/src/features/feature_registry.dart';
 import 'package:demo/src/features/polyhedra.dart';
 import 'package:demo/src/features/polyhedra_all.dart';
+import 'package:demo/src/features/polyhedra_bake.dart';
 import 'package:demo/src/features/polyhedra_common.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/models.dart' as doc;
@@ -29,10 +30,13 @@ double _signedVolume(PolyMesh mesh) {
 
 void main() {
   test('группа «Многогранники» собрана и проходит проверку', () {
-    expect(polyhedraFeatures, hasLength(1));
+    expect(polyhedraFeatures, hasLength(2));
     expect(validateFeatureCatalog(polyhedraFeatures), isEmpty);
-    expect(polyhedraFeatures.single.id, 'polyhedra_all');
-    expect(polyhedraFeatures.single.group, 'Многогранники');
+    expect(
+      polyhedraFeatures.map((f) => f.id),
+      containsAll(const ['polyhedra_all', 'polyhedra_bake']),
+    );
+    expect(polyhedraFeatures.first.group, 'Многогранники');
   });
 
   test('сцена сборки: четыре многогранника и подставка', () {
@@ -92,5 +96,45 @@ void main() {
       height: 1.5,
     );
     expect(_signedVolume(prism), closeTo(2 * 2 / 2 * 1.5, 1e-9));
+  });
+
+  test('конверсия: у каждого оригинала есть многогранник', () {
+    final model = buildPolyhedraBakeScene(_buildContext());
+    for (final id in ['box', 'trap', 'cyl', 'cut']) {
+      final poly = model.objectById('${id}_poly');
+      expect(poly, isNotNull, reason: id);
+      expect(poly!.kind, doc.polyhedronKind, reason: id);
+      expect(poly.mesh, isNotNull, reason: id);
+      expect(poly.mesh!.faces, isNotEmpty, reason: id);
+    }
+    expect(model.objectById('box_poly')!.mesh!.faces, hasLength(6));
+    expect(
+      model.objectById('cyl_poly')!
+          .mesh!
+          .faces
+          .where((f) => f.key.startsWith('side_')),
+      hasLength(16),
+    );
+  });
+
+  test('конверсия сохраняет материалы граней и поворот', () {
+    final model = buildPolyhedraBakeScene(_buildContext());
+    expect(model.objectById('box_poly')!.faces['+y']!.color, [96, 186, 112]);
+    expect(model.objectById('cyl_poly')!.faces['+y']!.color, [96, 186, 112]);
+    expect(model.objectById('trap_poly')!.rotY, 15);
+  });
+
+  test('переключатель скрывает оригиналы, многогранники остаются', () {
+    final model = buildPolyhedraBakeScene(
+      FeatureBuildContext(
+        project: null,
+        paths: testPaths(),
+        params: const {'showOriginals': false},
+      ),
+    );
+    expect(model.objectById('box'), isNull);
+    expect(model.objectById('cut'), isNull);
+    expect(model.objectById('box_poly'), isNotNull);
+    expect(model.objectById('cut_poly'), isNotNull);
   });
 }

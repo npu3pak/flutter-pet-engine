@@ -63,9 +63,9 @@ void main() {
     expect(validateFeatureCatalog(kFeatureCatalog), isEmpty);
   });
 
-  test('каталог полный: 50 фич в девяти непустых группах', () {
-    expect(kFeatureCatalog, hasLength(50));
-    expect(kFeatureCatalog.map((f) => f.id).toSet(), hasLength(50));
+  test('каталог полный: 51 фича в девяти непустых группах', () {
+    expect(kFeatureCatalog, hasLength(51));
+    expect(kFeatureCatalog.map((f) => f.id).toSet(), hasLength(51));
     for (final group in kFeatureGroups) {
       expect(
         kFeatureCatalog.where((f) => f.group == group),
