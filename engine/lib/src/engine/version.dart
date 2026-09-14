@@ -4,4 +4,4 @@
 /// тест `engine/test/version_test.dart`. Записывается в журналы визуальных
 /// проверок приложений (demo, scene_editor), чтобы по замечанию было видно,
 /// на какой версии движка оно сделано.
-const String kPetEngineVersion = '0.1.0-dev.1';
+const String kPetEngineVersion = '0.1.0-dev.2';

@@ -20,19 +20,60 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
   /// The default vertical field of view (55°).
   static const double fovY = kFovY;
 
+  /// The default clip planes and fly speed (kept for scene-sized scenes;
+  /// large imported maps call [setClip]/raise [flySpeed]).
+  static const double defaultNear = eng.kNearPlane;
+  static const double defaultFar = eng.kFarPlane;
+  static const double defaultFlySpeed = 12.0;
+
   final eng.GameCamera _camera;
 
-  final CameraProjection _projection = CameraProjection(
+  CameraProjection _projection = CameraProjection(
     fovY: kFovY,
     near: eng.kNearPlane,
     far: eng.kFarPlane,
   );
 
   /// World units per second while flying.
-  double flySpeed = 12.0;
+  double flySpeed = defaultFlySpeed;
 
   @override
   CameraProjection get projection => _projection;
+
+  /// Adjusts the near/far clip planes (values ≤ 0 are ignored). Scenes with
+  /// extents far beyond the defaults (1:1 imported maps) must widen [far] or
+  /// the content disappears; values that match the current ones keep the
+  /// projection object identity.
+  void setClip({double? near, double? far}) {
+    final n = near == null || near <= 0 ? _projection.near : near;
+    final f = far == null || far <= 0 ? _projection.far : far;
+    if (n == _projection.near && f == _projection.far) return;
+    _projection = CameraProjection(fovY: kFovY, near: n, far: f);
+    notifyListeners();
+  }
+
+  /// Adapts the camera to the world extent (usually the scene diagonal) of
+  /// the loaded model: widens the clip planes and raises the fly speed for
+  /// large 1:1 maps. Scenes up to 200 units diagonal — comfortably above
+  /// the legacy 64×64×32 grid (~94 units) — keep the default values exactly.
+  void configureForExtent(double extent) {
+    final e = extent.isFinite && extent > 0 ? extent : 1.0;
+    if (e <= 200) {
+      setClip(near: defaultNear, far: defaultFar);
+      if (flySpeed == defaultFlySpeed) return;
+      flySpeed = defaultFlySpeed;
+      notifyListeners();
+      return;
+    }
+    setClip(
+      near: (e * 1e-4).clamp(defaultNear, 1.0),
+      far: math.max(defaultFar, e * 4.0),
+    );
+    final speed = math.max(defaultFlySpeed, e / 300.0);
+    if (speed == flySpeed) return;
+    flySpeed = speed;
+    notifyListeners();
+  }
 
   /// The camera position in world space.
   vm.Vector3 get eye => _camera.eye;

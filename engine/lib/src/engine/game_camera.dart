@@ -64,6 +64,10 @@ class GameCamera {
   /// Frames a whole model (its grid) from the +Z side (yaw = π, looking
   /// toward −Z), camera distance and height scaling with the model's depth,
   /// width and height — the editor's framing for a model switch.
+  ///
+  /// The height ceilings follow the model: for the classic grid (w/l ≤ 64,
+  /// h ≤ 32) the result is exactly the legacy 60/120 clamp, while 1:1
+  /// imported maps scale the camera up instead of flattening it.
   void frameModel(ModelData model) {
     final w = model.size.w, l = model.size.l, h = model.size.h;
     final center = chunkWorld((w - 1) / 2, (l - 1) / 2, w, l);
@@ -71,12 +75,16 @@ class GameCamera {
     // viewport is wider than tall, so cover the width as well as the depth.
     final span = math.max(l.toDouble(), w * 0.8);
     final dist = span * 0.9 + 3;
+    final height = math.max(2.5, h * 1.2 + 2);
     eye = vm.Vector3(
       center.x,
-      math.max(2.5, h * 1.2 + 2).clamp(2.5, 60).toDouble(),
+      height.clamp(2.5, math.max(60.0, height)).toDouble(),
       center.z + dist,
     );
-    eye.y = math.max(eye.y, span * 0.55).clamp(2.5, 120).toDouble();
+    eye.y = math
+        .max(eye.y, span * 0.55)
+        .clamp(2.5, math.max(120.0, span * 0.55))
+        .toDouble();
     yaw = math.pi;
     pitch = 0.5;
   }
