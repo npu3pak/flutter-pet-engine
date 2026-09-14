@@ -1050,42 +1050,51 @@ class EditorScene {
     _rotateObjects(model, event.axis, deg);
   }
 
-  /// Сдвиг выбранных вершин многогранника: дельта снапится, к снимку
-  /// прибавляется абсолютно (повторные события не накапливают ошибку).
+  /// Сдвиг выбранных вершин многогранника. Вершины живут в локальной рамке
+  /// объекта (`world = anchor + R·S·local`), поэтому мировая дельта
+  /// переводится в локальную через `(R·S)⁻¹` — зеркало X сидит только в
+  /// якоре и локальные координаты не инвертирует. Дельта снапится в мире,
+  /// к снимку прибавляется абсолютно (повторные события не накапливаются).
   void _movePolyVertices(ModelData model, vm.Vector3 world) {
     final obj = selectedObject(model);
     final mesh = obj?.mesh;
     final start = _polyStartVertices;
     if (obj == null || mesh == null || start == null) return;
-    final delta = _modelDelta(world);
-    final step = vm.Vector3(
-      _snapDelta(delta.x),
-      _snapDelta(delta.y),
-      _snapDelta(delta.z),
+    final snapped = vm.Vector3(
+      _snapDelta(world.x),
+      _snapDelta(world.y),
+      _snapDelta(world.z),
     );
+    final step = _polyLocalDelta(obj, snapped);
     for (final e in start.entries) {
       mesh.vertices[e.key] = e.value + step;
     }
     _syncAfterPolyGeometry(model, obj);
   }
 
-  /// Поворот выбранных вершин вокруг локального пивота; знаки согласованы с
-  /// поворотом объектов (мировой X → −rotX модели).
+  /// Локальная дельта, соответствующая мировой: `(R·S)⁻¹ · Δworld`.
+  vm.Vector3 _polyLocalDelta(ModelObject obj, vm.Vector3 world) {
+    final basis = objectRotation(obj) * objectScale(obj);
+    final inverse = vm.Matrix4.identity()..copyInverse(basis);
+    return inverse.transform3(world);
+  }
+
+  /// Поворот выбранных вершин вокруг локального пивота. Мировая ось гизмо
+  /// переводится в локальную `(R·S)⁻¹ · axis` (детерминант положителен —
+  /// угол сохраняется), поэтому знак не инвертируется.
   void _rotatePolyVertices(ModelData model, GizmoAxis axis, double deg) {
     final obj = selectedObject(model);
     final mesh = obj?.mesh;
     final start = _polyStartVertices;
     final pivot = _polyLocalPivot;
     if (obj == null || mesh == null || start == null || pivot == null) return;
-    final signed = axis == GizmoAxis.x ? -deg : deg;
-    final modelAxis = switch (axis) {
-      GizmoAxis.x => vm.Vector3(1, 0, 0),
-      GizmoAxis.y => vm.Vector3(0, 1, 0),
-      GizmoAxis.z => vm.Vector3(0, 0, 1),
-    };
+    final basis = objectRotation(obj) * objectScale(obj);
+    final inverse = vm.Matrix4.identity()..copyInverse(basis);
+    final modelAxis = inverse.transform3(gizmoAxisDirection(axis));
+    if (modelAxis.length2 < 1e-18) return;
     final rotation = vm.Quaternion.axisAngle(
-      modelAxis,
-      signed * math.pi / 180,
+      modelAxis.normalized(),
+      deg * math.pi / 180,
     );
     for (final e in start.entries) {
       final offset = e.value - pivot;

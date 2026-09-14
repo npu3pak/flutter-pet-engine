@@ -1501,6 +1501,8 @@ void main() {
       )!;
       final before = obj.mesh!.vertices[4].clone();
       final other = obj.mesh!.vertices[0].clone();
+      final matrix = objectWorldMatrix(model, obj);
+      final worldBefore = matrix.transform3(before.clone());
 
       editor.gizmoSnap = 0;
       expect(controller.beginGizmoDrag(handle), isNotNull);
@@ -1513,6 +1515,105 @@ void main() {
       expect(obj.mesh!.vertices[0].x, closeTo(other.x, 1e-9),
           reason: 'невыбранные вершины не двигаются');
       expect(editor.gizmoDragging, isFalse);
+      // Красная ось: положительный драг гизмо даёт положительное смещение
+      // вершины в МИРЕ (локальная рамка не зеркалит X).
+      final worldAfter = matrix.transform3(obj.mesh!.vertices[4].clone());
+      final worldDelta = worldAfter - worldBefore;
+      expect(worldDelta.x, greaterThan(0));
+      expect(worldDelta.y.abs(), lessThan(1e-6));
+      expect(worldDelta.z.abs(), lessThan(1e-6));
+
+      editor.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('перенос вершины вдоль X верен у повёрнутого и растянутого '
+        'объекта', (tester) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 8, l: 8);
+      final obj = ModelObject(
+        id: 'p',
+        name: 'p',
+        kind: polyhedronKind,
+        x: 1,
+        y: 0,
+        z: 2,
+        rotY: 30,
+        scaleX: 2,
+        scaleY: 1.5,
+        mesh: PolyMesh.box(w: 2, h: 2, d: 2),
+      );
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0, 7, 0.01);
+      editor.yaw = 0;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setSelection(obj.id);
+      editor.syncPolyEdit(PolyEditMode.vertices, {4}, 4, null);
+      editor.rebuildOverlays();
+      editor.moveGizmo.applyScreenScale(1.0);
+      final anchor = editor.polySelectionAnchor(controller.model!, obj)!;
+      final handle = controller.worldToScreen(
+        anchor + gizmoAxisDirection(GizmoAxis.x),
+      )!;
+      final matrix = objectWorldMatrix(model, obj);
+      final worldBefore =
+          matrix.transform3(obj.mesh!.vertices[4].clone());
+
+      editor.gizmoSnap = 0;
+      expect(controller.beginGizmoDrag(handle), isNotNull);
+      editor.beginGizmoDrag();
+      controller.updateGizmoDrag(handle + const Offset(40, 0));
+      controller.endGizmoDrag();
+      editor.endGizmoDrag();
+
+      final worldAfter =
+          matrix.transform3(obj.mesh!.vertices[4].clone());
+      final worldDelta = worldAfter - worldBefore;
+      expect(worldDelta.x, greaterThan(0));
+      expect(worldDelta.y.abs(), lessThan(1e-6));
+      expect(worldDelta.z.abs(), lessThan(1e-6));
+
+      editor.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('поворот вершин вокруг красной оси не инвертирован', (
+      tester,
+    ) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 6, l: 6);
+      final obj = poly();
+      model.objects.add(obj);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      controller.camera = editor.fly;
+      editor.eye = vm.Vector3(0, 6, 0.01);
+      editor.yaw = 0;
+      editor.pitch = math.pi / 2;
+      await _pumpViewport(tester, controller);
+
+      editor.setSelection(obj.id);
+      // Верхние четыре вершины куба; пивот — их центроид (0, 1, 0).
+      editor.syncPolyEdit(PolyEditMode.vertices, {4, 5, 6, 7}, 4, null);
+      editor.rebuildOverlays();
+      editor.moveGizmo.applyScreenScale(1.0);
+      editor.beginRotateDrag();
+      // Мировой поворот вокруг +X на +90°: (y,z) → (−z,y).
+      editor.rotateGizmo.onDrag?.call(
+        const GizmoDragEvent(axis: GizmoAxis.x, rotation: math.pi / 2),
+      );
+      editor.endGizmoDrag();
+
+      // Вершина 4 (−1, 1, −1) относительно пивота → (−1, 2, 0).
+      final v4 = obj.mesh!.vertices[4];
+      expect(v4.x, closeTo(-1, 1e-6));
+      expect(v4.y, closeTo(2, 1e-6));
+      expect(v4.z, closeTo(0, 1e-6));
 
       editor.dispose();
       controller.dispose();
