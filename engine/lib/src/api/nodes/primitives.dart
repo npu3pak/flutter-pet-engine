@@ -6,16 +6,14 @@ import 'dart:math' as math;
 import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_scene/scene.dart' show Geometry;
 import 'package:vector_math/vector_math.dart' as vm;
 
-import '../../render/engine_material.dart';
-import '../../render/engine_mesh.dart';
 import '../geometry/geometry_builder.dart';
 import '../geometry/line_geometry.dart';
 import '../geometry/scene_geometry.dart';
 import '../materials/scene_material.dart';
 import '../materials/scene_texture.dart';
+import 'mesh_helpers.dart';
 import 'scene_node.dart';
 
 /// How a [SpriteNode]'s card is oriented in the world.
@@ -107,7 +105,7 @@ class BoxNode extends SceneNode {
     }
     _syncedGeometry = geometry;
     _syncedMaterial = material;
-    engine.mesh = _engineMesh(geometry.raw, material);
+    engine.mesh = nodeEngineMesh(geometry.raw, material);
   }
 }
 
@@ -199,7 +197,7 @@ class PlaneNode extends SceneNode {
     }
     _syncedGeometry = geometry;
     _syncedMaterial = material;
-    engine.mesh = _engineMesh(geometry.raw, material);
+    engine.mesh = nodeEngineMesh(geometry.raw, material);
   }
 }
 
@@ -299,15 +297,12 @@ class MeshNode extends SceneNode {
     if (engine.mesh != null && listEquals(signature, _syncedParts)) return;
     _syncedParts = signature;
     if (_parts.length == 1) {
-      engine.mesh = _engineMesh(geometry.raw, effectiveMaterial(material));
+      engine.mesh = nodeEngineMesh(geometry.raw, effectiveMaterial(material));
       return;
     }
-    engine.mesh = EngineMesh.primitives([
+    engine.mesh = nodeEngineMeshParts([
       for (final part in _parts)
-        (
-          _engineGeometry(part.geometry.raw),
-          _engineMaterial(effectiveMaterial(part.material)),
-        ),
+        (part.geometry.raw, effectiveMaterial(part.material)),
     ]);
   }
 
@@ -420,7 +415,7 @@ class SpriteNode extends SceneNode {
     }
     _syncedGeometry = geometry;
     _syncedMaterial = material;
-    engine.mesh = _engineMesh(geometry.raw, material);
+    engine.mesh = nodeEngineMesh(geometry.raw, material);
   }
 
   static vm.Matrix4 _spriteMatrix(
@@ -512,7 +507,7 @@ class LineNode extends SceneNode {
     _syncedRevision = geometry.revision;
     // Screen-pixel widths need the current camera before the first draw.
     scene?.refreshScreenSpaceLine(this);
-    engine.mesh = _engineMesh(geometry.raw, material);
+    engine.mesh = nodeEngineMesh(geometry.raw, material);
   }
 }
 
@@ -603,15 +598,6 @@ class RingNode extends SceneNode {
     }
     _syncedGeometry = geometry;
     _syncedMaterial = material;
-    engine.mesh = _engineMesh(geometry.raw, material);
+    engine.mesh = nodeEngineMesh(geometry.raw, material);
   }
 }
-
-EngineGeometry _engineGeometry(Geometry geometry) =>
-    EngineGeometry.wrap(geometry);
-
-EngineMaterial _engineMaterial(SceneMaterial material) =>
-    EngineMaterial.wrap(material.raw);
-
-EngineMesh _engineMesh(Geometry geometry, SceneMaterial material) =>
-    EngineMesh(_engineGeometry(geometry), _engineMaterial(material));

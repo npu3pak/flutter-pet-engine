@@ -36,6 +36,7 @@ export 'src/api/nodes/gltf_node.dart';
 export 'src/api/nodes/light_node.dart';
 export 'src/api/nodes/mechanisms.dart';
 export 'src/api/nodes/model_node.dart';
+export 'src/api/nodes/polyhedron_node.dart';
 export 'src/api/nodes/primitives.dart';
 export 'src/api/nodes/scene_node.dart';
 export 'src/api/nodes/skybox_node.dart';

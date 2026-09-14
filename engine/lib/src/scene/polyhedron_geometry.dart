@@ -11,16 +11,18 @@ import 'polyhedron.dart';
 ///
 /// UVs: explicit loop UVs win (they are final texture coordinates — the
 /// material's stretch/rotation/flip settings are not applied); otherwise the
-/// face is projected onto its plane and the material's `stretch`/`tile`
-/// semantics apply exactly like the flat primitive faces.
+/// face is projected onto its plane and [uvMaterial]'s `stretch`/`tile`
+/// semantics apply exactly like the flat primitive faces. A null
+/// [uvMaterial] keeps normalized 0..1 planar UVs (the runtime node path).
 ///
-/// Winding follows the quad parts: triangles are CCW around the outward
-/// normal, so the base flip is [quadFlipFor] of the face's side.
-SceneGeometry? buildPolyFaceGeometry(
-  ModelObject obj,
-  PolyMesh mesh,
-  PolyFace face,
-) {
+/// [flip] reverses the triangle order (the engine's front-face convention:
+/// the flat quads need it for `outer` sides).
+SceneGeometry? buildPolyFaceGeometryRaw({
+  required PolyMesh mesh,
+  required PolyFace face,
+  required bool flip,
+  ModelMaterial? uvMaterial,
+}) {
   final triangles = triangulatePolyFace(mesh, face);
   if (triangles.isEmpty) return null;
   final normal = polyFaceNormal(mesh, face);
@@ -57,11 +59,11 @@ SceneGeometry? buildPolyFaceGeometry(
       if (pv > vMax) vMax = pv;
     }
   }
-  final mat = obj.material ?? ModelMaterial();
-  final ts = mat.tileScale <= 0 ? 1.0 : mat.tileScale;
-  final tsu = mat.tileScaleU <= 0 ? ts : mat.tileScaleU;
-  final tsv = mat.tileScaleV <= 0 ? ts : mat.tileScaleV;
-  final tiled = mat.stretch == 'tile';
+  final mat = uvMaterial;
+  final ts = mat == null || mat.tileScale <= 0 ? 1.0 : mat.tileScale;
+  final tsu = mat == null || mat.tileScaleU <= 0 ? ts : mat.tileScaleU;
+  final tsv = mat == null || mat.tileScaleV <= 0 ? ts : mat.tileScaleV;
+  final tiled = mat != null && mat.stretch == 'tile';
   final uExtent = uMax - uMin;
   final vExtent = vMax - vMin;
 
@@ -77,12 +79,11 @@ SceneGeometry? buildPolyFaceGeometry(
       du *= uExtent / tsu;
       dv *= vExtent / tsv;
     }
-    return _transformUv(mat, du, dv);
+    return mat == null ? (du, dv) : _transformUv(mat, du, dv);
   }
 
   final builder = GeometryBuilder();
   builder.setNormal(unit);
-  final flip = quadFlipFor(sideFor(obj, face.key));
   for (final t in triangles) {
     final (a, b, c) = t;
     final indices = <int>[];
@@ -99,6 +100,20 @@ SceneGeometry? buildPolyFaceGeometry(
   }
   return builder.build();
 }
+
+/// The document path of [buildPolyFaceGeometryRaw]: the object's default
+/// material drives planar UVs and the face side drives the winding flip.
+SceneGeometry? buildPolyFaceGeometry(
+  ModelObject obj,
+  PolyMesh mesh,
+  PolyFace face,
+) =>
+    buildPolyFaceGeometryRaw(
+      mesh: mesh,
+      face: face,
+      uvMaterial: obj.material,
+      flip: quadFlipFor(sideFor(obj, face.key)),
+    );
 
 /// Rotation (about the face center) + flips — the `_UvSpec.transform`
 /// semantics of the flat parts.
