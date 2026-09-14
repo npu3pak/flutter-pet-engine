@@ -109,6 +109,7 @@ export 'src/scene/model_renderer.dart'
         modelRefFootprintBox,
         objectRotation,
         objectScale,
+        objectWorldMatrix,
         sourceAnchor,
         spriteBillboardMatrix,
         spriteBillboardRotation,

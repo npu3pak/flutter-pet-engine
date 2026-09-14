@@ -270,6 +270,27 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
     notifyListeners();
   }
 
+  /// Rebuilds ONLY the render nodes of one document object after its
+  /// geometry, per-axis scale or face materials changed — the fast path for
+  /// mesh editing drags (polyhedron vertices/faces) that must not rebuild
+  /// the whole model. Falls back to a full [rebuild] for kinds whose content
+  /// is mounted indirectly (model/glTF instances) or when static merging is
+  /// enabled. Invalidates the object's cached pick parts.
+  void refreshObjectGeometry(String objectId) {
+    final model = _model;
+    final renderer = _renderer;
+    final obj = model?.objectById(objectId);
+    if (model == null || renderer == null || obj == null) return;
+    _documentNodes[objectId]?.invalidatePicking();
+    if (!renderer.rebuildObject(model, obj)) {
+      rebuild();
+      return;
+    }
+    _refreshWireframes(only: {objectId});
+    _revision++;
+    notifyListeners();
+  }
+
   /// The live `ModelNode` wrappers of the current document, keyed by object
   /// id. Document objects are rendered by the renderer, so their nodes are
   /// virtual: they take part in picking and `nodesOfType` but carry no

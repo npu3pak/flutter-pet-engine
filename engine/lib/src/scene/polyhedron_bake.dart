@@ -24,6 +24,30 @@ class PolyBakeResult {
     this.faces, {
     this.rotationBaked = false,
   });
+
+  /// Applies the bake to [object] in place: switches to [polyhedronKind],
+  /// installs the mesh, copies the per-face materials, clears the
+  /// kind-specific `dims` and the csg operands, and zeroes the rotation when
+  /// [rotationBaked] (the source geometry already carries it). Position,
+  /// name, default material and the rest stay untouched — the caller owns
+  /// undo and the cleanup of consumed csg operands.
+  void applyTo(ModelObject object) {
+    object.kind = polyhedronKind;
+    object.mesh = mesh.copy();
+    object.faces
+      ..clear()
+      ..addAll({
+        for (final e in faces.entries) e.key: ModelMaterial.copy(e.value),
+      });
+    object.dims.clear();
+    object.op = null;
+    object.operands = null;
+    if (rotationBaked) {
+      object.rotX = 0;
+      object.rotY = 0;
+      object.rotZ = 0;
+    }
+  }
 }
 
 /// Converts [obj]'s kind into an equivalent polyhedron mesh (local frame):

@@ -136,6 +136,20 @@ List<String> facesOf(ModelObject obj) => switch (obj.kind) {
       _ => const [],
     };
 
+/// Drops per-face materials whose keys no longer exist per [facesOf] — after
+/// mesh faces were deleted or the object kind changed. Returns the removed
+/// keys (the caller may mirror the change in its own material state).
+List<String> pruneFaceMaterials(ModelObject obj) {
+  final valid = facesOf(obj).toSet();
+  final removed = <String>[];
+  obj.faces.removeWhere((key, _) {
+    if (valid.contains(key)) return false;
+    removed.add(key);
+    return true;
+  });
+  return removed;
+}
+
 /// Kinds that may take part in boolean operations: convex solids (cuboid,
 /// trapezoid, cylinder/cone) plus csg nodes (evaluated recursively). Planes
 /// and sprites are surface-only decorations and never operands; a model

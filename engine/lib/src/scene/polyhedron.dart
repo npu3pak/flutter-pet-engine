@@ -350,6 +350,180 @@ class PolyMesh {
       }
     }
   }
+
+  // ── редактирование (сцена-редактор и импортёры) ──────────────────────
+
+  /// Все индексы вершин, на которые ссылаются грани [faceKeys] (внешние
+  /// контуры и дырки). Неизвестные ключи игнорируются.
+  Set<int> verticesOfFaces(Iterable<String> faceKeys) {
+    final out = <int>{};
+    for (final key in faceKeys) {
+      final face = faceByKey(key);
+      if (face == null) continue;
+      out
+        ..addAll(face.outer.vertices)
+        ..addAll(face.holes.expand((h) => h.vertices));
+    }
+    return out;
+  }
+
+  /// Сдвигает вершины [indices] на [delta]. Неверные индексы пропускаются.
+  void moveVertices(Iterable<int> indices, vm.Vector3 delta) {
+    for (final i in indices) {
+      if (i < 0 || i >= vertices.length) continue;
+      vertices[i] = vertices[i] + delta;
+    }
+  }
+
+  /// Поворачивает вершины [indices] вокруг [pivot] на [radians] вокруг
+  /// [axis]. Неверные индексы пропускаются.
+  void rotateVertices(
+    Iterable<int> indices,
+    vm.Vector3 axis,
+    double radians, {
+    required vm.Vector3 pivot,
+  }) {
+    if (axis.length2 < 1e-18 || radians == 0) return;
+    final rotation = vm.Quaternion.axisAngle(axis.normalized(), radians);
+    for (final i in indices) {
+      if (i < 0 || i >= vertices.length) continue;
+      final offset = vertices[i] - pivot;
+      offset.applyQuaternion(rotation);
+      vertices[i] = pivot + offset;
+    }
+  }
+
+  /// Вставляет новую вершину в [faceKey] — в ближайшее ребро внешнего
+  /// контура или дырки, в точке [position]. UV новой вершины
+  /// интерполируется по параметру ближайшей точки (когда у контура есть
+  /// явные UV). Возвращает индекс новой вершины или null, если грань не
+  /// найдена или у контуров нет рёбер.
+  int? addVertexToFace(String faceKey, vm.Vector3 position) {
+    final face = faceByKey(faceKey);
+    if (face == null) return null;
+    PolyLoop? bestLoop;
+    var bestIndex = 0;
+    var bestT = 0.0;
+    var bestDistance = double.infinity;
+    for (final loop in [face.outer, ...face.holes]) {
+      final count = loop.vertices.length;
+      if (count < 2) continue;
+      for (var i = 0; i < count; i++) {
+        final a = vertices[loop.vertices[i]];
+        final b = vertices[loop.vertices[(i + 1) % count]];
+        final ab = b - a;
+        final t = ab.length2 < 1e-18
+            ? 0.0
+            : ((position - a).dot(ab) / ab.length2).clamp(0.0, 1.0);
+        final distance = (a + ab * t - position).length2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestLoop = loop;
+          bestIndex = i;
+          bestT = t;
+        }
+      }
+    }
+    if (bestLoop == null) return null;
+    final hasUvs = bestLoop.hasUvs;
+    final index = vertices.length;
+    vertices.add(position.clone());
+    final next = (bestIndex + 1) % bestLoop.vertices.length;
+    bestLoop.vertices.insert(bestIndex + 1, index);
+    if (hasUvs) {
+      final a = bestLoop.uvs[bestIndex];
+      final b = bestLoop.uvs[next];
+      bestLoop.uvs.insert(bestIndex + 1, a + (b - a) * bestT);
+    }
+    return index;
+  }
+
+  /// Удаляет вершины [indices] из всех контуров, перенумеровывает
+  /// оставшиеся и удаляет вырожденные контуры/грани. Неиспользуемые
+  /// вершины отбрасываются ([compact]).
+  void deleteVertices(Iterable<int> indices) {
+    final removed = indices
+        .where((i) => i >= 0 && i < vertices.length)
+        .toSet();
+    if (removed.isEmpty) return;
+    for (final face in faces) {
+      _removeFromLoop(face.outer, removed);
+      for (final hole in face.holes) {
+        _removeFromLoop(hole, removed);
+      }
+    }
+    _dropDegenerate();
+    compact();
+  }
+
+  /// Удаляет грани по ключам; неиспользуемые вершины отбрасываются.
+  void deleteFaces(Iterable<String> faceKeys) {
+    final keys = faceKeys.toSet();
+    if (keys.isEmpty) return;
+    faces.removeWhere((f) => keys.contains(f.key));
+    compact();
+  }
+
+  /// Отбрасывает вершины, на которые никто не ссылается, и перенумеровывает
+  /// индексы контуров. Точки, грани и их порядок не меняются.
+  void compact() {
+    final referenced = <int>{};
+    for (final face in faces) {
+      referenced
+        ..addAll(face.outer.vertices)
+        ..addAll(face.holes.expand((h) => h.vertices));
+    }
+    if (referenced.isEmpty) {
+      vertices.clear();
+      faces.clear();
+      return;
+    }
+    final sorted = referenced.toList()..sort();
+    final remap = <int, int>{
+      for (var i = 0; i < sorted.length; i++) sorted[i]: i,
+    };
+    final compacted = <vm.Vector3>[
+      for (final old in sorted) vertices[old],
+    ];
+    vertices
+      ..clear()
+      ..addAll(compacted);
+    for (final face in faces) {
+      _remapLoop(face.outer, remap);
+      for (final hole in face.holes) {
+        _remapLoop(hole, remap);
+      }
+    }
+  }
+
+  void _removeFromLoop(PolyLoop loop, Set<int> removed) {
+    final next = <int>[];
+    final nextUvs = <vm.Vector2>[];
+    for (var i = 0; i < loop.vertices.length; i++) {
+      if (removed.contains(loop.vertices[i])) continue;
+      next.add(loop.vertices[i]);
+      if (loop.uvs.length == loop.vertices.length) nextUvs.add(loop.uvs[i]);
+    }
+    loop.vertices
+      ..clear()
+      ..addAll(next);
+    loop.uvs
+      ..clear()
+      ..addAll(nextUvs);
+  }
+
+  void _remapLoop(PolyLoop loop, Map<int, int> remap) {
+    for (var i = 0; i < loop.vertices.length; i++) {
+      loop.vertices[i] = remap[loop.vertices[i]] ?? loop.vertices[i];
+    }
+  }
+
+  void _dropDegenerate() {
+    for (final face in faces) {
+      face.holes.removeWhere((h) => h.vertices.length < 3);
+    }
+    faces.removeWhere((f) => f.outer.vertices.length < 3);
+  }
 }
 
 /// The outward Newell normal of [face] in [mesh] (the loop winding defines

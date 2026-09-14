@@ -5,7 +5,8 @@ import 'package:vector_math/vector_math.dart' as vm;
 
 import '../../engine_compat/coords.dart';
 import '../../models/model_scene.dart';
-import '../../scene/model_renderer.dart' show objectRotation;
+import '../../scene/model_renderer.dart'
+    show objectRotation, objectWorldMatrix;
 import '../../services/gltf_asset_store.dart' show GltfAnimInfo;
 import '../geometry/wireframe.dart';
 import '../materials/scene_material.dart';
@@ -166,6 +167,13 @@ class ModelNode extends SceneNode {
   /// and rendered through that result).
   bool get isCsgOperand => model.csgParentOf(object.id) != null;
 
+  /// Marks the cached CPU pick parts stale. Call after mutating the document
+  /// object's geometry directly (or use
+  /// [SceneController.refreshObjectGeometry], which does it for you).
+  void invalidatePicking() {
+    _pickDirty = true;
+  }
+
   /// The object's CPU pick pieces in the world (render) frame, cached per
   /// controller revision and camera yaw. Plumbing for the controller's
   /// raycast.
@@ -244,6 +252,33 @@ class ModelNode extends SceneNode {
   }) {
     final includeAll = all || wireframe != null;
     if (!includeAll && _wireframeFaces.isEmpty) return const [];
+    // A polyhedron's true edges are the face loops (outer + holes): deriving
+    // them from the triangulated pick parts would leak ear-clip diagonals.
+    if (object.kind == polyhedronKind) {
+      final mesh = object.mesh;
+      if (mesh == null) return const [];
+      final matrix = objectWorldMatrix(model, object);
+      final out = <vm.Vector3>[];
+      for (final face in mesh.faces) {
+        if (!includeAll && !_wireframeFaces.contains(face.key)) continue;
+        for (final loop in [face.outer, ...face.holes]) {
+          final count = loop.vertices.length;
+          if (count < 2) continue;
+          for (var i = 0; i < count; i++) {
+            out
+              ..add(
+                matrix.transform3(mesh.vertices[loop.vertices[i]].clone()),
+              )
+              ..add(
+                matrix.transform3(
+                  mesh.vertices[loop.vertices[(i + 1) % count]].clone(),
+                ),
+              );
+          }
+        }
+      }
+      return dedupeWireframeSegments(out);
+    }
     final out = <vm.Vector3>[];
     for (final part in pickParts) {
       final key = part.faceKey;

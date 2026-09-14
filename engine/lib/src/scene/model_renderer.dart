@@ -60,6 +60,19 @@ vm.Matrix4 objectScale(ModelObject obj) => obj.kind == polyhedronKind
     ? vm.Matrix4.diagonal3Values(obj.scaleX, obj.scaleY, obj.scaleZ)
     : vm.Matrix4.identity();
 
+/// The world transform of a top-level document object's LOCAL geometry:
+/// mirrored anchor ([chunkWorld]) · rotation · per-axis scale — exactly what
+/// the renderer applies to the parts of `cuboid`/`trapezoid`/`cylinder`/
+/// `plane`/`sprite`/`polyhedron`. csg results and rounded cuboids author in
+/// model space (their mirror is baked into vertices), so do not use this for
+/// them; use [faceLoops]/[faceCorners] with their own rules instead.
+vm.Matrix4 objectWorldMatrix(ModelData model, ModelObject obj) {
+  final anchor = chunkWorld(obj.x, obj.z, model.size.w, model.size.l);
+  return vm.Matrix4.translation(vm.Vector3(anchor.x, obj.y, anchor.z)) *
+      objectRotation(obj) *
+      objectScale(obj);
+}
+
 /// The union AABB of a list of objects (model-local): (minX, minY, minZ,
 /// maxX, maxY, maxZ). Empty list throws.
 (double, double, double, double, double, double) unionAabb(
@@ -818,6 +831,44 @@ class ModelRenderer {
       }
     }
     return updated;
+  }
+
+  /// Rebuilds the nodes of ONE top-level object (geometry, materials,
+  /// per-axis scale) without touching the rest of the model — the fast path
+  /// for mesh edits (polyhedron vertex/face changes). Returns false when the
+  /// caller must fall back to a full [rebuild]: model/glTF instances mount
+  /// their content indirectly or cache runtimes, and games that merge static
+  /// geometry lose the per-element structure.
+  bool rebuildObject(ModelData model, ModelObject obj) {
+    if (mergeStatic || obj.isModelRef || obj.isGltfRef) return false;
+    _model = model;
+    _removeElement(obj.id);
+    if (obj.isCsg) {
+      _buildCsgObject(model, obj);
+    } else if (obj.kind == 'cuboid' && isRoundedCuboid(obj)) {
+      _buildRoundedObject(model, obj);
+    } else {
+      _buildObject(model, obj);
+    }
+    return true;
+  }
+
+  /// Detaches and forgets every node of one element id (see [elementNodes]).
+  void _removeElement(String id) {
+    final nodes = elementNodes.remove(id);
+    if (nodes == null) return;
+    final removed = nodes.toSet();
+    for (final node in nodes) {
+      allNodes.remove(node.name);
+      nodeObjectId.remove(node.name);
+      nodeFaceKey.remove(node.name);
+      elementOfNode.remove(node);
+      _nodePartOffset.remove(node);
+      _mergeCandidates.remove(node);
+      root.remove(node);
+    }
+    instanceBillboards.removeWhere((entry) => removed.contains(entry.$1));
+    if (removed.contains(gltfWrappers[id])) gltfWrappers.remove(id);
   }
 
   /// The world-space prefix rotating [obj] by the MODEL-space step [delta]

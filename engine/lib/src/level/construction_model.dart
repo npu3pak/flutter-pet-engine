@@ -19,10 +19,12 @@ enum BakeMode { merge, batch, node }
 ///
 /// Kinds that cannot be merged are always [BakeMode.node], regardless of the
 /// stored hint: sprites must stay camera-facing, model/gltf instances render
-/// as recursive content, and a csg without a whole-result material emits
-/// several per-face material groups.
+/// as recursive content, a csg without a whole-result material emits
+/// several per-face material groups, and a polyhedron's batch key cannot
+/// distinguish different meshes (each one stays a node).
 BakeMode bakeModeOf(ModelObject obj) {
   if (obj.kind == 'sprite' ||
+      obj.kind == polyhedronKind ||
       obj.isModelRef ||
       obj.isGltfRef ||
       (obj.isCsg && obj.material == null)) {
