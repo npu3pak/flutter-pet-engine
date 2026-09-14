@@ -10,7 +10,7 @@ import 'src/app_info.dart';
 import 'src/deeplink.dart';
 import 'src/paths.dart';
 import 'src/perf_drag.dart';
-import 'src/scene/editor_scene.dart' show EditorMode;
+import 'src/scene/editor_scene.dart' show EditorMode, PolyEditMode;
 import 'src/screenshot_saver.dart';
 import 'src/state/app_state.dart';
 import 'src/ui/main_screen.dart';
@@ -143,6 +143,33 @@ class SceneEditorAppState extends State<SceneEditorApp> {
     if (values.containsKey('rotate')) app.setRotateMode(flag('rotate'));
     final ambient = double.tryParse(values['ambient'] ?? '');
     if (ambient != null) app.setLightingAmbient(ambient);
+    // Правка многогранника для визуальных проверок: режим и подвыделение.
+    final polyMode = values['polymode'];
+    if (polyMode != null) {
+      for (final value in PolyEditMode.values) {
+        if (value.name == polyMode) app.setPolyEditMode(value);
+      }
+    }
+    final polyFace = values['polyface'];
+    final selectedId = app.selectedObjectId;
+    if (polyFace != null && selectedId != null) {
+      var first = true;
+      for (final key in polyFace.split(',')) {
+        if (key.isEmpty) continue;
+        app.selectFace(selectedId, key, shift: !first);
+        first = false;
+      }
+    }
+    final polyVerts = values['polyverts'];
+    if (polyVerts != null) {
+      var first = true;
+      for (final part in polyVerts.split(',')) {
+        final index = int.tryParse(part);
+        if (index == null) continue;
+        app.selectPolyVertex(index, shift: !first);
+        first = false;
+      }
+    }
   }
 
   Future<void> _openModel(
