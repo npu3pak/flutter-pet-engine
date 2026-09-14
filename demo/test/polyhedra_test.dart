@@ -4,6 +4,7 @@ import 'package:demo/src/features/polyhedra_all.dart';
 import 'package:demo/src/features/polyhedra_bake.dart';
 import 'package:demo/src/features/polyhedra_common.dart';
 import 'package:demo/src/features/polyhedra_map.dart';
+import 'package:demo/src/features/polyhedra_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/models.dart' as doc;
 import 'package:pet_engine_v2/pet_engine_v2.dart';
@@ -31,11 +32,16 @@ double _signedVolume(PolyMesh mesh) {
 
 void main() {
   test('группа «Многогранники» собрана и проходит проверку', () {
-    expect(polyhedraFeatures, hasLength(3));
+    expect(polyhedraFeatures, hasLength(4));
     expect(validateFeatureCatalog(polyhedraFeatures), isEmpty);
     expect(
       polyhedraFeatures.map((f) => f.id),
-      containsAll(const ['polyhedra_all', 'polyhedra_bake', 'polyhedra_map']),
+      containsAll(const [
+        'polyhedra_all',
+        'polyhedra_bake',
+        'polyhedra_map',
+        'polyhedra_runtime',
+      ]),
     );
     expect(polyhedraFeatures.first.group, 'Многогранники');
   });
@@ -175,5 +181,44 @@ void main() {
     expect(pillar.kind, doc.polyhedronKind);
     expect(pillar.mesh!.faces, hasLength(6));
     expect(pillar.faces['+y']!.color, [230, 150, 70]);
+  });
+
+  test('группа выросла до четырёх фич', () {
+    expect(polyhedraFeatures, hasLength(4));
+    expect(
+      polyhedraFeatures.map((f) => f.id),
+      contains('polyhedra_runtime'),
+    );
+  });
+
+  test('runtime-куб: парты, переопределение грани и масштаб', () {
+    final box = buildRuntimeBoxNode();
+    expect(box.mesh.faces, hasLength(6));
+    expect(box.pickParts, hasLength(6));
+    final top = box.faceMaterial('+y');
+    expect(identical(box.faceMaterial('+x'), box.material), isTrue);
+    expect(identical(top, box.material), isFalse);
+    box.setFaceMaterial('+y', null);
+    expect(identical(box.faceMaterial('+y'), box.material), isTrue);
+    box.scale = vm.Vector3(1, 2.5, 1);
+    expect(box.scale.y, closeTo(2.5, 1e-9));
+    box.dispose();
+  });
+
+  test('runtime-плита: отверстие и красные стенки', () {
+    final slab = buildRuntimeSlabNode();
+    final top = slab.mesh.faceByKey('+y')!;
+    expect(top.holes, hasLength(1));
+    for (final key in const ['hole_0', 'hole_1', 'hole_2', 'hole_3']) {
+      expect(identical(slab.faceMaterial(key), slab.material), isFalse,
+          reason: key);
+    }
+    slab.dispose();
+  });
+
+  test('сцена runtime: только площадка, узлы добавляет управление', () {
+    final model = buildPolyhedraRuntimeScene(_buildContext());
+    expect(model.objects, hasLength(1));
+    expect(model.objects.single.kind, 'plane');
   });
 }
