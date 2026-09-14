@@ -1774,9 +1774,12 @@ final object = ModelObject(
   `ModelObject.scaleX/scaleY/scaleZ`, `facesOf(object)` = ключи граней,
   `minCorner/maxCorner` учитывают вершины × масштаб.
 - Операции сети (чистые, тестируемые): `PolyMesh.addVertexToFace`
-  (вставка в ближайшее ребро с интерполяцией UV), `moveVertices`,
-  `rotateVertices`, `deleteVertices`, `deleteFaces`, `compact`,
-  `verticesOfFaces`, `sanitize` (загрузка).
+  (клик по ребру — вставка в него с интерполяцией UV; клик внутри —
+  «пробитие» грани веером треугольников от новой вершины, для вогнутых
+  граней и граней с дырками — деление треугольника триангуляции; дыр
+  не остаётся, ключ первой грани сохраняется, остальным даётся
+  `'<ключ>#i'`), `moveVertices`, `rotateVertices`, `deleteVertices`,
+  `deleteFaces`, `compact`, `verticesOfFaces`, `sanitize` (загрузка).
 - Геометрия: `polyFaceNormal`, `polyFaceArea`, `polyFaceBasis`,
   `triangulatePolyFace`, `triangulateLoops`.
 - Конверсия: `bakePolyhedron(model, object)` → `PolyBakeResult`

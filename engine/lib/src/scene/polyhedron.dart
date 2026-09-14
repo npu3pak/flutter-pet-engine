@@ -393,14 +393,24 @@ class PolyMesh {
     }
   }
 
-  /// Вставляет новую вершину в [faceKey] — в ближайшее ребро внешнего
-  /// контура или дырки, в точке [position]. UV новой вершины
-  /// интерполируется по параметру ближайшей точки (когда у контура есть
-  /// явные UV). Возвращает индекс новой вершины или null, если грань не
-  /// найдена или у контуров нет рёбер.
+  /// Добавляет вершину в грань [faceKey] в точке [position].
+  ///
+  /// Клик у ребра (в пределах ~3 % диагонали грани) расщепляет ребро: точка
+  /// встаёт между его концами, UV интерполируются по параметру. Клик внутри
+  /// грани «пробивает» её (poke): вершина соединяется со всеми вершинами
+  /// контура, а грань заменяется треугольниками — дыры не возникает. Для
+  /// вогнутых граней и граней с дырками, где веер некорректен, берётся
+  /// надёжный путь: триангуляция грани и деление треугольника с точкой на
+  /// три (покрытие и отверстия сохраняются).
+  ///
+  /// Ключ первой новой грани (или исходной при расщеплении ребра) — [faceKey],
+  /// остальным даётся `'<faceKey>#i'`; материалы новым граням переносит
+  /// вызывающая сторона (объект документа). Возвращает индекс новой вершины
+  /// или null, если грань не найдена/вырождена.
   int? addVertexToFace(String faceKey, vm.Vector3 position) {
     final face = faceByKey(faceKey);
     if (face == null) return null;
+    // Ближайшее ребро внешнего контура или дырки.
     PolyLoop? bestLoop;
     var bestIndex = 0;
     var bestT = 0.0;
@@ -425,6 +435,12 @@ class PolyMesh {
       }
     }
     if (bestLoop == null) return null;
+    final size = _faceDiagonal(face);
+    final tolerance = size * 0.03 < 1e-6 ? 1e-6 : size * 0.03;
+    if (bestDistance > tolerance * tolerance) {
+      return _pokeFace(face, position);
+    }
+    // Клик по ребру: аккуратное расщепление без перестройки грани.
     final hasUvs = bestLoop.hasUvs;
     final index = vertices.length;
     vertices.add(position.clone());
@@ -436,6 +452,204 @@ class PolyMesh {
       bestLoop.uvs.insert(bestIndex + 1, a + (b - a) * bestT);
     }
     return index;
+  }
+
+  /// Диагональ габаритов внешнего контура — масштаб допуска «клик по ребру».
+  double _faceDiagonal(PolyFace face) {
+    final ring = face.outer.vertices;
+    if (ring.isEmpty) return 0;
+    var minX = vertices[ring.first].x, maxX = minX;
+    var minY = vertices[ring.first].y, maxY = minY;
+    var minZ = vertices[ring.first].z, maxZ = minZ;
+    for (final i in ring) {
+      final v = vertices[i];
+      if (v.x < minX) minX = v.x;
+      if (v.x > maxX) maxX = v.x;
+      if (v.y < minY) minY = v.y;
+      if (v.y > maxY) maxY = v.y;
+      if (v.z < minZ) minZ = v.z;
+      if (v.z > maxZ) maxZ = v.z;
+    }
+    return vm.Vector3(maxX - minX, maxY - minY, maxZ - minZ).length;
+  }
+
+  /// Пробивает [face] новой вершиной в [position]: веер по внешнему контуру
+  /// (если корректен), иначе — деление треугольника триангуляции, в котором
+  /// лежит точка. Все новые грани — треугольники, покрытие и отверстия
+  /// сохраняются.
+  int? _pokeFace(PolyFace face, vm.Vector3 position) {
+    final triangles = triangulatePolyFace(this, face);
+    if (triangles.isEmpty) return null;
+    // Треугольник и барицентрика точки в нём (точка лежит на плоскости
+    // грани — она пришла из луча попадания).
+    var containing = -1;
+    (double, double, double)? bary;
+    for (var i = 0; i < triangles.length; i++) {
+      final t = triangles[i];
+      final b = _barycentric(
+        vertices[t.$1],
+        vertices[t.$2],
+        vertices[t.$3],
+        position,
+      );
+      if (b != null && b.$1 >= -1e-9 && b.$2 >= -1e-9 && b.$3 >= -1e-9) {
+        containing = i;
+        bary = b;
+        break;
+      }
+    }
+    if (containing < 0 || bary == null) return null;
+
+    final useUvs = _faceHasUvs(face);
+    final uvMap = useUvs ? _uvByVertex(face) : const <int, vm.Vector2>{};
+    vm.Vector2? newUv;
+    if (useUvs) {
+      final t = triangles[containing];
+      final ua = uvMap[t.$1], ub = uvMap[t.$2], uc = uvMap[t.$3];
+      if (ua != null && ub != null && uc != null) {
+        newUv = vm.Vector2(
+          ua.x * bary.$1 + ub.x * bary.$2 + uc.x * bary.$3,
+          ua.y * bary.$1 + ub.y * bary.$2 + uc.y * bary.$3,
+        );
+      }
+    }
+    final hasUvs = useUvs && newUv != null;
+
+    final index = vertices.length;
+    vertices.add(position.clone());
+    final at = faces.indexOf(face);
+    final taken = <String>{
+      for (final f in faces)
+        if (!identical(f, face)) f.key,
+    };
+    var counter = 0;
+    String nextKey() {
+      var key = counter == 0 ? face.key : '${face.key}#$counter';
+      while (taken.contains(key)) {
+        counter++;
+        key = '${face.key}#$counter';
+      }
+      taken.add(key);
+      counter++;
+      return key;
+    }
+
+    PolyLoop loopOf(List<int> loop) {
+      if (!hasUvs) return PolyLoop(vertices: loop);
+      final uvs = <vm.Vector2>[];
+      for (final v in loop) {
+        final uv = v == index ? newUv : uvMap[v];
+        if (uv == null) return PolyLoop(vertices: loop);
+        uvs.add(uv);
+      }
+      return PolyLoop(vertices: loop, uvs: uvs);
+    }
+
+    // Веер возможен только у грани без дырок и только если все треугольники
+    // веера ориентированы наружу и суммарно покрывают площадь грани.
+    final normal = polyFaceNormal(this, face);
+    if (face.holes.isEmpty && normal.length2 > 1e-18) {
+      final unit = normal.normalized();
+      final ring = face.outer.vertices;
+      final count = ring.length;
+      var area = 0.0;
+      var valid = count >= 3;
+      for (var i = 0; i < count && valid; i++) {
+        final a = vertices[ring[i]];
+        final b = vertices[ring[(i + 1) % count]];
+        final cross = (b - a).cross(position - a);
+        final triArea = cross.length * 0.5;
+        if (triArea < 1e-12 || cross.dot(unit) <= 0) {
+          valid = false;
+          break;
+        }
+        area += triArea;
+      }
+      if (valid) {
+        final faceArea = polyFaceArea(this, face);
+        valid = (area - faceArea).abs() <= area * 1e-4 + 1e-9;
+      }
+      if (valid) {
+        final fan = <PolyFace>[
+          for (var i = 0; i < count; i++)
+            PolyFace(
+              key: nextKey(),
+              outer: loopOf([ring[i], ring[(i + 1) % count], index]),
+            ),
+        ];
+        faces.removeAt(at);
+        faces.insertAll(at, fan);
+        return index;
+      }
+    }
+
+    // Надёжный фолбэк: треугольник с точкой делится на три, остальные
+    // треугольники грани сохраняются (дырки учтены триангуляцией).
+    final out = <PolyFace>[];
+    for (var i = 0; i < triangles.length; i++) {
+      final t = triangles[i];
+      if (i == containing) {
+        for (final tri in [
+          (t.$1, t.$2, index),
+          (t.$2, t.$3, index),
+          (t.$3, t.$1, index),
+        ]) {
+          out.add(PolyFace(
+            key: nextKey(),
+            outer: loopOf([tri.$1, tri.$2, tri.$3]),
+          ));
+        }
+      } else {
+        out.add(PolyFace(
+          key: nextKey(),
+          outer: loopOf([t.$1, t.$2, t.$3]),
+        ));
+      }
+    }
+    if (out.isEmpty) {
+      vertices.removeLast();
+      return null;
+    }
+    faces.removeAt(at);
+    faces.insertAll(at, out);
+    return index;
+  }
+
+  bool _faceHasUvs(PolyFace face) {
+    if (!face.outer.hasUvs) return false;
+    for (final hole in face.holes) {
+      if (!hole.hasUvs) return false;
+    }
+    return true;
+  }
+
+  Map<int, vm.Vector2> _uvByVertex(PolyFace face) {
+    final out = <int, vm.Vector2>{};
+    for (final loop in [face.outer, ...face.holes]) {
+      if (!loop.hasUvs) continue;
+      for (var i = 0; i < loop.vertices.length; i++) {
+        out.putIfAbsent(loop.vertices[i], () => loop.uvs[i]);
+      }
+    }
+    return out;
+  }
+
+  /// Барицентрические веса [p] в треугольнике (a, b, c); null, если
+  /// треугольник вырожден.
+  static (double, double, double)? _barycentric(
+    vm.Vector3 a,
+    vm.Vector3 b,
+    vm.Vector3 c,
+    vm.Vector3 p,
+  ) {
+    final v0 = b - a, v1 = c - a, v2 = p - a;
+    final d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1);
+    final d20 = v2.dot(v0), d21 = v2.dot(v1);
+    final denom = d00 * d11 - d01 * d01;
+    if (denom.abs() < 1e-18) return null;
+    final v = (d11 * d20 - d01 * d21) / denom;
+    final w = (d00 * d21 - d01 * d20) / denom;
+    return (1 - v - w, v, w);
   }
 
   /// Удаляет вершины [indices] из всех контуров, перенумеровывает

@@ -162,4 +162,155 @@ void main() {
       expect(mesh.verticesOfFaces(['+y', 'nope']), {0, 1, 2, 3, 4, 5, 6, 7});
     });
   });
+
+  group('PolyMesh: poke (клик внутри грани)', () {
+    test('веером без дыры: площадь и ориентация сохраняются', () {
+      final mesh = PolyMesh(
+        vertices: [
+          vm.Vector3(0, 0, 0),
+          vm.Vector3(4, 0, 0),
+          vm.Vector3(4, 0, 4),
+          vm.Vector3(0, 0, 4),
+        ],
+        faces: [PolyFace(key: '+y', outer: PolyLoop(vertices: [0, 1, 2, 3]))],
+      );
+      final before = polyFaceArea(mesh, mesh.faces.single);
+      final index = mesh.addVertexToFace('+y', vm.Vector3(2, 0, 2));
+      expect(index, 4);
+      expect(mesh.faces, hasLength(4));
+      expect(mesh.faces.first.key, '+y');
+      expect(mesh.faces.map((f) => f.key).toSet(), hasLength(4));
+      final normal = polyFaceNormal(mesh, mesh.faces.first).normalized();
+      var after = 0.0;
+      for (final face in mesh.faces) {
+        expect(face.outer.vertices, hasLength(3));
+        expect(face.outer.vertices, contains(4),
+            reason: 'все треугольники соединены с новой вершиной');
+        expect(polyFaceNormal(mesh, face).normalized().dot(normal),
+            closeTo(1, 1e-6));
+        after += polyFaceArea(mesh, face);
+      }
+      expect(after, closeTo(before, 1e-6));
+    });
+
+    test('UV новой вершины интерполируются по содержащему треугольнику', () {
+      final mesh = PolyMesh(
+        vertices: [
+          vm.Vector3(0, 0, 0),
+          vm.Vector3(4, 0, 0),
+          vm.Vector3(4, 0, 4),
+          vm.Vector3(0, 0, 4),
+        ],
+        faces: [
+          PolyFace(
+            key: '+y',
+            outer: PolyLoop(
+              vertices: [0, 1, 2, 3],
+              uvs: [
+                vm.Vector2(0, 0),
+                vm.Vector2(1, 0),
+                vm.Vector2(1, 1),
+                vm.Vector2(0, 1),
+              ],
+            ),
+          ),
+        ],
+      );
+      final index = mesh.addVertexToFace('+y', vm.Vector3(2, 0, 2));
+      expect(index, 4);
+      for (final face in mesh.faces) {
+        expect(face.outer.hasUvs, isTrue);
+        final at = face.outer.vertices.indexOf(4);
+        expect(at, isNot(-1));
+        expect(face.outer.uvs[at].x, closeTo(0.5, 1e-6), reason: face.key);
+        expect(face.outer.uvs[at].y, closeTo(0.5, 1e-6), reason: face.key);
+      }
+    });
+
+    test('грань с дыркой: отверстие не заливается', () {
+      final mesh = PolyMesh(
+        vertices: [
+          vm.Vector3(0, 0, 0),
+          vm.Vector3(4, 0, 0),
+          vm.Vector3(4, 0, 4),
+          vm.Vector3(0, 0, 4),
+          vm.Vector3(1, 0, 1),
+          vm.Vector3(1, 0, 3),
+          vm.Vector3(3, 0, 3),
+          vm.Vector3(3, 0, 1),
+        ],
+        faces: [
+          PolyFace(
+            key: '+y',
+            outer: PolyLoop(vertices: [0, 1, 2, 3]),
+            holes: [PolyLoop(vertices: [4, 5, 6, 7])],
+          ),
+        ],
+      );
+      final before = polyFaceArea(mesh, mesh.faces.single);
+      expect(before, closeTo(12, 1e-6));
+      final index = mesh.addVertexToFace('+y', vm.Vector3(0.5, 0, 2));
+      expect(index, 8);
+      var after = 0.0;
+      for (final face in mesh.faces) {
+        after += polyFaceArea(mesh, face);
+      }
+      expect(after, closeTo(12, 1e-6),
+          reason: 'дырка должна остаться дыркой');
+      final normal = polyFaceNormal(mesh, mesh.faces.first).normalized();
+      for (final face in mesh.faces) {
+        expect(polyFaceNormal(mesh, face).normalized().dot(normal),
+            closeTo(1, 1e-6), reason: face.key);
+      }
+    });
+
+    test('клик по ребру по-прежнему расщепляет, а не пробивает', () {
+      final mesh = PolyMesh(
+        vertices: [
+          vm.Vector3(0, 0, 0),
+          vm.Vector3(4, 0, 0),
+          vm.Vector3(4, 0, 4),
+          vm.Vector3(0, 0, 4),
+        ],
+        faces: [PolyFace(key: '+y', outer: PolyLoop(vertices: [0, 1, 2, 3]))],
+      );
+      final index = mesh.addVertexToFace('+y', vm.Vector3(2, 0, 0.01));
+      expect(index, 4);
+      expect(mesh.faces, hasLength(1));
+      expect(mesh.faces.single.outer.vertices, [0, 4, 1, 2, 3]);
+    });
+
+    test('вогнутая грань: покрытие сохраняется (фолбэк-триангуляция)', () {
+      final mesh = PolyMesh(
+        vertices: [
+          vm.Vector3(-1.5, 0, -1.5),
+          vm.Vector3(1.5, 0, -1.5),
+          vm.Vector3(1.5, 0, -0.5),
+          vm.Vector3(-0.5, 0, -0.5),
+          vm.Vector3(-0.5, 0, 1.5),
+          vm.Vector3(-1.5, 0, 1.5),
+        ],
+        // Реверс профиля — нормаль смотрит вверх.
+        faces: [
+          PolyFace(
+            key: '+y',
+            outer: PolyLoop(vertices: [5, 4, 3, 2, 1, 0]),
+          ),
+        ],
+      );
+      final before = polyFaceArea(mesh, mesh.faces.single);
+      final index = mesh.addVertexToFace('+y', vm.Vector3(-1, 0, 1));
+      expect(index, 6);
+      var after = 0.0;
+      for (final face in mesh.faces) {
+        after += polyFaceArea(mesh, face);
+      }
+      expect(after, closeTo(before, 1e-6));
+      final normal = polyFaceNormal(mesh, mesh.faces.first).normalized();
+      for (final face in mesh.faces) {
+        expect(polyFaceNormal(mesh, face).normalized().dot(normal),
+            closeTo(1, 1e-6), reason: face.key);
+      }
+    });
+  });
 }
