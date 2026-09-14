@@ -120,6 +120,7 @@ class _EditorViewportState extends State<EditorViewport> {
     );
     editor.cursor = vm.Vector3(app.cursorX, app.cursorY, app.cursorZ);
     editor.cellCursor = app.cellBrushArmed;
+    editor.setGridVisible(app.gridVisible);
     // Mode changes swap whole layers (meta/light/texture gizmos): rebuild.
     // Everything else is a cheap incremental sync — the drag paths already
     // refreshed the overlays for their revision ([EditorScene.syncDocument]

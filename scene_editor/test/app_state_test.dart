@@ -1380,5 +1380,21 @@ void main() {
       expect(app.currentModel!.size.l, 150);
       expect(app.currentModel!.size.h, 40);
     });
+    test('сетка земли: видимость переключается и уведомляет', () {
+      var notified = 0;
+      app.addListener(() => notified++);
+      expect(app.gridVisible, isTrue, reason: 'по умолчанию сетка видна');
+
+      app.setGridVisible(false);
+      expect(app.gridVisible, isFalse);
+      expect(notified, 1);
+
+      app.setGridVisible(false);
+      expect(notified, 1, reason: 'повторное значение не уведомляет');
+
+      app.setGridVisible(true);
+      expect(app.gridVisible, isTrue);
+      expect(notified, 2);
+    });
   });
 }

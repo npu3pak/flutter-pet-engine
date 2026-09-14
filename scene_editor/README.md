@@ -46,6 +46,7 @@ fvm dart run scripts/stage_app_assets.dart --full --out scene_editor/assets/pet_
 ```bash
 tool/deeplink.sh model ../projects/Pet id=model_2 mode=markup select=meta_1
 tool/deeplink.sh settings gizmos=1
+tool/deeplink.sh settings grid=0
 tool/deeplink.sh shot my_check delay=4000
 tool/deeplink.sh capture ../projects/Pet model_2 my_check region=viewport
 ```

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated": "2026-09-14T05:29:52.720Z",
+  "updated": "2026-09-14T06:42:04.000Z",
   "appVersion": "1.0.0+1",
   "engineVersion": "0.1.0-dev.3",
   "platform": "macOS",
@@ -9,6 +9,13 @@
       "status": "ok",
       "comment": "Визуальный прогон 14.09.2026: editor_poly_object, editor_poly_faces, editor_poly_faces_group, editor_poly_vertices в temp/screenshots.",
       "updatedAt": "2026-09-14T05:12:41.784Z",
+      "phase": 6,
+      "version": "app 1.0.0+1 · engine 0.1.0-dev.3"
+    },
+    "grid": {
+      "status": "note",
+      "comment": "Визуальный прогон 14.09.2026: editor_grid_on, editor_grid_off в temp/screenshots — линия сетки земли 1 px, кнопка «Сетка земли» рядом с wireframe скрывает оверлей (диплинк settings grid=0).",
+      "updatedAt": "2026-09-14T06:42:04.000Z",
       "phase": 6,
       "version": "app 1.0.0+1 · engine 0.1.0-dev.3"
     }

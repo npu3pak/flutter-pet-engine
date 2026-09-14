@@ -218,6 +218,25 @@ class TopBar extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                 ),
               ),
+              const SizedBox(width: 4),
+              // Сетка земли: видимость оверлея-сетки под сценой.
+              IconButton(
+                tooltip: 'Сетка земли',
+                onPressed: () => app.setGridVisible(!app.gridVisible),
+                icon: Icon(
+                  app.gridVisible ? Icons.grid_4x4 : Icons.grid_3x3,
+                  size: 18,
+                ),
+                color: app.gridVisible
+                    ? const Color(0xFF4C9BE8)
+                    : Colors.white54,
+                style: IconButton.styleFrom(
+                  backgroundColor: app.gridVisible
+                      ? const Color(0x334C9BE8)
+                      : null,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
             ],
           );
           return tight

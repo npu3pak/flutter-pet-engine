@@ -1645,5 +1645,31 @@ void main() {
       editor.dispose();
       controller.dispose();
     });
+    testWidgets('сетка земли: 1 px и переключаемая видимость', (tester) async {
+      final controller = SceneController(mergeStatic: false);
+      final model = _model(w: 64, l: 64, h: 8);
+      controller.loadModelData(model);
+      final editor = EditorScene(controller);
+      editor.rebuildOverlays();
+
+      GridNode grid() => editor.overlays.children.whereType<GridNode>().single;
+      expect(grid().widthPx, 1.0, reason: 'линия сетки — 1 px');
+      expect(grid().visible, isTrue);
+
+      editor.setGridVisible(false);
+      expect(grid().visible, isFalse);
+
+      editor.setGridVisible(true);
+      expect(grid().visible, isTrue);
+
+      // Пересборка сетки (смена габаритов) сохраняет скрытое состояние.
+      editor.setGridVisible(false);
+      model.size.w = 128;
+      editor.rebuild(model);
+      expect(grid().visible, isFalse);
+
+      editor.dispose();
+      controller.dispose();
+    });
   });
 }

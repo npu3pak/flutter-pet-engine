@@ -26,6 +26,12 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
   static const double defaultFar = eng.kFarPlane;
   static const double defaultFlySpeed = 12.0;
 
+  /// The reference diagonal of the legacy scene grid (64×64×32 ≈ 94.3
+  /// units): [configureForExtent] keeps [defaultFlySpeed] at this scale and
+  /// scales the speed proportionally beyond it, so a 1:1 imported map flies
+  /// at the same relative pace as a small scene.
+  static const double flySpeedReferenceExtent = 94.0;
+
   final eng.GameCamera _camera;
 
   CameraProjection _projection = CameraProjection(
@@ -34,7 +40,9 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
     far: eng.kFarPlane,
   );
 
-  /// World units per second while flying.
+  /// World units per second while flying; [configureForExtent] scales it
+  /// with the scene size (12 units/s per [flySpeedReferenceExtent] of
+  /// diagonal).
   double flySpeed = defaultFlySpeed;
 
   @override
@@ -53,9 +61,12 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
   }
 
   /// Adapts the camera to the world extent (usually the scene diagonal) of
-  /// the loaded model: widens the clip planes and raises the fly speed for
+  /// the loaded model: widens the clip planes and scales the fly speed for
   /// large 1:1 maps. Scenes up to 200 units diagonal — comfortably above
-  /// the legacy 64×64×32 grid (~94 units) — keep the default values exactly.
+  /// the legacy 64×64×32 grid (~94 units) — keep the default values exactly;
+  /// beyond that the speed grows proportionally to the size
+  /// (`defaultFlySpeed · extent / flySpeedReferenceExtent`), so crossing a
+  /// 1:1 imported map takes about as long as crossing a legacy scene.
   void configureForExtent(double extent) {
     final e = extent.isFinite && extent > 0 ? extent : 1.0;
     if (e <= 200) {
@@ -69,7 +80,10 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
       near: (e * 1e-4).clamp(defaultNear, 1.0),
       far: math.max(defaultFar, e * 4.0),
     );
-    final speed = math.max(defaultFlySpeed, e / 300.0);
+    final speed = math.max(
+      defaultFlySpeed,
+      defaultFlySpeed * e / flySpeedReferenceExtent,
+    );
     if (speed == flySpeed) return;
     flySpeed = speed;
     notifyListeners();
@@ -173,7 +187,7 @@ class FlyCameraController extends ChangeNotifier implements CameraController {
   }
 
   void keyDown(int logicalKey, {bool shift = false}) {
-    _camera.keyDown(logicalKey, shift: shift);
+    _camera.keyDown(logicalKey, shift: shift, speed: flySpeed);
     notifyListeners();
   }
 

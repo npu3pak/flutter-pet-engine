@@ -225,6 +225,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Whether the ground grid overlay is shown (the bottom bar toggle).
+  bool gridVisible = true;
+
+  /// Shows or hides the ground grid overlay.
+  void setGridVisible(bool visible) {
+    if (gridVisible == visible) return;
+    gridVisible = visible;
+    notifyListeners();
+  }
+
   /// Whether [objectId] has its own wireframe overlay.
   bool objectWireframe(String objectId) =>
       controller.objectNode(objectId)?.wireframe != null;

@@ -1430,6 +1430,16 @@ class EditorScene {
     if (node != null) overlays.remove(node);
   }
 
+  /// Whether the ground grid overlay is shown (the bottom bar toggle).
+  bool gridVisible = true;
+
+  /// Shows or hides the ground grid: only the node's visibility flips, no
+  /// rebuild happens; the flag survives later grid rebuilds.
+  void setGridVisible(bool visible) {
+    gridVisible = visible;
+    _gridNode?.visible = visible;
+  }
+
   void _syncGrid(ModelData model) {
     // Адаптивная клетка: легаси-сетка (≤ 64) остаётся единичной; у карт 1:1
     // шаг удваивается, чтобы число линий не росло с размером карты.
@@ -1441,14 +1451,15 @@ class EditorScene {
       return;
     }
     _removeOverlayNode(_gridNode);
-    // The engine grid: constant screen-pixel lines on the overlay layer.
+    // The engine grid: 1-px constant screen lines on the overlay layer.
     final node = GridNode(
       width: model.size.w.toDouble(),
       depth: model.size.l.toDouble(),
       cell: cell,
-      lineWidthPx: 1.5,
+      lineWidthPx: 1.0,
       color: const Color(0xFF737380),
     );
+    node.visible = gridVisible;
     node.layer = SceneLayer.overlay;
     overlays.add(node);
     _gridNode = node;

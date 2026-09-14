@@ -141,6 +141,7 @@ class SceneEditorAppState extends State<SceneEditorApp> {
     if (values.containsKey('ssao')) app.setLightingSsao(flag('ssao'));
     if (values.containsKey('shadows')) app.setLightingShadows(flag('shadows'));
     if (values.containsKey('wireframe')) app.setWireframe(flag('wireframe'));
+    if (values.containsKey('grid')) app.setGridVisible(flag('grid'));
     if (values.containsKey('rotate')) app.setRotateMode(flag('rotate'));
     final ambient = double.tryParse(values['ambient'] ?? '');
     if (ambient != null) app.setLightingAmbient(ambient);

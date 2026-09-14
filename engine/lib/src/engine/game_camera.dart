@@ -47,9 +47,12 @@ class GameCamera {
     _keys.clear();
   }
 
-  void keyDown(int logicalKey, {bool shift = false}) {
+  /// Registers a fly key and makes one immediate step (so a single tap
+  /// visibly nudges the camera). [speed] is the controller's current fly
+  /// speed — large scenes scale it via `FlyCameraController.flySpeed`.
+  void keyDown(int logicalKey, {bool shift = false, double speed = _flySpeed}) {
     _keys.add(logicalKey);
-    if (_flying) _moveStep(0.016 * _flySpeed, shift);
+    if (_flying) _moveStep(0.016 * speed, shift);
   }
 
   void keyUp(int logicalKey) => _keys.remove(logicalKey);
