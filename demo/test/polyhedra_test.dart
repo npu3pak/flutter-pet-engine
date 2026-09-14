@@ -3,6 +3,7 @@ import 'package:demo/src/features/polyhedra.dart';
 import 'package:demo/src/features/polyhedra_all.dart';
 import 'package:demo/src/features/polyhedra_bake.dart';
 import 'package:demo/src/features/polyhedra_common.dart';
+import 'package:demo/src/features/polyhedra_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine_v2/models.dart' as doc;
 import 'package:pet_engine_v2/pet_engine_v2.dart';
@@ -30,11 +31,11 @@ double _signedVolume(PolyMesh mesh) {
 
 void main() {
   test('группа «Многогранники» собрана и проходит проверку', () {
-    expect(polyhedraFeatures, hasLength(2));
+    expect(polyhedraFeatures, hasLength(3));
     expect(validateFeatureCatalog(polyhedraFeatures), isEmpty);
     expect(
       polyhedraFeatures.map((f) => f.id),
-      containsAll(const ['polyhedra_all', 'polyhedra_bake']),
+      containsAll(const ['polyhedra_all', 'polyhedra_bake', 'polyhedra_map']),
     );
     expect(polyhedraFeatures.first.group, 'Многогранники');
   });
@@ -136,5 +137,43 @@ void main() {
     expect(model.objectById('cut'), isNull);
     expect(model.objectById('box_poly'), isNotNull);
     expect(model.objectById('cut_poly'), isNotNull);
+  });
+
+  test('карта: явные UV пола и стен на месте', () {
+    final model = buildPolyhedraMapScene(_buildContext());
+    final floor = model.objectById('floor')!.mesh!;
+    final top = floor.faceByKey('+y')!;
+    expect(top.outer.hasUvs, isTrue);
+    for (var i = 0; i < top.outer.vertices.length; i++) {
+      final vertex = floor.vertices[top.outer.vertices[i]];
+      expect(top.outer.uvs[i].x, closeTo(vertex.x / 2, 1e-6));
+      expect(top.outer.uvs[i].y, closeTo(vertex.z / 2, 1e-6));
+    }
+    final walls = model.objectById('walls')!.mesh!;
+    expect(walls.faces, hasLength(6));
+    for (final face in walls.faces) {
+      expect(face.outer.hasUvs, isTrue, reason: face.key);
+      expect(face.outer.uvs, hasLength(face.outer.vertices.length));
+    }
+  });
+
+  test('стены карты смотрят внутрь комнаты', () {
+    final walls = buildMapWalls(profile: mapRoomProfile, height: 2.2);
+    final shell = extrudeProfile(profile: mapRoomProfile, height: 2.2);
+    for (var i = 0; i < mapRoomProfile.length; i++) {
+      final inward =
+          polyFaceNormal(walls, walls.faceByKey('wall_$i')!).normalized();
+      final outward =
+          polyFaceNormal(shell, shell.faceByKey('side_$i')!).normalized();
+      expect(inward.dot(outward), closeTo(-1, 1e-6), reason: 'wall_$i');
+    }
+  });
+
+  test('колонна карты — замкнутый куб с цветным верхом', () {
+    final model = buildPolyhedraMapScene(_buildContext());
+    final pillar = model.objectById('pillar')!;
+    expect(pillar.kind, doc.polyhedronKind);
+    expect(pillar.mesh!.faces, hasLength(6));
+    expect(pillar.faces['+y']!.color, [230, 150, 70]);
   });
 }
