@@ -588,7 +588,7 @@
   устройствах один палец — обзор, два пальца — полёт (драг второго пальца,
   `touchFlyDistance`).
 - **Статус.** Готово (тач-полёт добавлен `feature/camera-input-touch-fly`,
-  тест — `engine/test/api/camera_test.dart`).
+  тест — `test/api/camera_test.dart`).
 
 ### F3. Тап
 
@@ -1173,10 +1173,10 @@
   `ModelObject.mesh`/`scaleX/Y/Z`, `facesOf`, `minCorner/maxCorner`,
   `faceLoops`, `polyFaceNormal/Area/Basis`, `triangulatePolyFace/Loops`,
   `bakePolyhedron`/`PolyBakeResult.applyTo`, `pruneFaceMaterials`.
-- **Код.** `engine/src/scene/polyhedron.dart`,
-  `engine/src/scene/polyhedron_bake.dart`,
-  `engine/src/scene/polyhedron_geometry.dart`,
-  `engine/src/models/model_scene.dart`.
+- **Код.** `src/scene/polyhedron.dart`,
+  `src/scene/polyhedron_bake.dart`,
+  `src/scene/polyhedron_geometry.dart`,
+  `src/models/model_scene.dart`.
 - **Статус.** Покрыто (594 теста движка).
 
 ### C11. Редактирование сети и runtime-узел
@@ -1191,9 +1191,9 @@
   `verticesOfFaces`; `PolyhedronNode`; `objectWorldMatrix`, `objectScale`,
   `SceneController.refreshObjectGeometry`, `ModelNode.invalidatePicking`,
   `FlyCameraController.configureForExtent`.
-- **Код.** `engine/src/api/nodes/polyhedron_node.dart`,
-  `engine/src/api/scene_controller.dart`,
-  `engine/src/scene/model_renderer.dart`.
+- **Код.** `src/api/nodes/polyhedron_node.dart`,
+  `src/api/scene_controller.dart`,
+  `src/scene/model_renderer.dart`.
 - **Статус.** Покрыто.
 
 ### D8. Демо-группа «Многогранники»
@@ -1202,9 +1202,9 @@
   (`polyhedra_bake`), фрагмент карты с явными UV (`polyhedra_map`),
   runtime-узел (`polyhedra_runtime`), выделение граней/вершин
   (`polyhedra_select`).
-- **Код.** `demo/lib/src/features/polyhedra*.dart`; каталог — 50 фич в
-  девяти группах; журнал `demo/visual_tests.json` (bug_61).
-- **Статус.** Покрыто (182 теста demo).
+- **Код.** `example/lib/src/features/polyhedra*.dart`; каталог — 50 фич в
+  девяти группах; журнал `example/visual_tests.json` (bug_61).
+- **Статус.** Покрыто (182 теста example).
 
 ### ED1. Режим многогранника в редакторе
 

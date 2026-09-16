@@ -4,18 +4,18 @@
 `SceneViewport` (widget) + `SceneController` (controller) + `SceneNode`
 (live nodes). It superseded the old engine (v1), which no longer exists in
 this workspace (its history lives on in `npu3pak/flutter-pet-engine`). The
-shared `flutter_scene` fork lives inside the engine checkout at
-`engine/third_party/flutter_scene`. Documentation and commit messages are
+shared `flutter_scene` fork lives inside this checkout at
+`third_party/flutter_scene`. Documentation and commit messages are
 written in Russian; code identifiers are English.
 
 ## Layout
 
-- `engine/` — the `pet_engine` package: `model_v1` document, render core,
-  level layer, navigation, particles, resources. The only public entry point
-  is `lib/pet_engine.dart` (since phase 5); the v1-era entry and facades
-  are removed. Internal plumbing (`src/`) stays available to
-  the package's own tests via `src/` imports.
-- `demo/` — the example app (phase 3): the full feature catalog and
+- The repository root **is** the `pet_engine` package: `model_v1` document,
+  render core, level layer, navigation, particles, resources. The only
+  public entry point is `lib/pet_engine.dart` (since phase 5); the v1-era
+  entry and facades are removed. Internal plumbing (`src/`) stays available
+  to the package's own tests via `src/` imports.
+- `example/` — the example app (phase 3): the full feature catalog and
   documentation-as-code. Written for junior and mid-level developers: keep
   it clear.
 - `docs/` — the knowledge base: `plan.md` (idea and phases), `features.md`
@@ -23,10 +23,10 @@ written in Russian; code identifiers are English.
   `api.md`, `migration.md`, `conventions.md`, `visual_testing.md`, `tz.md`
   (the implementation brief), `handoff.md` (transfer context and the state
   of the phases).
-- `engine/third_party/flutter_scene` — the shared `flutter_scene` fork (a
+- `third_party/flutter_scene` — the shared `flutter_scene` fork (a
   plain folder, no nested repository).
-- `demo/assets/` — the scene projects (`Pet/`, `House/`) plus shaders; the
-  projects are read from the bundle through `AssetProjectSource`.
+- `example/assets/` — the scene projects (`Pet/`, `House/`) plus shaders;
+  the projects are read from the bundle through `AssetProjectSource`.
 - `scripts/` — `clean.sh` and the perf tools (`perf/`).
 - `temp/` — the only place for scratch files (not tracked by git).
 
@@ -36,17 +36,16 @@ Flutter **master** via FVM (`.fvmrc`); the stable SDK will not resolve.
 Always use `fvm`, run package commands from the package directory.
 
 ```bash
-# engine
-cd engine
+# engine (from the repository root)
 fvm flutter pub get
 fvm flutter analyze
 fvm flutter test            # single file: fvm flutter test test/<name>_test.dart
 
-# demo: project sources live in demo/assets and are bundled via pubspec
-cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
+# example: project sources live in example/assets and are bundled via pubspec
+cd example && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 
 # fork — the shared path dependency; helpers and bug fixes are allowed
-cd engine/third_party/flutter_scene/packages/flutter_scene
+cd third_party/flutter_scene/packages/flutter_scene
 fvm flutter analyze && fvm flutter test
 ```
 
@@ -54,7 +53,7 @@ fvm flutter analyze && fvm flutter test
 
 - The workspace is `pet_games`. `pet_engine` may be read and changed
   freely (add, change, delete).
-- `engine/third_party/flutter_scene` (the shared fork) may receive helper
+- `third_party/flutter_scene` (the shared fork) may receive helper
   additions and bug fixes. Keep fork analyze and tests green; do not change
   its formats or sacred conventions.
 - Other sibling directories (`../mypet-game`) may be read as references,
@@ -68,8 +67,8 @@ fvm flutter analyze && fvm flutter test
 
 - The old v1 repository is gone from the workspace (history: GitHub
   `npu3pak/flutter-pet-engine`); do not resurrect its checkout here.
-- Apps (`demo` here, `../pet_engine_scene_editor` outside) must not import
-  `package:flutter_scene/...`; fork types stay inside the engine.
+- Apps (`example` here, `../pet_engine_scene_editor` outside) must not
+  import `package:flutter_scene/...`; fork types stay inside the engine.
 - Changes to formats, rendering, or conventions require updating
   `docs/conventions.md` and tests.
 - Commit only when explicitly asked by the owner.
@@ -79,8 +78,8 @@ fvm flutter analyze && fvm flutter test
 - Formats: `project_v1`, `model_v1`.
 - Mirrored X is a sacred convention: never "fix" the lookAt and never strip
   the billboard mirror. Details in `docs/conventions.md`.
-- Engine tests read the real `../demo/assets/Pet` project by relative
-  path — run them from `engine/`.
+- Engine tests read the real `example/assets/Pet` project by relative
+  path — run them from the repository root.
 - Rendering requires a GPU: tests never render; the viewport must have a
   swappable backend for headless tests.
 - Billboard shader varyings must keep their fixed order — otherwise the
@@ -99,35 +98,35 @@ exposes `SceneViewport`/`SceneController`/`SceneNode`, materials, textures,
 shaders, geometry, cameras, input, picking, dynamics, mechanism nodes,
 document `ModelNode` and `QualityController`. `engine` analyze is clean and
 439 tests are green; the journal is `docs/plan.md` §8. Old facades stay
-internal until the demo and editor migrations.
+internal until the example and editor migrations.
 
-Phase 3 (demo) is done (September 12, 2026): the `demo/` app runs all 48
-features of the v1 example on API v2, with deeplinks, screenshots, visual
-checks and the stress screen. `engine` has 458 green tests, `demo` has 162;
-the journal is `docs/plan.md` §8, the defect log is
-`demo/visual_tests.json`.
+Phase 3 (example app) is done (September 12, 2026): the `example/` app runs
+all 48 features of the v1 example on API v2, with deeplinks, screenshots,
+visual checks and the stress screen. The engine has 458 green tests, the
+example has 162; the journal is `docs/plan.md` §8, the defect log is
+`example/visual_tests.json`.
 
 Phase 4 (scene_editor) is done (September 12, 2026): `scene_editor/` is the
 v1 editor ported to API v2 — document and undo, panels, viewport with
 picking/FaceRef, gizmo, overlays and layers, resources, model viewer and
 markup, with deeplinks/screenshots and a visual journal.
 
-Phase 7 (demo defects) is done (September 12, 2026): the owner-reported
+Phase 7 (example defects) is done (September 12, 2026): the owner-reported
 defects bug_38–bug_50 are closed — camera input roles, glTF loading state,
 shadow settings, quality through `QualityController`, frame-driven
 first-person animation, the disposed-controller frame crash behind the
 vanishing weather, the `.fmat` effect cycle and the level decor. The journal
-is `demo/visual_tests.json`.
+is `example/visual_tests.json`.
 
 Phase 5 (cleanup) is done (September 13, 2026): the old entry
-`engine/lib/pet_engine.dart` and the v1 facades (the list in `docs/api.md`
-§20) are removed from code; the public export is exactly the API of
+`lib/pet_engine.dart` and the v1 facades (the list in `docs/api.md` §20)
+are removed from code; the public export is exactly the API of
 `docs/api.md`. Internal plumbing (`EngineNode`, `EngineMaterial`,
 `ModelRenderer`, `GameCamera`, `ParticleLayer`/`BillboardBatch`,
 `GameResourceManager`, `TextureCache`) remains unexported; the package's
 tests import it through `src/` paths, and `TextureCache` was replaced for
-consumers by `LevelBaker.planning()`. `engine` has 511 green tests,
-`demo` 164, `scene_editor` 349; the journal is `docs/plan.md` §8.
+consumers by `LevelBaker.planning()`. The engine has 511 green tests, the
+example 164, scene_editor 349; the journal is `docs/plan.md` §8.
 
 Post-acceptance addition (branch `feature/camera-input-touch-fly`):
 `CameraInput` flies on touch with two fingers (the second finger's drag,
@@ -147,10 +146,10 @@ document kind (`PolyMesh`/`PolyFace`/`PolyLoop` with holes and explicit UVs,
 `bakePolyhedron`, mesh edit operations, `refreshObjectGeometry`,
 `objectWorldMatrix`, `faceLoops`), the runtime `PolyhedronNode`, and the
 large-map camera (`configureForExtent`); engine version `0.1.0-dev.3`.
-The demo has a ninth group «Многогранники» (50 features, 182 tests) and the
+The example has a ninth group «Многогранники» (50 features, 182 tests) and the
 scene editor a full Object/Faces/Vertices editing mode (386 tests); the
 WAD converter itself is a separate future task. Backward-compat goldens live
-in `engine/test/fixtures/backward_compat/`.
+in `test/fixtures/backward_compat/`.
 Same branch (September 16, 2026): sprite atlases wrap into rows beyond
 `SpriteFieldNode.atlasMaxWidth` / `buildSpriteAtlas(maxWidth:)` (the GPU
 texture-width limit), `SpriteFieldLayer` shares composed atlases process-wide
@@ -158,9 +157,15 @@ through a bounded LRU cache (`clearSharedAtlasCache`), and unlit
 `SceneMaterial` honours `alphaCutoff` (now also a parameter of
 `SceneMaterial.unlit` and preserved by `copy()`). Also on September 16 the
 shared `flutter_scene` fork was moved back into the engine checkout —
-`engine/third_party/flutter_scene` (a plain folder, no nested repository).
+`third_party/flutter_scene` (a plain folder, no nested repository).
 The scene editor was extracted from the repository to
 `../pet_engine_scene_editor` (its history stays in this repository).
 
-Next: final owner acceptance of the whole v2 (engine, docs, demo,
+Repository restructure (September 16, 2026): the `engine/` package directory
+was moved to the repository root — the root now **is** the `pet_engine`
+package; `demo/` was renamed to `example/` (Dart package `example`, bundle id
+`com.npu3pak.petengine.example`), and dependent projects point at
+`../pet_engine` instead of `../pet_engine/engine`.
+
+Next: final owner acceptance of the whole v2 (engine, docs, example,
 scene_editor).

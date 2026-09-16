@@ -7,8 +7,47 @@ build/
 .fvm/
 
 # Бэкапы ресурсов, которые создаёт редактор сцен
-demo/assets/**/*_original*
+example/assets/**/*_original*
 
 .DS_Store
 *.iml
 .idea/
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.ipr
+*.iws
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Widget Preview related
+.widget_preview/

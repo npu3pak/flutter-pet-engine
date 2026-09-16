@@ -1625,7 +1625,7 @@ if (result.baked != null) {
 
 ## 19. Примеры для четырёх проектов
 
-### demo
+### example
 
 ```dart
 final controller = SceneController();
@@ -1729,7 +1729,7 @@ controller.addFrameListener((elapsed, dt) {
 5. Форма `SceneViewSpec` при нескольких камерах (пока одна активная
    камера на контроллер).
 6. Точные формулы слоёв неба (проекция солнца/луны, покрытие облаков) —
-   уточнены на demo (2D-фон под сценой).
+   уточнены на example (2D-фон под сценой).
 7. Пикинг документных объектов: `raycast`/`raycastAll`/`nearestNode` видят
    `ModelNode`-обёртки объектов `model_v1` (фаза 4), `FaceRef` заполняется
    для плоских граней и скруглённых поверхностей. Вставки модели пикаются
@@ -1744,8 +1744,8 @@ controller.addFrameListener((elapsed, dt) {
 
 Произвольная геометрия для переноса сложных карт (в т.ч. 1:1 из WAD, см.
 `conventions.md` §8): индексные вершины, плоские n-угольные грани с дырками,
-явные UV и материалы по граням. Реализация — `engine/src/scene/polyhedron*.dart`,
-нода — `engine/src/api/nodes/polyhedron_node.dart`; ветка `feature/polyhedra`.
+явные UV и материалы по граням. Реализация — `src/scene/polyhedron*.dart`,
+нода — `src/api/nodes/polyhedron_node.dart`; ветка `feature/polyhedra`.
 
 ### 22.1. Документ и данные
 
@@ -1822,7 +1822,7 @@ controller.add(wall);
 
 - Формат аддитивен: старые виды и их JSON не меняются; `round3` остаётся,
   `round6` применяется только к вершинам/UV/масштабу многогранника.
-- Эталоны старого поведения — `engine/test/fixtures/backward_compat/`
+- Эталоны старого поведения — `test/fixtures/backward_compat/`
   (10 фикстур, сверяются `backward_compat_test.dart`); перегенерация только
   осознанно: `fvm flutter test test/backward_compat_test.dart
   --dart-define=UPDATE_BACKWARD_COMPAT=true`.

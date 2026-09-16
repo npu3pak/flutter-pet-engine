@@ -1,40 +1,46 @@
 # pet_engine
 
-Игровой движок `pet_engine`: трёхмерные сцены формата `model_v1` с публичным
-API в стиле Flutter — виджет `SceneViewport` плюс контроллеры
+Движок нового поколения для трёхмерных сцен `model_v1`/`project_v1`:
+документ, рендер, ресурсы, уровневый слой, навигация, частицы. Публичный
+API в стиле Flutter — виджет `SceneViewport`, контроллеры
 (`SceneController`, `CameraController`) и живые ноды (`SceneNode`).
 
-Движок пришёл на смену v1 (каталог v1 удалён; история — репозиторий
-`npu3pak/flutter-pet-engine`). План, идея и фазы работ — в
-[docs/plan.md](docs/plan.md).
+Пакет вырос из кода v1 (`pet_engine` 0.5.0); старые фасады
+(`GameScene`, `EngineSceneView`, ...) с фазы 5 удалены. История v1 —
+репозиторий `npu3pak/flutter-pet-engine`.
 
 ## Состав репозитория
 
 | Каталог | Назначение | Статус |
 |---|---|---|
-| `engine/` | пакет `pet_engine`: движок | фаза 2: реализация API |
-| `demo/` | приложение-пример: все возможности движка, документация кодом | фаза 3 |
+| `lib/` | код пакета `pet_engine` | фаза 2: API реализован |
+| `example/` | приложение-пример: все возможности движка, документация кодом | фаза 3 |
 | `docs/` | единая база знаний | ведётся с фазы 0 |
-| `engine/third_party/flutter_scene` | общий форк `flutter_scene` | вложен в движок, без своего git |
-| `demo/assets/` | проекты сцен (Pet, House) и шейдеры; читаются из бандла | в git, самостоятельные |
+| `third_party/flutter_scene` | общий форк `flutter_scene` | вложен в движок, без своего git |
+| `example/assets/` | проекты сцен (Pet, House) и шейдеры; читаются из бандла | в git, самостоятельные |
 | `scripts/` | чистка пакетов, perf-скрипты | — |
 | `temp/` | временные файлы (в git не попадают) | — |
 
 Общий форк `flutter_scene` лежит внутри движка:
-`engine/third_party/flutter_scene` — обычный каталог, без вложенного
+`third_party/flutter_scene` — обычный каталог, без вложенного
 git-репозитория (общий для движка и проектов через path-зависимость).
 
 Редактор сцен вынесен из репозитория в `../pet_engine_scene_editor`
 (фаза 4, API v2); его история осталась в этом репозитории.
 
+Публичные входы пакета:
+
+- `package:pet_engine/pet_engine.dart` — движок целиком;
+- `package:pet_engine/models.dart` — только типы документа;
+- `package:pet_engine/build_hooks.dart` — обёртка сборки для hook-ов
+  приложений (`petBuildMaterials`).
+
 ## Команды
 
-Flutter master через FVM (`.fvmrc`); всегда с префиксом `fvm`, из каталога
-пакета.
+Flutter master через FVM (`.fvmrc`); всегда с префиксом `fvm`.
 
 ```bash
-# движок
-cd engine
+# движок (из корня репозитория)
 fvm flutter pub get
 fvm flutter analyze
 fvm flutter test
@@ -43,8 +49,8 @@ fvm flutter test
 cd third_party/flutter_scene/packages/flutter_scene
 fvm flutter test
 
-# demo (исходники проектов — в demo/assets, отдельный staging не нужен)
-cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
+# example (исходники проектов — в example/assets, отдельный staging не нужен)
+cd example && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 ```
 
 ## Документы
