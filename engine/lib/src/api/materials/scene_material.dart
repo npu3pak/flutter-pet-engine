@@ -57,6 +57,7 @@ class SceneMaterial extends ChangeNotifier {
     SceneTexture? texture,
     Color color = const Color(0xFFFFFFFF),
     SceneAlphaMode alphaMode = SceneAlphaMode.opaque,
+    double alphaCutoff = 0.5,
     bool doubleSided = false,
     double blendOrder = 0.0,
   }) : _kind = _MaterialKind.unlit,
@@ -65,7 +66,7 @@ class SceneMaterial extends ChangeNotifier {
        _roughness = 1.0,
        _metallic = 0.0,
        _alphaMode = alphaMode,
-       _alphaCutoff = 0.5,
+       _alphaCutoff = alphaCutoff,
        _doubleSided = doubleSided,
        _emissive = null,
        _fogStartOverride = null,
@@ -254,6 +255,7 @@ class SceneMaterial extends ChangeNotifier {
         final material = UnlitMaterial(colorTexture: _texture?.raw)
           ..baseColorFactor = _linear(_color)
           ..alphaMode = _alphaModeOf(_alphaMode)
+          ..alphaCutoff = _alphaCutoff
           ..doubleSided = _doubleSided
           ..blendOrder = _blendOrder;
         return material;
@@ -303,6 +305,7 @@ class SceneMaterial extends ChangeNotifier {
         texture: _texture,
         color: _color,
         alphaMode: _alphaMode,
+        alphaCutoff: _alphaCutoff,
         doubleSided: _doubleSided,
         blendOrder: _blendOrder,
       ),
@@ -342,6 +345,7 @@ class SceneMaterial extends ChangeNotifier {
           unlit.baseColorFactor = _linear(_color);
           unlit.baseColorTexture = _texture?.raw;
           unlit.alphaMode = _alphaModeOf(_alphaMode);
+          unlit.alphaCutoff = _alphaCutoff;
           unlit.doubleSided = _doubleSided;
           unlit.blendOrder = _blendOrder;
         case _MaterialKind.pbr:

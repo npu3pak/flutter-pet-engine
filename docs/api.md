@@ -466,7 +466,10 @@ class ParticleNode extends SceneNode {
 }
 
 class SpriteFieldNode extends SceneNode {
-  SpriteFieldNode({required List<SpriteFieldSprite> sprites, required int capacity, SpriteFieldFacing facing = SpriteFieldFacing.screenParallel, bool opaque = false});
+  SpriteFieldNode({required List<SpriteFieldSprite> sprites, required int capacity, SpriteFieldFacing facing = SpriteFieldFacing.screenParallel, bool opaque = false, int atlasMaxWidth = 0});
+                                    // atlasMaxWidth — предел ширины атласа в пикселях: ячейки
+                                    // переносятся в строки, чтобы ряд не упёрся в лимит GPU
+                                    // (<= 0 — один ряд, как раньше)
   double screenParallelYaw;         // общий разворот screen-parallel поля (радианы),
                                     // как у SpriteNode.billboard — обновляется при повороте камеры
   Future<void> prepare();           // сборка атласа до первого кадра
@@ -738,6 +741,7 @@ class SceneMaterial extends ChangeNotifier {
     SceneTexture? texture,
     Color color = Colors.white,
     SceneAlphaMode alphaMode = SceneAlphaMode.opaque,
+    double alphaCutoff = 0.5,
     bool doubleSided = false,
     double blendOrder = 0,
   });
@@ -1544,8 +1548,12 @@ class FogInstance {
   const FogInstance({required String spriteKey, required double x, required double y, required double z, required double width, required double height, double rotation = 0, double opacity = 1});
 }
 
-class SpriteAtlas { /* кадры, число колонок/строк, фильтрация */ }
-SceneTexture buildSpriteAtlas(List<ui.Image> frames, {int columns = 1});
+class SpriteAtlas { /* кадры, сетка columns×rows, фильтрация */ }
+Future<SpriteAtlas?> buildSpriteAtlas(List<String> assetPaths, {AssetBundle? bundle, TextureSampling sampling = kAtlasNearestSampling, int cellSize = 256, int inset = 1, int maxWidth = 0});
+Future<({ui.Image image, List<String> keys, int columns, int rows})?> composeSpriteAtlas(List<String> keys, AtlasImageLoader load, {int cellSize = 256, int inset = 1, int maxWidth = 0});
+Map<String, int> spriteFrameMap(Iterable<({String key, String path})> sprites, List<String> atlasKeys);
+                                    // maxWidth — предел ширины атласа: ячейки переносятся
+                                    // в строки (<= 0 — один ряд, как раньше)
 
 class LevelExtraResource {
   LevelExtraResource(String label, Future<void> Function() load);

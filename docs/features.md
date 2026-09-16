@@ -753,7 +753,8 @@
   сброс с сохранением атласа.
 - **Где.** `EN/lib/src/render/sprite_field_layer.dart`;
   `MQ/lib/engine/impl/grass_renderer.dart:33-119`.
-- **API v2.** `SpriteFieldNode` с полным набором.
+- **API v2.** `SpriteFieldNode` с полным набором; `atlasMaxWidth` —
+  предел ширины атласа (ячейки переносятся в строки по лимиту GPU).
 - **Статус.** Частично.
 
 ### I3. Стелющийся туман
@@ -783,7 +784,9 @@
   строки ячеек, отступы, фильтрация.
 - **Где.** `EN/lib/src/render/sprite_atlas.dart`;
   `EX/lib/src/features/sprite_atlas.dart:46-96`.
-- **API v2.** Функции сборки атласа остаются публичными.
+- **API v2.** Функции сборки атласа остаются публичными:
+  `buildSpriteAtlas`/`composeSpriteAtlas` с `maxWidth` (перенос строк по
+  лимиту ширины текстуры GPU) и общий кэш атласов у `SpriteFieldNode`.
 - **Статус.** Нет.
 
 ### I6. Скайбокс

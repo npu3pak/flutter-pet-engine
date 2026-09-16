@@ -136,11 +136,13 @@ class SpriteFieldNode extends SceneNode {
     required int capacity,
     SpriteFieldFacing facing = SpriteFieldFacing.screenParallel,
     bool opaque = false,
+    int atlasMaxWidth = 0,
   }) : _layer = SpriteFieldLayer(
          sprites: sprites,
          capacity: capacity,
          facing: facing,
          opaque: opaque,
+         atlasMaxWidth: atlasMaxWidth,
        );
 
   final SpriteFieldLayer _layer;

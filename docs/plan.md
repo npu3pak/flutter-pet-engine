@@ -1189,3 +1189,23 @@ analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-ви
   проверки состояния и ноды сетки); снимки `editor_grid_on`,
   `editor_grid_off` в `temp/screenshots`, запись — `visual_tests.json`
   (`checks.grid`).
+
+#### Атласы спрайтов: строки, кэш и alphaCutoff у unlit (16 сентября 2026)
+
+- **Проблема.** Длинный однорядный атлас травы (сотня ячеек по 256 px) не
+  влезает в лимит ширины текстуры GPU (~16 384) и молча не загружался;
+  каждая пересборка уровня заново декодировала и загружала те же PNG; у
+  unlit-материала `alphaCutoff` не доезжал до компилируемого материала —
+  mask резался по 0.5 при любом значении.
+- **Правка.** `composeSpriteAtlas`/`buildSpriteAtlas` принимают `maxWidth`:
+  ячейки переносятся в строки, `SpriteAtlas` отдаёт `columns`/`rows`
+  (`maxWidth <= 0` сохраняет прежний однорядный режим, раскладка строк
+  совпадает с UV батча); у `SpriteFieldNode` появился `atlasMaxWidth`, а у
+  слоя — общий LRU-кэш атласов (6 записей, ключ — пути + ширина +
+  фильтрация, `SpriteFieldLayer.clearSharedAtlasCache()`); `SceneMaterial`
+  пробрасывает `alphaCutoff` в unlit при сборке и применении, параметр
+  добавлен в `SceneMaterial.unlit` и в `copy()`.
+- **Проверки.** `engine` — analyze чист, 605 тестов (перенос строк,
+  однорядный legacy-режим, cutoff у unlit при сборке, мутации и copy);
+  `demo` и `scene_editor` — analyze чист; golden-эталоны совместимости не
+  сдвинулись.

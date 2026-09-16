@@ -150,6 +150,12 @@ The demo has a ninth group «Многогранники» (54 features, 184 test
 scene editor a full Object/Faces/Vertices editing mode (381 tests); the
 WAD converter itself is a separate future task. Backward-compat goldens live
 in `engine/test/fixtures/backward_compat/`.
+Same branch (September 16, 2026): sprite atlases wrap into rows beyond
+`SpriteFieldNode.atlasMaxWidth` / `buildSpriteAtlas(maxWidth:)` (the GPU
+texture-width limit), `SpriteFieldLayer` shares composed atlases process-wide
+through a bounded LRU cache (`clearSharedAtlasCache`), and unlit
+`SceneMaterial` honours `alphaCutoff` (now also a parameter of
+`SceneMaterial.unlit` and preserved by `copy()`).
 
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).

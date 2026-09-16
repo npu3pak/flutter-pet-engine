@@ -19,10 +19,10 @@ Future<ui.Image> _solid(int width, int height, ui.Color color) async {
 void main() {
   group('composeSpriteAtlas', () {
     test('lays out one row of 256px cells and reports resolved keys', () async {
-      final composed = await composeSpriteAtlas(
-        ['a', 'b'],
-        (key) => _solid(key == 'a' ? 10 : 40, 20, const ui.Color(0xFFFF0000)),
-      );
+      final composed = await composeSpriteAtlas([
+        'a',
+        'b',
+      ], (key) => _solid(key == 'a' ? 10 : 40, 20, const ui.Color(0xFFFF0000)));
 
       expect(composed, isNotNull);
       expect(composed!.keys, ['a', 'b']);
@@ -32,13 +32,10 @@ void main() {
     });
 
     test('skips keys the loader cannot resolve', () async {
-      final composed = await composeSpriteAtlas(
-        ['ok', 'missing'],
-        (key) async {
-          if (key == 'missing') throw StateError('no asset');
-          return _solid(8, 8, const ui.Color(0xFF00FF00));
-        },
-      );
+      final composed = await composeSpriteAtlas(['ok', 'missing'], (key) async {
+        if (key == 'missing') throw StateError('no asset');
+        return _solid(8, 8, const ui.Color(0xFF00FF00));
+      });
 
       expect(composed, isNotNull);
       expect(composed!.keys, ['ok']);
@@ -47,10 +44,10 @@ void main() {
     });
 
     test('returns null when nothing resolves', () async {
-      final composed = await composeSpriteAtlas(
-        ['a', 'b'],
-        (key) => throw StateError('no asset'),
-      );
+      final composed = await composeSpriteAtlas([
+        'a',
+        'b',
+      ], (key) => throw StateError('no asset'));
       expect(composed, isNull);
     });
 
@@ -62,6 +59,32 @@ void main() {
       );
       expect(composed!.image.width, 96);
       expect(composed.image.height, 32);
+      composed.image.dispose();
+    });
+
+    test('wraps into rows beyond maxWidth (GPU width limit)', () async {
+      final composed = await composeSpriteAtlas(
+        ['a', 'b', 'c'],
+        (key) => _solid(4, 4, const ui.Color(0xFF00FFFF)),
+        cellSize: 32,
+        maxWidth: 64,
+      );
+      expect(composed, isNotNull);
+      expect(composed!.columns, 2);
+      expect(composed.rows, 2);
+      expect(composed.image.width, 64);
+      expect(composed.image.height, 64);
+      composed.image.dispose();
+    });
+
+    test('a single row stays a single row without maxWidth', () async {
+      final composed = await composeSpriteAtlas(
+        ['a', 'b', 'c'],
+        (key) => _solid(4, 4, const ui.Color(0xFF00FFFF)),
+        cellSize: 32,
+      );
+      expect(composed!.columns, 3);
+      expect(composed.rows, 1);
       composed.image.dispose();
     });
   });

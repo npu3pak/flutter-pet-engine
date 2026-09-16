@@ -85,8 +85,31 @@ void main() {
       expect(material.isUnlit, isTrue);
       final raw = material.raw as fs.UnlitMaterial;
       expect(raw.alphaMode, fs.AlphaMode.blend);
+      expect(raw.alphaCutoff, 0.5);
       expect(raw.doubleSided, isTrue);
       expect(raw.blendOrder, 2);
+      material.dispose();
+    });
+
+    test('passes alphaCutoff to the compiled material', () {
+      final material = SceneMaterial.unlit(
+        alphaMode: SceneAlphaMode.mask,
+        alphaCutoff: 0.3,
+      );
+      final raw = material.raw as fs.UnlitMaterial;
+      expect(raw.alphaMode, fs.AlphaMode.mask);
+      expect(raw.alphaCutoff, 0.3);
+
+      material.alphaCutoff = 0.7;
+      expect(raw.alphaCutoff, 0.7);
+      material.dispose();
+    });
+
+    test('copy keeps alphaCutoff', () {
+      final material = SceneMaterial.unlit(alphaCutoff: 0.3);
+      final copy = material.copy();
+      expect((copy.raw as fs.UnlitMaterial).alphaCutoff, 0.3);
+      copy.dispose();
       material.dispose();
     });
   });

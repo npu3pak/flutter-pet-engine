@@ -72,6 +72,7 @@ class SpriteFieldLayer {
     this.velocityStretch = 0.0,
     this.linearSampling = false,
     this.flipbookBlend = false,
+    this.atlasMaxWidth = 0,
   }) : _sprites = List.unmodifiable(sprites);
 
   final List<SpriteFieldSprite> _sprites;
@@ -108,6 +109,10 @@ class SpriteFieldLayer {
   /// Whether the atlas frames cross-fade (flipbook blending).
   final bool flipbookBlend;
 
+  /// Cap on the atlas texture width in pixels; cells wrap into rows beyond it
+  /// (GPU texture-width limits). `<= 0` keeps the legacy single row.
+  final int atlasMaxWidth;
+
   EngineNode? _parent;
   SpriteAtlas? _atlas;
   String _atlasSignature = '';
@@ -115,28 +120,55 @@ class SpriteFieldLayer {
   BillboardBatch? _batch;
   bool _disposed = false;
 
+  /// Composed atlases shared process-wide, keyed by the sprite-path
+  /// signature: rebuilding a level (or swapping a block of maps) reuses the
+  /// GPU upload instead of decoding and composing the PNGs again. Bounded by
+  /// [_sharedAtlasLimit] most-recently-used entries; [clearSharedAtlasCache]
+  /// releases them (e.g. on a quality change).
+  static final Map<String, SpriteAtlas> _sharedAtlases = {};
+  static const int _sharedAtlasLimit = 6;
+
+  /// Drops the process-wide atlas cache (the layers keep their references).
+  static void clearSharedAtlasCache() => _sharedAtlases.clear();
+
   /// Whether the atlas is composed and the batch exists.
   bool get ready => _batch != null;
 
   /// Composes the atlas (idempotent) and creates the batch.
   Future<void> prepare() async {
     if (_disposed || _sprites.isEmpty) return;
-    final signature = _sprites.map((s) => s.assetPath).join('|');
+    final sampling = linearSampling ? 'linear' : 'nearest';
+    final signature =
+        '${_sprites.map((s) => s.assetPath).join('|')}|w$atlasMaxWidth|$sampling';
     if (signature != _atlasSignature) {
       _atlasSignature = signature;
       _atlas = null;
       _frames = const {};
       _disposeBatch();
-      final atlas = await buildSpriteAtlas(
-        [for (final s in _sprites) s.assetPath],
-        sampling: linearSampling ? kAtlasLinearSampling : kAtlasNearestSampling,
-      );
+      var atlas = _sharedAtlases.remove(signature);
+      if (atlas != null) {
+        // LRU touch: the most recently used atlas goes to the back.
+        _sharedAtlases[signature] = atlas;
+      } else {
+        atlas = await buildSpriteAtlas(
+          [for (final s in _sprites) s.assetPath],
+          sampling: linearSampling
+              ? kAtlasLinearSampling
+              : kAtlasNearestSampling,
+          maxWidth: atlasMaxWidth,
+        );
+        if (atlas != null) {
+          _sharedAtlases[signature] = atlas;
+          while (_sharedAtlases.length > _sharedAtlasLimit) {
+            _sharedAtlases.remove(_sharedAtlases.keys.first);
+          }
+        }
+      }
       if (_disposed || atlas == null) return;
       _atlas = atlas;
-      _frames = spriteFrameMap(
-        [for (final s in _sprites) (key: s.key, path: s.assetPath)],
-        atlas.keys,
-      );
+      _frames = spriteFrameMap([
+        for (final s in _sprites) (key: s.key, path: s.assetPath),
+      ], atlas.keys);
     }
     _ensureBatch();
   }
@@ -155,8 +187,9 @@ class SpriteFieldLayer {
     final batch = _batch;
     if (batch == null) return;
     batch.screenParallelYaw = _screenParallelYaw;
-    final count =
-        instances.length > batch.capacity ? batch.capacity : instances.length;
+    final count = instances.length > batch.capacity
+        ? batch.capacity
+        : instances.length;
     var written = 0;
     for (var i = 0; i < count; i++) {
       final p = instances[i];
@@ -164,8 +197,9 @@ class SpriteFieldLayer {
       if (frame == null) continue;
       final velocity = p.velocity;
       if (velocity != null) {
-        batch.velocityStretch =
-            velocityStretch > 0 ? velocityStretch : velocity.length;
+        batch.velocityStretch = velocityStretch > 0
+            ? velocityStretch
+            : velocity.length;
       }
       batch.setInstance(
         written,
@@ -205,23 +239,25 @@ class SpriteFieldLayer {
     if (capacity <= 0 || _sprites.isEmpty) return;
     final atlas = _atlas!;
     if (atlas.keys.isEmpty) return;
-    final batch = BillboardBatch(
-      capacity: capacity,
-      atlas: atlas.texture,
-      facing: switch (facing) {
-        SpriteFieldFacing.spherical => BillboardFacing.spherical,
-        SpriteFieldFacing.screenParallel => BillboardFacing.screenParallel,
-        SpriteFieldFacing.velocityStretched =>
-          BillboardFacing.velocityStretched,
-      },
-      opaque: opaque,
-      blendOrder: blendOrder,
-      velocityStretch: velocityStretch,
-      flipbookColumns: atlas.keys.length,
-      flipbookRows: 1,
-    )
-      ..worldUp = vm.Vector3(0, 1, 0)
-      ..flipbookBlend = flipbookBlend;
+    final batch =
+        BillboardBatch(
+            capacity: capacity,
+            atlas: atlas.texture,
+            facing: switch (facing) {
+              SpriteFieldFacing.spherical => BillboardFacing.spherical,
+              SpriteFieldFacing.screenParallel =>
+                BillboardFacing.screenParallel,
+              SpriteFieldFacing.velocityStretched =>
+                BillboardFacing.velocityStretched,
+            },
+            opaque: opaque,
+            blendOrder: blendOrder,
+            velocityStretch: velocityStretch,
+            flipbookColumns: atlas.columns,
+            flipbookRows: atlas.rows,
+          )
+          ..worldUp = vm.Vector3(0, 1, 0)
+          ..flipbookBlend = flipbookBlend;
     _batch = batch;
     final parent = _parent;
     if (parent != null) batch.attachTo(parent.raw);
