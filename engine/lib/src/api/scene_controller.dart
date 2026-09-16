@@ -111,6 +111,12 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
     final manager = GameResourceManager(source);
     try {
       await manager.open();
+      // The render scene and its renderer capture the previous manager's
+      // TextureCache/glTF store when they are built. Drop them so the next
+      // viewport build rebuilds both from [manager] — otherwise the new
+      // project's textures resolve through the old source and every missing
+      // key renders the magenta placeholder.
+      _releaseRenderScene();
       _manager = manager;
       _resources = SceneResources(manager);
       _project = ProjectStore(_resources);
@@ -918,6 +924,30 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
     return node == null ? null : EngineNode.wrap(node);
   }
 
+  /// Drops the fork render scene and the renderer together with their
+  /// bindings to the old resource manager: the renderer captures the
+  /// manager's `TextureCache`/glTF store at creation, so after a project
+  /// [open] it must be rebuilt from the new source. Called on every open and
+  /// on dispose.
+  void _releaseRenderScene() {
+    _gltfAssets?.removeListener(_onGltfAssetsChanged);
+    _gltfAssets = null;
+    _renderer?.onTextureReady = null;
+    _renderer?.onGltfFootprint = null;
+    _scene?.removeAll();
+    _scene = null;
+    _renderCamera = null;
+    _renderer = null;
+  }
+
+  /// Test seam: binds [renderer] as if [ensureRenderScene] had created it, so
+  /// headless tests can assert that a project [open] drops the renderer
+  /// captured for the previous source.
+  @visibleForTesting
+  void debugBindRenderer(ModelRenderer renderer) {
+    _renderer = renderer;
+  }
+
   /// Creates (once) the fork render scene, mounts every root node, the
   /// document root and binds the camera. Requires a rendering device;
   /// headless tests never call it.
@@ -1573,9 +1603,7 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
   @override
   void dispose() {
     _disposed = true;
-    _gltfAssets?.removeListener(_onGltfAssetsChanged);
-    _gltfAssets = null;
-    _renderer?.onTextureReady = null;
+    _releaseRenderScene();
     _level = null;
     _gizmos.clear();
     _activeGizmo = null;
@@ -1583,10 +1611,6 @@ class SceneController extends ChangeNotifier implements SceneNodeHost {
       node.remove();
     }
     _documentLights.clear();
-    _scene?.removeAll();
-    _scene = null;
-    _renderCamera = null;
-    _renderer = null;
     _dynamics?.dispose();
     _dynamics = null;
     _frameListeners.clear();

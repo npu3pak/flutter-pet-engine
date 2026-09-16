@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/scene/model_renderer.dart' show ModelRenderer;
 import 'package:vector_math/vector_math.dart' as vm;
 
 class _MemorySource extends ProjectSource implements MutableProjectSource {
@@ -264,7 +265,37 @@ void main() {
       controller.dispose();
     });
   });
+
+  group('SceneController project switch', () {
+    test('open drops the renderer bound to the previous source', () async {
+      final controller = SceneController();
+      await controller.open(_projectSource());
+      final managerA = controller.resources!.manager;
+      controller.debugBindRenderer(
+        ModelRenderer(managerA.textures, gltfAssets: managerA.gltfAssets),
+      );
+      expect(controller.renderer, isNotNull);
+
+      await controller.open(_secondProjectSource());
+      expect(controller.renderer, isNull);
+      expect(
+        controller.resources!.manager.textures,
+        isNot(same(managerA.textures)),
+      );
+      controller.dispose();
+    });
+  });
 }
+
+/// A second minimal project with a distinct name and model id.
+_MemorySource _secondProjectSource() => _MemorySource({
+  'project.json': Uint8List.fromList(
+    utf8.encode('{"format":"project_v1","name":"Second"}'),
+  ),
+  'models/room.json': Uint8List.fromList(
+    utf8.encode('{"format":"model_v1"}'),
+  ),
+});
 
 class _ThrowingSource extends ProjectSource {
   @override
