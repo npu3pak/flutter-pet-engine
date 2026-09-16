@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 ModelData _model(int w, int l, int h) => ModelData.fromJson(

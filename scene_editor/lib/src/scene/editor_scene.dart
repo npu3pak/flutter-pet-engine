@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart' show Color;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 import '../services/app_log.dart';

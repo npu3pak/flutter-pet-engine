@@ -7,7 +7,7 @@ import 'package:demo/src/features/weather_common.dart';
 import 'package:demo/src/features/weather_rain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 import 'test_helpers/test_app.dart';
 

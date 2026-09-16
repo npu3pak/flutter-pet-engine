@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 
 import '../paths.dart';
 import '../scene_host.dart';

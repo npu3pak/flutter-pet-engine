@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 /// Node-name prefix of markup meta-object nodes (`meta:<id>` for a shape,

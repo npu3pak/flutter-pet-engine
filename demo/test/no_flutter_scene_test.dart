@@ -9,7 +9,7 @@ void main() {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final text = entity.readAsStringSync();
       if (text.contains('package:flutter_scene') ||
-          text.contains('package:pet_engine_v2/src/')) {
+          text.contains('package:pet_engine/src/')) {
         offenders.add(entity.path);
       }
     }

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/render/primitive_batch.dart'
+import 'package:pet_engine/src/render/primitive_batch.dart'
     show PrimitiveBatch;
 import 'package:vector_math/vector_math.dart' as vm;
 

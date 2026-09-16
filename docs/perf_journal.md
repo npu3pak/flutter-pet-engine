@@ -1,4 +1,4 @@
-# Журнал производительности pet_engine_v2
+# Журнал производительности pet_engine
 
 Замеры и разбор узких мест. Методика: `scene_editor` собирается как обычное
 macOS-приложение (`fvm flutter run -d macos --enable-flutter-gpu

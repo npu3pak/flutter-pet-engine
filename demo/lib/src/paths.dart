@@ -56,7 +56,7 @@ class AppPaths {
     }
   }
 
-  /// Корень репозитория (`pet_engine_v2`): `demo` → корень.
+  /// Корень репозитория (`pet_engine`): `demo` → корень.
   Directory get repoRoot => appDir.parent;
 
   /// Каталог пакета движка (`engine/`).

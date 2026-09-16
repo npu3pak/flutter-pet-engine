@@ -8,8 +8,8 @@ import 'gltf_ref_dialog.dart';
 import 'light_color_dialog.dart';
 import 'model_ref_dialog.dart';
 import 'resource_picker.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/models.dart' as cs;
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/models.dart' as cs;
 import 'package:vector_math/vector_math.dart' as vm;
 
 class RightPanel extends StatefulWidget {

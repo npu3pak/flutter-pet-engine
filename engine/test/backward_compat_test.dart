@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/src/api/pick_geometry.dart';
-import 'package:pet_engine_v2/src/scene/csg.dart';
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/api/pick_geometry.dart';
+import 'package:pet_engine/src/scene/csg.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 /// Golden snapshots of the behavior that existed before the polyhedron work

@@ -1,6 +1,6 @@
 import 'package:demo/src/features/feature_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
+import 'package:pet_engine/models.dart' as doc;
 
 import 'test_helpers/test_app.dart';
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/skybox/static_skybox.dart';
+import 'package:pet_engine/src/skybox/static_skybox.dart';
 
 /// 1×1 transparent PNG.
 final Uint8List _pngBytes = base64Decode(

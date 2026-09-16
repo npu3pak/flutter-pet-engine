@@ -4,7 +4,7 @@ import 'package:flutter_scene/scene.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
-import 'package:pet_engine_v2/src/services/texture_alpha.dart';
+import 'package:pet_engine/src/services/texture_alpha.dart';
 
 /// Encodes a W×H RGBA PNG with the given alpha channel [draw].
 Uint8List _png(int w, int h, void Function(img.Image im) draw) {

@@ -6,7 +6,7 @@
 ///
 /// ```dart
 /// import 'package:hooks/hooks.dart';
-/// import 'package:pet_engine_v2/build_hooks.dart';
+/// import 'package:pet_engine/build_hooks.dart';
 ///
 /// void main(List<String> args) {
 ///   build(args, (input, output) async {

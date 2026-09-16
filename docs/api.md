@@ -1,4 +1,4 @@
-# Публичный API pet_engine_v2
+# Публичный API pet_engine
 
 Документ описывает новый API движка целиком: типы, их обязанности и примеры
 использования. API выведен из реестра фич (`docs/features.md`): каждая
@@ -1442,7 +1442,7 @@ class SceneLoadError {
 Типы документа `ModelData`, `ModelObject`, `ModelMaterial`, `ModelMeta`,
 `ModelLight`, `ModelLighting`, `ModelGroup`, `ModelSize`, `ModelSide` и
 `ResourceMeta` (индекс ресурсов `project.json`) остаются публичными без
-изменений (экспорт `package:pet_engine_v2/models.dart`).
+изменений (экспорт `package:pet_engine/models.dart`).
 
 ### 16.1. Владение и освобождение
 
@@ -1620,7 +1620,7 @@ if (result.baked != null) {
   значение вьюпорта, затем `devicePixelRatio`. Плюс `saveScreenshot`,
   `analyzePlaceholders`, `analyzeFrameContent`, `PlaceholderReport`,
   `FrameContentReport` — как в v1.
-- **Build-hook:** `petBuildMaterials` из `package:pet_engine_v2/build_hooks.dart`.
+- **Build-hook:** `petBuildMaterials` из `package:pet_engine/build_hooks.dart`.
 - **Диплинки:** остаются в приложениях, движок не участвует.
 
 ## 19. Примеры для четырёх проектов
@@ -1688,7 +1688,7 @@ controller.dynamics.sync('enemies', ...);
 ## 20. Что удаляется после миграции
 
 Старые фасады **удалены из публичного экспорта в фазе 5 (13 сентября
-2026)** вместе со старым входом `package:pet_engine_v2/pet_engine.dart`:
+2026)** вместе со старым входом `package:pet_engine/pet_engine.dart`:
 `GameScene`, `GameNode`, `GameSceneView`, `GameCamera`,
 `FreeCameraController`, `GameViewController`, `EngineScene`, `EngineNode`
 (как публичный тип), `EngineMaterial`, `EngineTexture`, `EngineMesh`,

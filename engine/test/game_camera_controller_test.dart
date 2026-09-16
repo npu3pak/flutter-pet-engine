@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/camera/animation_type.dart';
-import 'package:pet_engine_v2/src/camera/direction.dart';
-import 'package:pet_engine_v2/src/camera/game_camera_math.dart';
-import 'package:pet_engine_v2/src/engine_compat/coords.dart' show facingAngle;
+import 'package:pet_engine/src/camera/animation_type.dart';
+import 'package:pet_engine/src/camera/direction.dart';
+import 'package:pet_engine/src/camera/game_camera_math.dart';
+import 'package:pet_engine/src/engine_compat/coords.dart' show facingAngle;
 import 'package:vector_math/vector_math.dart' as vm;
 
 void _expectMatrixClose(vm.Matrix4 a, vm.Matrix4 b, {double tolerance = 1e-12}) {

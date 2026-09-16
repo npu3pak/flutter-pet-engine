@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'app_log.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Template for the «Комната» («Room») kind of the «По шаблону» button:
 /// builds an indoor room model — a hollow box whose four walls carry

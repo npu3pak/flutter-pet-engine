@@ -7,7 +7,7 @@ import '../materials/scene_material.dart';
 /// Internal bridges from scene geometry/material to the engine (render)
 /// layer. Used by the node subclasses that own meshes (`MeshNode`,
 /// `PolyhedronNode`, ...); NOT part of the public API — this file is not
-/// exported by `pet_engine_v2.dart`.
+/// exported by `pet_engine.dart`.
 
 EngineGeometry nodeEngineGeometry(Geometry geometry) =>
     EngineGeometry.wrap(geometry);

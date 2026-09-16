@@ -8,7 +8,7 @@ import 'package:scene_editor/src/scene/editor_scene.dart';
 import 'package:scene_editor/src/scene/light_renderer.dart' show kLightBallRadius;
 import 'package:scene_editor/src/scene/meta_renderer.dart' show kCommentBallRadius;
 import 'package:scene_editor/src/state/app_state.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 void main() {
   late Directory dir;

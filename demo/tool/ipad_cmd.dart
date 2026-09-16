@@ -12,7 +12,7 @@
 //   fvm dart run tool/ipad_cmd.dart restart   # hot restart
 //   fvm dart run tool/ipad_cmd.dart stop      # остановить приложение и сессию
 //
-// Снимки сохраняются в pet_engine_v2/temp/screenshots.
+// Снимки сохраняются в pet_engine/temp/screenshots.
 
 import 'dart:async';
 import 'dart:convert';

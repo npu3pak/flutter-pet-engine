@@ -1,8 +1,8 @@
 import 'package:flutter_scene/scene.dart' show Node;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/src/scene/model_renderer.dart' show ModelRenderer;
-import 'package:pet_engine_v2/src/services/texture_cache.dart' show TextureCache;
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/scene/model_renderer.dart' show ModelRenderer;
+import 'package:pet_engine/src/services/texture_cache.dart' show TextureCache;
 import 'package:vector_math/vector_math.dart' as vm;
 
 /// Headless checks of the rotate fast path (`updateObjectTransforms` with

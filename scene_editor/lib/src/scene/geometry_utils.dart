@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 /// Custom geometry for the model editor (game-compatible PBR pipeline).

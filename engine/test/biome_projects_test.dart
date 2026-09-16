@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Биомные проекты фазы 4: чанки игры, сконвертированные в сцены `model_v1`.
 const _biomeProjects = ['Streets', 'Dungeon', 'Forest', 'AbandonedBuilding'];

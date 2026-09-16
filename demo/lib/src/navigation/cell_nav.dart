@@ -1,4 +1,4 @@
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Результат шага камеры по клеткам.
 typedef CellPose = ({int row, int column, Direction facing});

@@ -55,7 +55,7 @@ class AppPaths {
     }
   }
 
-  /// Корень репозитория (`pet_engine_v2`): `scene_editor` → корень.
+  /// Корень репозитория (`pet_engine`): `scene_editor` → корень.
   Directory get repoRoot => appDir.parent;
 
   /// Каталог пакета движка (`engine/`).

@@ -6,7 +6,7 @@ import 'package:demo/src/features/static_merge.dart';
 import 'package:demo/src/features/transparency_order.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
+import 'package:pet_engine/models.dart' as doc;
 
 import 'test_helpers/test_app.dart';
 

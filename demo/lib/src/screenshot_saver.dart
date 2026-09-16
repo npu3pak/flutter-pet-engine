@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 import 'paths.dart';
 
@@ -30,7 +30,7 @@ class ScreenshotResult {
 /// Снимает область, помеченную [boundaryKey], как PNG. В автотестах
 /// подменяется: захват кадра требует настоящего видеоконтура.
 ///
-/// Сам захват — фича движка ([captureBoundary] из `pet_engine_v2`); тип
+/// Сам захват — фича движка ([captureBoundary] из `pet_engine`); тип
 /// оставлен здесь, потому что через него тесты подменяют захват.
 typedef ScreenshotCapture = Future<Uint8List?> Function(
   GlobalKey boundaryKey,

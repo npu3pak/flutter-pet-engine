@@ -1,4 +1,4 @@
-/// Public API of `pet_engine_v2`: the Flutter-style scene layer
+/// Public API of `pet_engine`: the Flutter-style scene layer
 /// (`SceneViewport` + `SceneController` + `SceneNode`), the `model_v1`
 /// document, and the engine's mechanisms (levels, navigation, particles).
 ///

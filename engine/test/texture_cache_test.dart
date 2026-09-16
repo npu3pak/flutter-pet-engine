@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/services/texture_cache.dart'
+import 'package:pet_engine/src/services/texture_cache.dart'
     show TextureCache;
 
 void main() {

@@ -6,7 +6,7 @@ import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
 
 import 'package:path/path.dart' as p;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 import '../scene/editor_scene.dart';

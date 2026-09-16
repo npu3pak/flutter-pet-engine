@@ -1,5 +1,5 @@
 import 'app_log.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Template for the «По шаблону» («Create from template») button: builds a
 /// full-fledged fenced house model (the `house_preset` family) of any

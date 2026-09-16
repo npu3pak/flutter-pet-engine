@@ -6,7 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
 import 'package:scene_editor/src/services/resource_store.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// A tiny PNG (1×1 red pixel).
 Uint8List _pngBytes() {

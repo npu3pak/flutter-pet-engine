@@ -1,7 +1,7 @@
 import 'package:demo/src/navigation/cell_nav.dart';
 import 'package:demo/src/perf/fps_meter.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 void main() {
   test('поворот влево и вправо меняет сторону света', () {

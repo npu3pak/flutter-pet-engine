@@ -1,4 +1,4 @@
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 import 'feature_registry.dart';
 import 'weather_common.dart';

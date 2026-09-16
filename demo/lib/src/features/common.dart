@@ -1,5 +1,5 @@
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 import 'feature_registry.dart';

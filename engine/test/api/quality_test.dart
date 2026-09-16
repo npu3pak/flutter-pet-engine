@@ -1,7 +1,7 @@
 import 'dart:ui' show Color, FilterQuality;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 void main() {
   group('QualitySettings', () {

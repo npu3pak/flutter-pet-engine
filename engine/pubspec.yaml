@@ -1,5 +1,5 @@
-name: pet_engine_v2
-description: "Pet engine v2: Flutter-friendly 3D runtime (SceneViewport/SceneController/SceneNode) for model_v1/project_v1 scenes — the next generation of pet_engine."
+name: pet_engine
+description: "Pet engine: Flutter-friendly 3D runtime (SceneViewport/SceneController/SceneNode) for model_v1/project_v1 scenes."
 publish_to: 'none'
 
 version: 0.1.0-dev.3

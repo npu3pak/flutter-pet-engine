@@ -1,5 +1,5 @@
 name: scene_editor
-description: "scene_editor: редактор сцен pet_engine_v2 — документ, ресурсы, разметка (macOS + iPadOS)."
+description: "scene_editor: редактор сцен pet_engine — документ, ресурсы, разметка (macOS + iPadOS)."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -18,7 +18,7 @@ dependencies:
   image_picker: ^1.1.2
   path: ^1.9.1
   path_provider: ^2.1.5
-  pet_engine_v2:
+  pet_engine:
     path: ../engine
   shared_preferences: ^2.3.4
   vector_math: ^2.1.4

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:scene_editor/src/services/room_template.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Default 7×7 room walls: north — window, south — entrance, east/west —
 /// blank (what the dialog starts with). width/depth ARE the room footprint

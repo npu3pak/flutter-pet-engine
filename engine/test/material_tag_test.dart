@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/src/scene/model_renderer.dart'
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/scene/model_renderer.dart'
     show ModelRenderer;
-import 'package:pet_engine_v2/src/services/texture_cache.dart'
+import 'package:pet_engine/src/services/texture_cache.dart'
     show TextureCache;
 
 ModelObject tagged(String id, String? tag) => ModelObject(

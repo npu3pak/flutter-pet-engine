@@ -10,8 +10,8 @@ import 'package:demo/src/screenshot_saver.dart';
 import 'package:demo/src/stress_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 
 /// Хост без видеокарты: сцена не создаётся, но весь интерфейсный контур
 /// (готовность, ошибки, настройки, камера) ведёт себя как настоящий.

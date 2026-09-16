@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart';
-import 'package:pet_engine_v2/src/api/pick_geometry.dart';
-import 'package:pet_engine_v2/src/api/picking.dart' show intersectGeometry;
-import 'package:pet_engine_v2/src/scene/csg.dart';
-import 'package:pet_engine_v2/src/scene/polyhedron.dart';
-import 'package:pet_engine_v2/src/scene/polyhedron_bake.dart';
-import 'package:pet_engine_v2/src/scene/polyhedron_geometry.dart';
+import 'package:pet_engine/models.dart';
+import 'package:pet_engine/src/api/pick_geometry.dart';
+import 'package:pet_engine/src/api/picking.dart' show intersectGeometry;
+import 'package:pet_engine/src/scene/csg.dart';
+import 'package:pet_engine/src/scene/polyhedron.dart';
+import 'package:pet_engine/src/scene/polyhedron_bake.dart';
+import 'package:pet_engine/src/scene/polyhedron_geometry.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 ModelData _model({int w = 10, int l = 10, int h = 10}) => ModelData.fromJson(

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 
 /// Сетка уровня-примера: две комнаты и дверной проём между ними.
 const List<String> levelShellRows = [

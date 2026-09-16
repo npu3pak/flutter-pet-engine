@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scene_editor/src/scene/editor_scene.dart';
 import 'package:scene_editor/src/state/app_state.dart';
 import 'package:scene_editor/src/ui/right_panel.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// A glTF/GLB instance fixture: footprint [-1, 0, -0.5] × [1, 1, 0.5] at the
 /// anchor (2, 0, 3), rotY 90, uniform scale [scale].

@@ -1,4 +1,4 @@
-# План развития pet_engine_v2
+# План развития pet_engine
 
 Документ фиксирует идею нового движка, её интерпретацию командой и принятый
 план работ. Написан так, чтобы через год его можно было прочитать с нуля и
@@ -40,7 +40,7 @@
 
 Уточнения владельца, данные при обсуждении плана:
 
-- Новый код живёт в `pet_engine_v2` в корне рабочего каталога. Внутри —
+- Новый код живёт в `pet_engine` в корне рабочего каталога. Внутри —
   подкаталоги: `docs` (единая база знаний), `engine` (код движка),
   `scene_editor` (переписанный редактор сцен на новом движке), `demo`
   (переписанный `pet_engine/engine/example` на новом движке).
@@ -56,11 +56,11 @@
 - Форма нод — иерархия типизированных нод.
 - Редактор — полный перевод на новый API.
 - Публичные имена: `SceneViewport`, `SceneController`, `SceneNode`.
-- `pet_engine_v2` — отдельный git-репозиторий; имя пакета движка —
-  `pet_engine_v2`.
+- `pet_engine` — отдельный git-репозиторий; имя пакета движка —
+  `pet_engine`.
 - Форк `flutter_scene` переезжает в `pet_games/flutter_scene` и становится
   отдельным git-репозиторием, общим для v1, v2 и всех проектов. В финале
-  переносим его внутрь `pet_engine_v2`.
+  переносим его внутрь `pet_engine`.
 - Ассеты (`projects/`) копируются в v2.
 - `docs` v2 — новая единая база знаний; консолидируем ключевые документы.
   Старые документы не помечаем архивами: они текущие, а v2 — следующее
@@ -196,10 +196,10 @@ pet_games/
 ├── flutter_scene/                    # общий форк, отдельный git-репозиторий
 │   └── packages/flutter_scene
 ├── pet_engine/                       # v1, заморожен (только path-правки форка)
-├── pet_engine_v2/                    # новый репозиторий, git main
+├── pet_engine/                    # новый репозиторий, git main
 │   ├── AGENTS.md  README.md  .fvmrc
 │   ├── docs/                         # единая база знаний v2
-│   ├── engine/                       # пакет pet_engine_v2
+│   ├── engine/                       # пакет pet_engine
 │   ├── demo/                         # приложение-пример (все 48 фич)
 │   ├── scene_editor/                 # редактор сцен на API v2
 │   ├── projects/                     # проекты сцен и ресурсы (копия)
@@ -218,10 +218,10 @@ pet_games/
 2. Path-зависимости форка переподключены в `pet_engine/engine`,
    `pet_engine/engine/example`, `pet_engine/tools/scene_editor`; в играх
    обновлены замки пакетов.
-3. Создан репозиторий `pet_engine_v2` (git, `.fvmrc`, `.gitignore`).
-4. В `pet_engine_v2/engine` перенесён код v1-движка; пакет переименован в
-   `pet_engine_v2`; скопированы `projects/` и `scripts/`.
-5. Заведена база знаний `pet_engine_v2/docs` (этот документ и спутники).
+3. Создан репозиторий `pet_engine` (git, `.fvmrc`, `.gitignore`).
+4. В `pet_engine/engine` перенесён код v1-движка; пакет переименован в
+   `pet_engine`; скопированы `projects/` и `scripts/`.
+5. Заведена база знаний `pet_engine/docs` (этот документ и спутники).
 
 Результаты проверок после переезда (все зелёные):
 
@@ -233,7 +233,7 @@ pet_games/
 | `math_quest` | чисто | 938 |
 | `mypet-game/pet_demo` | чисто | 12 |
 | `flutter_scene/packages/flutter_scene` | — | 1050 (+29 пропущено) |
-| `pet_engine_v2/engine` | чисто | 317 |
+| `pet_engine/engine` | чисто | 317 |
 
 Коммиты в новых и старых репозиториях не делались: по правилу они
 выполняются только по явной просьбе владельца.
@@ -325,7 +325,7 @@ pet_games/
 
 Вне текущего объёма (отдельные работы позже):
 
-- перенос форка в `pet_engine_v2`, вывод старого движка;
+- перенос форка в `pet_engine`, вывод старого движка;
 - миграция `mypet-game`, затем `math_quest`.
 
 ## 6. Проверка
@@ -387,7 +387,7 @@ pet_games/
 
 Сделано:
 
-- Новый публичный вход `engine/lib/pet_engine_v2.dart`; новый слой
+- Новый публичный вход `engine/lib/pet_engine.dart`; новый слой
   `engine/lib/src/api/`.
 - `SceneNode` (id, имя, слой, `inScene`, parent/children,
   transform/position/rotation/scale, visible/opacity/highlightColor,
@@ -587,7 +587,7 @@ pet_games/
 - `fvm flutter analyze` — чисто; `fvm flutter test` — **439 тестов** зелёные
   (317 базовых + 122 новых в `engine/test/api/`); форк: analyze чисто,
   1050 тестов зелёные (29 skip).
-- Публичный вход `lib/pet_engine_v2.dart` собирает новый API, документ и
+- Публичный вход `lib/pet_engine.dart` собирает новый API, документ и
   механизмы; старые фасады не тронуты и остаются внутренней реализацией.
 - GPU-free правило соблюдено: тесты не создают fork `Scene`; у вьюпорта
   подменяемый бэкенд; геометрия, материалы и пикинг проверяются на CPU.
@@ -1065,9 +1065,9 @@ demo; редактор показывает свой — с той же мате
 Сделано:
 
 - **Старый вход.** `engine/lib/pet_engine.dart` удалён; единственный
-  публичный вход — `lib/pet_engine_v2.dart`.
+  публичный вход — `lib/pet_engine.dart`.
 - **Тесты.** 33 файла `engine/test/*` переведены с
-  `package:pet_engine_v2/pet_engine.dart` на `pet_engine_v2.dart`; покрытие
+  `package:pet_engine/pet_engine.dart` на `pet_engine.dart`; покрытие
   внутренних механизмов (документ, уровень, частицы, навигация, ресурсы,
   скриншоты, материалы, рендер) сохранено через внутренние `src/`-импорты.
 - **Удалены фасады и мёртвый код:** `GameScene`, `GameNode`, `GameSceneView`
@@ -1206,7 +1206,7 @@ analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-ви
   пробрасывает `alphaCutoff` в unlit при сборке и применении, параметр
   добавлен в `SceneMaterial.unlit` и в `copy()`. Публичные сигнатуры
   сборщиков не ссылаются на типы форка: `AtlasSampling` и
-  `AtlasImageLoader` экспортируются из `pet_engine_v2.dart`.
+  `AtlasImageLoader` экспортируются из `pet_engine.dart`.
 - **Проверки.** `engine` — analyze чист, 605 тестов (перенос строк,
   однорядный legacy-режим, cutoff у unlit при сборке, мутации и copy);
   `demo` и `scene_editor` — analyze чист; golden-эталоны совместимости не

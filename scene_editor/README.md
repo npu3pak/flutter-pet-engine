@@ -1,7 +1,7 @@
-# scene_editor — редактор сцен pet_engine_v2
+# scene_editor — редактор сцен pet_engine
 
 Редактор `pet_engine/tools/scene_editor`, переписанный на публичный API
-`pet_engine_v2` (`SceneViewport`/`SceneController`/`SceneNode`). Целится в
+`pet_engine` (`SceneViewport`/`SceneController`/`SceneNode`). Целится в
 macOS и iPadOS.
 
 Назначение:

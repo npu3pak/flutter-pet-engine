@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/model3d_store.dart';
 import '../../state/app_state.dart';
 import '../form_fields.dart' show SectionTitle;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// The right-side panel for a selected model in the «Ресурсы» tab:
 /// read-only info (format, size, entry file) plus rename / delete and the

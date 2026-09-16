@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:demo/src/features/feature_registry.dart';
 import 'package:demo/src/features/placement.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 void main() {

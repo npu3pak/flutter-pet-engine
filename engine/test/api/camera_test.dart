@@ -2,10 +2,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/src/camera/animation_type.dart' as eng;
-import 'package:pet_engine_v2/src/camera/direction.dart' as eng;
-import 'package:pet_engine_v2/src/camera/game_camera_math.dart' as eng;
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/camera/animation_type.dart' as eng;
+import 'package:pet_engine/src/camera/direction.dart' as eng;
+import 'package:pet_engine/src/camera/game_camera_math.dart' as eng;
 import 'package:vector_math/vector_math.dart' as vm;
 
 void main() {

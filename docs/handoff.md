@@ -1,4 +1,4 @@
-# Передача контекста: pet_engine_v2 → финальная приёмка (после фазы 5)
+# Передача контекста: pet_engine → финальная приёмка (после фазы 5)
 
 Дата: 13 сентября 2026. Для нового контекста реализации.
 Читать вместе с `AGENTS.md`, `docs/tz.md`, `docs/plan.md` §8, `docs/api.md`.
@@ -24,7 +24,7 @@
 - Фаза 5 (13 сентября 2026, см. `plan.md` §8): старый вход
   `engine/lib/pet_engine.dart` и фасады из `api.md` §20 удалены из кода;
   публичный экспорт — только API `docs/api.md`; 33 теста переведены на
-  `pet_engine_v2.dart`/`src/`-импорты; `TextureCache` убран из экспорта,
+  `pet_engine.dart`/`src/`-импорты; `TextureCache` убран из экспорта,
   для чистого плана забегания добавлен `LevelBaker.planning()`.
 - `engine`: `analyze` чист, **511 тестов** зелёные (минус тесты снятых
   фасадов).
@@ -61,7 +61,7 @@
 ## 1. Проверка базлайна
 
 ```bash
-cd pet_engine_v2/engine
+cd pet_engine/engine
 fvm flutter pub get
 fvm flutter analyze      # No issues found
 fvm flutter test         # 511 тестов
@@ -115,14 +115,14 @@ fvm flutter test         # 349 тестов
 
 ## 4. Фаза 5: очистка (выполнена 13 сентября 2026)
 
-Цель: публичный экспорт `pet_engine_v2` — только API из `docs/api.md`;
+Цель: публичный экспорт `pet_engine` — только API из `docs/api.md`;
 старые фасады удалены из кода и экспорта (список — `api.md` §20).
 
 Что сделано:
 
 1. Покрытие `engine/test/*` (33 файла с
-   `package:pet_engine_v2/pet_engine.dart`) переведено на
-   `pet_engine_v2.dart` или внутренние `src/`-пути; ничего не потеряно
+   `package:pet_engine/pet_engine.dart`) переведено на
+   `pet_engine.dart` или внутренние `src/`-пути; ничего не потеряно
    (документ, уровень, частицы, навигация, ресурсы, скриншоты).
 2. Удалён старый вход `engine/lib/pet_engine.dart` и фасады из `api.md`
    §20 (`GameScene`, `GameNode`, `GameSceneView`, `EngineScene`,
@@ -145,9 +145,9 @@ fvm flutter test         # 349 тестов
 
 ## 5. Правила
 
-- `AGENTS.md` — рабочая область `pet_games`; `pet_engine_v2` можно менять
+- `AGENTS.md` — рабочая область `pet_games`; `pet_engine` можно менять
   свободно; форк — читать и добавлять хелперы/багфиксы; `pet_engine`,
-  игры — только читать; временные файлы — `pet_engine_v2/temp/`.
+  игры — только читать; временные файлы — `pet_engine/temp/`.
 - Коммиты — только по явной просьбе владельца, сообщения по-русски.
 - Документы — источник истины; расхождение → сначала `docs/api.md`, потом
   код.

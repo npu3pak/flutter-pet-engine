@@ -4,8 +4,8 @@ import 'package:demo/src/features/ready_scenes.dart';
 import 'package:demo/src/project_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 
 import 'test_helpers/test_app.dart';
 

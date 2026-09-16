@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
-import 'package:pet_engine_v2/src/engine/game_resource_manager.dart'
+import 'package:pet_engine/pet_engine.dart';
+import 'package:pet_engine/src/engine/game_resource_manager.dart'
     show GameResourceManager;
 
 /// The real Pet sample project (repo root).

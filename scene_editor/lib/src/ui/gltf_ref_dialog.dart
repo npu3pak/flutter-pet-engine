@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Dialog that picks a glTF/GLB resource of the project's `3d_models/`
 /// catalog to place as an instance («GLB/GLTF» tool and «Заменить ресурс»):

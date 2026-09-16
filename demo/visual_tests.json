@@ -1422,7 +1422,7 @@
           "at": "2026-09-12T03:28:51.382Z",
           "author": "agent",
           "kind": "fixed",
-          "text": "Пути обновлены на packages/pet_engine_v2/... в particle_presets.dart и тесте.",
+          "text": "Пути обновлены на packages/pet_engine/... в particle_presets.dart и тесте.",
           "status": "fixed",
           "version": "app 0.1.0+1 · engine 0.1.0-dev.1 · commit неизвестно"
         }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 import 'src/app_info.dart';
 import 'src/app_shell.dart';
@@ -23,7 +23,7 @@ Future<void> main() async {
   );
 }
 
-/// Приложение-пример движка `pet_engine_v2`: слева каталог возможностей, в
+/// Приложение-пример движка `pet_engine`: слева каталог возможностей, в
 /// центре рабочая область сцен, справа настройки сцены.
 class DemoApp extends StatelessWidget {
   const DemoApp({

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 
 import 'common.dart';
 import 'controls.dart';

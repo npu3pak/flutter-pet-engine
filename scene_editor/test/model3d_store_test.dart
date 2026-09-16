@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:scene_editor/src/services/model3d_store.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// Builds a Sketchfab-style glTF source folder: `scene.gltf` + siblings
 /// (bin, textures/, license) referenced by relative paths.

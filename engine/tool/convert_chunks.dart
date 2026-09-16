@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:pet_engine_v2/models.dart';
+import 'package:pet_engine/models.dart';
 
 void main(List<String> args) {
   final root = args.isNotEmpty ? args.first : 'projects/Streets';

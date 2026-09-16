@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart';
+import 'package:pet_engine/models.dart';
 
 const _chunkJson = '''
 {

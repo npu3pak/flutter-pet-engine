@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 import 'src/app_info.dart';
@@ -42,7 +42,7 @@ Future<void> configureFilePicker() async {
   }
 }
 
-/// Редактор сцен pet_engine_v2: документ с отменой действий, панели,
+/// Редактор сцен pet_engine: документ с отменой действий, панели,
 /// трёхмерный вьюпорт с выделением и гизмо, ресурсы и разметка.
 class SceneEditorApp extends StatefulWidget {
   const SceneEditorApp({

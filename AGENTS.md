@@ -1,18 +1,19 @@
 # AGENTS.md
 
-`pet_engine_v2` is the next generation of the `pet_engine` game engine with a
-Flutter-style public API: `SceneViewport` (widget) + `SceneController`
-(controller) + `SceneNode` (live nodes). The old engine lives separately in
-`../pet_engine` and is not rewritten. The shared `flutter_scene` fork is a
-separate repository at `../flutter_scene`. Documentation and commit messages
-are written in Russian; code identifiers are English.
+`pet_engine` is a game engine with a Flutter-style public API:
+`SceneViewport` (widget) + `SceneController` (controller) + `SceneNode`
+(live nodes). It superseded the old engine (v1), which no longer exists in
+this workspace (its history lives on in `npu3pak/flutter-pet-engine`). The
+shared `flutter_scene` fork is a separate repository at `../flutter_scene`.
+Documentation and commit messages are written in Russian; code identifiers
+are English.
 
 ## Layout
 
-- `engine/` — the `pet_engine_v2` package: `model_v1` document, render core,
+- `engine/` — the `pet_engine` package: `model_v1` document, render core,
   level layer, navigation, particles, resources. The only public entry point
-  is `lib/pet_engine_v2.dart` (since phase 5); the old `pet_engine.dart` and
-  the v1 facades are removed. Internal plumbing (`src/`) stays available to
+  is `lib/pet_engine.dart` (since phase 5); the v1-era entry and facades
+  are removed. Internal plumbing (`src/`) stays available to
   the package's own tests via `src/` imports.
 - `demo/` — the example app (phase 3): the full feature catalog and
   documentation-as-code. Written for junior and mid-level developers: keep
@@ -50,22 +51,22 @@ cd ../flutter_scene/packages/flutter_scene && fvm flutter analyze && fvm flutter
 
 ## Working-directory boundaries
 
-- The workspace is `pet_games`. `pet_engine_v2` may be read and changed
+- The workspace is `pet_games`. `pet_engine` may be read and changed
   freely (add, change, delete).
 - `../flutter_scene` (the shared fork) may be read, and may receive helper
   additions and bug fixes. Keep fork analyze and tests green; do not change
   its formats or sacred conventions.
-- Other sibling directories (`../pet_engine`, `../math_quest`,
-  `../mypet-game`) may be read as references, but never modified.
-- Scratch files go only to `pet_engine_v2/temp/`; `/tmp`, the home directory,
+- Other sibling directories (`../math_quest`, `../mypet-game`) may be read
+  as references, but never modified.
+- Scratch files go only to `pet_engine/temp/`; `/tmp`, the home directory,
   and files outside `pet_games` are forbidden.
 - Information about plugins, dependencies, and third-party libraries comes
   from their sources, the internet and official docs.
 
 ## Repository boundaries
 
-- The old repository `../pet_engine` is frozen: do not rewrite or refactor
-  it. Only path fixes related to the fork move were allowed there.
+- The old v1 repository is gone from the workspace (history: GitHub
+  `npu3pak/flutter-pet-engine`); do not resurrect its checkout here.
 - Apps (demo, scene_editor) must not import `package:flutter_scene/...`;
   fork types stay inside the engine.
 - Changes to formats, rendering, or conventions require updating
@@ -92,7 +93,7 @@ repository, the engine has been copied, the knowledge base exists. Phase 1
 `docs/features.md`, the public API is `docs/api.md`, the implementation brief
 is `docs/tz.md`.
 
-Phase 2 (core API) is done (September 12, 2026): `lib/pet_engine_v2.dart`
+Phase 2 (core API) is done (September 12, 2026): `lib/pet_engine.dart`
 exposes `SceneViewport`/`SceneController`/`SceneNode`, materials, textures,
 shaders, geometry, cameras, input, picking, dynamics, mechanism nodes,
 document `ModelNode` and `QualityController`. `engine` analyze is clean and

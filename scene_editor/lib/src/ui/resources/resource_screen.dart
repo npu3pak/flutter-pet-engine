@@ -13,7 +13,7 @@ import 'model3d_tile.dart';
 import 'model_viewer_screen.dart';
 import 'resource_editor_panel.dart';
 import 'resource_tile.dart';
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// The «Ресурсы» workspace tab: grid of project resources
 /// (Текстуры / Спрайты / Модели) + editor panel.

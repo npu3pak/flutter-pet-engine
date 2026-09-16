@@ -1,5 +1,5 @@
 name: demo
-description: "demo: приложение-пример pet_engine_v2 — каталог фич, визуальная проверка, документация кодом."
+description: "demo: приложение-пример pet_engine — каталог фич, визуальная проверка, документация кодом."
 publish_to: 'none'
 
 version: 0.1.0+1
@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   hooks: ^2.0.0
   path: ^1.9.1
-  pet_engine_v2:
+  pet_engine:
     path: ../engine
   vector_math: ^2.1.4
 

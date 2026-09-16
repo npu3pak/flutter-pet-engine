@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'app_log.dart';
 import 'project_files.dart';
 import 'resource_store.dart' show ResourceStore;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/pet_engine.dart';
 
 /// The result of an import: [error] (null on success) and the imported
 /// catalog [name].

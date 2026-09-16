@@ -7,8 +7,8 @@ import 'package:demo/src/features/polyhedra_map.dart';
 import 'package:demo/src/features/polyhedra_runtime.dart';
 import 'package:demo/src/features/polyhedra_select.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/models.dart' as doc;
-import 'package:pet_engine_v2/pet_engine_v2.dart';
+import 'package:pet_engine/models.dart' as doc;
+import 'package:pet_engine/pet_engine.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 import 'test_helpers/test_app.dart';

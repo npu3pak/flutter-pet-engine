@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/render/sprite_field_layer.dart';
+import 'package:pet_engine/src/render/sprite_field_layer.dart';
 
 void main() {
   group('SpriteFieldLayer', () {

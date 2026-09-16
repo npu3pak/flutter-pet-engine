@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine_v2/src/scene/polyhedron.dart';
+import 'package:pet_engine/src/scene/polyhedron.dart';
 import 'package:vector_math/vector_math.dart' as vm;
 
 double _triangleArea(vm.Vector2 a, vm.Vector2 b, vm.Vector2 c) =>
