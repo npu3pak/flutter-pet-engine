@@ -6,7 +6,7 @@
 // Запуск (из корня репозитория):
 //   fvm dart run scripts/stage_app_assets.dart
 //   fvm dart run scripts/stage_app_assets.dart --project projects/Pet --out demo/assets/pet_project
-//   fvm dart run scripts/stage_app_assets.dart --full --out scene_editor/assets/pet_project
+//   fvm dart run scripts/stage_app_assets.dart --full --out ../pet_engine_scene_editor/assets/pet_project
 //
 // Бандл сохраняет структуру проекта: project.json, models/*.json,
 // textures/<key>, sprites/<key>, 3d_models/<имя>/… (целиком для glTF-папок).

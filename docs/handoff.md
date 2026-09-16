@@ -70,7 +70,7 @@ cd ../demo
 fvm flutter analyze      # No issues found
 fvm flutter test         # 164 теста
 
-cd ../scene_editor
+cd ../pet_engine_scene_editor
 fvm flutter analyze      # No issues found
 fvm flutter test         # 349 тестов
 ```

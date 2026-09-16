@@ -18,8 +18,6 @@ written in Russian; code identifiers are English.
 - `demo/` — the example app (phase 3): the full feature catalog and
   documentation-as-code. Written for junior and mid-level developers: keep
   it clear.
-- `scene_editor/` — the scene editor on API v2 (phase 4). Optimization
-  matters more than clarity here.
 - `docs/` — the knowledge base: `plan.md` (idea and phases), `features.md`
   (feature registry with examples and code references), `architecture.md`,
   `api.md`, `migration.md`, `conventions.md`, `visual_testing.md`, `tz.md`
@@ -70,8 +68,8 @@ fvm flutter analyze && fvm flutter test
 
 - The old v1 repository is gone from the workspace (history: GitHub
   `npu3pak/flutter-pet-engine`); do not resurrect its checkout here.
-- Apps (demo, scene_editor) must not import `package:flutter_scene/...`;
-  fork types stay inside the engine.
+- Apps (`demo` here, `../pet_engine_scene_editor` outside) must not import
+  `package:flutter_scene/...`; fork types stay inside the engine.
 - Changes to formats, rendering, or conventions require updating
   `docs/conventions.md` and tests.
 - Commit only when explicitly asked by the owner.
@@ -162,6 +160,8 @@ through a bounded LRU cache (`clearSharedAtlasCache`), and unlit
 `SceneMaterial.unlit` and preserved by `copy()`). Also on September 16 the
 shared `flutter_scene` fork was moved back into the engine checkout —
 `engine/third_party/flutter_scene` (a plain folder, no nested repository).
+The scene editor was extracted from the repository to
+`../pet_engine_scene_editor` (its history stays in this repository).
 
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).
