@@ -12,7 +12,7 @@ dependencies:
     sdk: flutter
 
   flutter_scene:
-    path: ../../flutter_scene/packages/flutter_scene
+    path: third_party/flutter_scene/packages/flutter_scene
   hooks: ^2.0.0
   path: ^1.9.1
   vector_math: ^2.1.4

@@ -1,0 +1,239 @@
+import 'package:scene/scene.dart';
+import 'package:flutter_scene_editor_core/flutter_scene_editor_core.dart';
+import 'package:test/test.dart';
+
+// The stage's global look lives in an environment resource the stage references;
+// the stage-look commands (setSkybox/setSkyParameters) create and link one on
+// first use.
+EnvironmentResource _stageEnv(EditorSession s) =>
+    s.document.resources[s.document.stage.environmentRef!]!
+        as EnvironmentResource;
+
+void main() {
+  test('setStageProperties updates only given render keys and reverts', () {
+    final session = EditorSession.empty();
+    StageMetadata stage() => session.document.stage;
+    expect(stage().renderScale, 1.0);
+    expect(stage().antiAliasingMode, 'auto');
+
+    session.run('setStageProperties', {
+      'properties': {'renderScale': 0.5, 'antiAliasingMode': 'fxaa'},
+    });
+    expect(stage().renderScale, 0.5);
+    expect(stage().antiAliasingMode, 'fxaa');
+    // Untouched keys keep their defaults.
+    expect(stage().filterQuality, 'medium');
+
+    session.undo();
+    expect(stage().renderScale, 1.0);
+    expect(stage().antiAliasingMode, 'auto');
+  });
+
+  test('setSkybox sets a procedural sky + sky lighting and reverts', () {
+    final session = EditorSession.empty();
+    expect(session.document.stage.environmentRef, isNull);
+
+    session.run('setSkybox', {
+      'sky': 'gradient',
+      'sunDirection': {'x': 0.2, 'y': 0.8, 'z': 0.1},
+      'lightScene': true,
+    });
+    expect(_stageEnv(session).skybox?.source, isA<GradientSkySpec>());
+    expect(_stageEnv(session).skyEnvironment, isNotNull);
+
+    // Turning lighting off keeps the skybox but drops the sky environment.
+    session.run('setSkybox', {'sky': 'gradient', 'lightScene': false});
+    expect(_stageEnv(session).skybox?.source, isA<GradientSkySpec>());
+    expect(_stageEnv(session).skyEnvironment, isNull);
+
+    // Undoing both edits reverts the create, so the stage has no resource again.
+    session.undo();
+    session.undo();
+    expect(session.document.stage.environmentRef, isNull);
+    expect(
+      session.document.resources.values.whereType<EnvironmentResource>(),
+      isEmpty,
+    );
+  });
+
+  test('setSkybox keeps tuned parameters across a lighting toggle', () {
+    final session = EditorSession.empty();
+
+    session.run('setSkybox', {'sky': 'physical', 'lightScene': true});
+    session.run('setSkyParameters', {
+      'properties': {'turbidity': 4.0, 'energy': 2.0},
+    });
+    expect(
+      (_stageEnv(session).skybox!.source as PhysicalSkySpec).turbidity,
+      4.0,
+    );
+
+    // Toggling lighting off (no sky param given) must not reset the sky.
+    session.run('setSkybox', {'sky': 'physical', 'lightScene': false});
+    final sky = _stageEnv(session).skybox!.source as PhysicalSkySpec;
+    expect(sky.turbidity, 4.0);
+    expect(sky.energy, 2.0);
+    expect(_stageEnv(session).skyEnvironment, isNull);
+  });
+
+  test('setSkyParameters tunes both the skybox and sky lighting, reverts', () {
+    final session = EditorSession.empty();
+
+    session.run('setSkybox', {'sky': 'gradient', 'lightScene': true});
+    final before =
+        (_stageEnv(session).skybox!.source as GradientSkySpec).sunSharpness;
+
+    session.run('setSkyParameters', {
+      'properties': {
+        'sunSharpness': 900.0,
+        'sunColor': {'x': 4.0, 'y': 3.0, 'z': 2.0},
+      },
+    });
+    final skybox = _stageEnv(session).skybox!.source as GradientSkySpec;
+    final lighting =
+        _stageEnv(session).skyEnvironment!.source as GradientSkySpec;
+    expect(skybox.sunSharpness, 900.0);
+    expect(skybox.sunColor.x, 4.0);
+    // The lighting source mirrors the same parameters.
+    expect(lighting.sunSharpness, 900.0);
+    expect(lighting.sunColor.z, 2.0);
+
+    session.undo();
+    expect(
+      (_stageEnv(session).skybox!.source as GradientSkySpec).sunSharpness,
+      before,
+    );
+  });
+
+  test('setSkyParameters without a skybox throws', () {
+    final session = EditorSession.empty();
+    expect(
+      () => session.run('setSkyParameters', {
+        'properties': {'energy': 2.0},
+      }),
+      throwsA(isA<CommandException>()),
+    );
+  });
+
+  test('setSkybox toggles sky-driven shadows and they survive tuning', () {
+    final session = EditorSession.empty();
+
+    session.run('setSkybox', {
+      'sky': 'physical',
+      'lightScene': true,
+      'castShadows': true,
+    });
+    expect(_stageEnv(session).skyEnvironment!.castShadows, isTrue);
+
+    // Tuning a parameter keeps shadows on.
+    session.run('setSkyParameters', {
+      'properties': {'energy': 2.0},
+    });
+    expect(_stageEnv(session).skyEnvironment!.castShadows, isTrue);
+
+    // Turning shadows off keeps the sky lighting.
+    session.run('setSkybox', {'sky': 'physical', 'castShadows': false});
+    expect(_stageEnv(session).skyEnvironment, isNotNull);
+    expect(_stageEnv(session).skyEnvironment!.castShadows, isFalse);
+
+    // Shadows require sky lighting; dropping it drops the binding entirely.
+    session.run('setSkybox', {
+      'sky': 'physical',
+      'lightScene': false,
+      'castShadows': true,
+    });
+    expect(_stageEnv(session).skyEnvironment, isNull);
+  });
+
+  test('setSkybox carries the sun direction across a type switch', () {
+    final session = EditorSession.empty();
+
+    session.run('setSkybox', {
+      'sky': 'gradient',
+      'sunDirection': {'x': 0.1, 'y': 0.9, 'z': 0.2},
+    });
+    session.run('setSkybox', {'sky': 'physical'});
+    final sky = _stageEnv(session).skybox!.source as PhysicalSkySpec;
+    expect(sky.sunDirection.x, closeTo(0.1, 1e-6));
+    expect(sky.sunDirection.y, closeTo(0.9, 1e-6));
+    expect(sky.sunDirection.z, closeTo(0.2, 1e-6));
+  });
+
+  test('setEnvironmentProperties sets and clears the reflection size', () {
+    final session = EditorSession.empty();
+    session.run('createEnvironmentResource', {});
+    final id = session.document.resources.values
+        .whereType<EnvironmentResource>()
+        .single
+        .id;
+    EnvironmentResource env() =>
+        session.document.resource(id)! as EnvironmentResource;
+
+    session.run('setEnvironmentProperties', {
+      'environmentId': id.toToken(),
+      'properties': {'radianceCubeSize': 1024},
+    });
+    expect(env().radianceCubeSize, 1024);
+
+    // A non-positive value clears back to the engine default (null).
+    session.run('setEnvironmentProperties', {
+      'environmentId': id.toToken(),
+      'properties': {'radianceCubeSize': 0},
+    });
+    expect(env().radianceCubeSize, isNull);
+  });
+
+  group('environment resources', () {
+    EnvironmentResource only(EditorSession s) =>
+        s.document.resources.values.whereType<EnvironmentResource>().single;
+
+    test('create then edit the look, skybox, and sky parameters', () {
+      final session = EditorSession.empty();
+      session.run('createEnvironmentResource', {'name': 'cave'});
+      final id = only(session).id;
+      expect(only(session).name, 'cave');
+
+      session.run('setEnvironmentProperties', {
+        'environmentId': id.toToken(),
+        'properties': {'exposure': 0.3, 'environment': 'empty'},
+      });
+      expect(only(session).exposure, 0.3);
+      expect(only(session).environment, isA<EmptyEnvironment>());
+
+      session.run('setEnvironmentSkybox', {
+        'environmentId': id.toToken(),
+        'sky': 'physical',
+        'lightScene': true,
+      });
+      expect(only(session).skybox?.source, isA<PhysicalSkySpec>());
+      expect(only(session).skyEnvironment, isNotNull);
+
+      session.run('setEnvironmentSkyParameters', {
+        'environmentId': id.toToken(),
+        'properties': {'turbidity': 4.0},
+      });
+      expect((only(session).skybox!.source as PhysicalSkySpec).turbidity, 4.0);
+
+      session.undo();
+      expect(
+        (only(session).skybox!.source as PhysicalSkySpec).turbidity,
+        isNot(4.0),
+      );
+    });
+
+    test('editing a non-environment resource throws', () {
+      final session = EditorSession.empty();
+      session.run('createMaterial', {'type': 'physicallyBased'});
+      final material = session.document.resources.values
+          .whereType<MaterialResource>()
+          .single;
+      expect(
+        () => session.run('setEnvironmentProperties', {
+          'environmentId': material.id.toToken(),
+          'properties': {'exposure': 1.0},
+        }),
+        throwsA(isA<CommandException>()),
+      );
+    });
+  });
+}

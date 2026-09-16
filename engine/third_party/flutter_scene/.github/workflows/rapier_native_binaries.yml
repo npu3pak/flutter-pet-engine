@@ -1,0 +1,229 @@
+name: flutter_scene_rapier native binaries
+
+# Cross-builds the Rapier native shim for every supported target and
+# attaches the libraries plus a checksum manifest (native_binaries.json)
+# to a GitHub release. The build hook downloads from that release so
+# consumers do not need a Rust toolchain.
+#
+# Triggers on a flutter_scene_rapier-* tag push, or run manually with a
+# tag input to (re)build a release's binaries. A tag whose name contains
+# "citest" builds the whole matrix on the runners but skips the release
+# step, so the cross-builds can be validated without publishing anything.
+
+on:
+  push:
+    tags:
+      - 'flutter_scene_rapier-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and attach binaries to (e.g. flutter_scene_rapier-0.0.1)'
+        required: true
+
+env:
+  NATIVE_DIR: packages/flutter_scene_rapier/native
+  LIB_NAME: flutter_scene_rapier_native
+  # Minimum Android API the prebuilt .so files are linked against. A
+  # binary built at this level loads on this API and newer.
+  ANDROID_API: '21'
+
+jobs:
+  build:
+    name: Build ${{ matrix.triple }}
+    runs-on: ${{ matrix.runner }}
+    # A healthy build is 1-2 minutes; this aborts a hung runner rather
+    # than letting it occupy the job for hours.
+    timeout-minutes: 20
+    continue-on-error: ${{ matrix.optional == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS
+          - { runner: macos-latest, triple: aarch64-apple-darwin, ext: dylib }
+          # iOS (device + arm64 simulator)
+          - { runner: macos-latest, triple: aarch64-apple-ios, ext: dylib, ios_deploy: '13.0' }
+          - { runner: macos-latest, triple: aarch64-apple-ios-sim, ext: dylib, ios_deploy: '13.0' }
+          # The x86_64-apple targets (Intel Macs, Intel-Mac iOS simulator)
+          # are intentionally omitted: cross-compiling x86_64 on the
+          # Apple-Silicon macos-latest runner reliably hangs (it builds fine
+          # on an Intel host). Consumers on those targets fall back to the
+          # build hook's cargo source build. Re-add with a working runner or
+          # toolchain fix.
+          # Linux
+          - { runner: ubuntu-latest, triple: x86_64-unknown-linux-gnu, ext: so }
+          - { runner: ubuntu-latest, triple: aarch64-unknown-linux-gnu, ext: so, apt: gcc-aarch64-linux-gnu, linker_env: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER, linker: aarch64-linux-gnu-gcc }
+          # Android (built with the NDK clang as the linker)
+          - { runner: ubuntu-latest, triple: aarch64-linux-android, ext: so, android_abi: arm64-v8a }
+          - { runner: ubuntu-latest, triple: armv7-linux-androideabi, ext: so, android_abi: armeabi-v7a }
+          - { runner: ubuntu-latest, triple: x86_64-linux-android, ext: so, android_abi: x86_64 }
+          # Windows
+          - { runner: windows-latest, triple: x86_64-pc-windows-msvc, ext: dll }
+          - { runner: windows-latest, triple: aarch64-pc-windows-msvc, ext: dll, optional: true }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Install Linux cross linker
+        if: ${{ matrix.apt }}
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt }}
+
+      - name: Configure cross linker
+        if: ${{ matrix.linker }}
+        shell: bash
+        run: echo "${{ matrix.linker_env }}=${{ matrix.linker }}" >> "$GITHUB_ENV"
+
+      - name: Build (Android)
+        if: ${{ matrix.android_abi }}
+        shell: bash
+        working-directory: ${{ env.NATIVE_DIR }}
+        run: |
+          # Link with the NDK clang driver and tell it the ABI and API
+          # level through the clang target, matching the build hook.
+          ndk="${ANDROID_NDK_HOME:-$ANDROID_NDK_LATEST_HOME}"
+          host=$(ls "$ndk/toolchains/llvm/prebuilt" | head -1)
+          clang="$ndk/toolchains/llvm/prebuilt/$host/bin/clang"
+          triple="${{ matrix.triple }}"
+          if [ "$triple" = "armv7-linux-androideabi" ]; then
+            clang_target="armv7a-linux-androideabi"
+          else
+            clang_target="$triple"
+          fi
+          env_triple=$(echo "$triple" | tr 'a-z-' 'A-Z_')
+          export "CARGO_TARGET_${env_triple}_LINKER=$clang"
+          # Align ELF load segments to 16 KB so the library loads on devices
+          # with 16 KB memory pages (Android 15+; required on Pixel 8 and
+          # newer). The default is 4 KB, which fails the loader's alignment
+          # check ("ELF alignment check failed"). Keep in sync with the
+          # source-build flags in hook/build.dart.
+          export "CARGO_TARGET_${env_triple}_RUSTFLAGS=-Clink-arg=--target=${clang_target}${ANDROID_API} -Clink-arg=-Wl,-z,max-page-size=16384"
+          cargo build --release --target "$triple"
+
+      - name: Build (cargo)
+        if: ${{ !matrix.android_abi }}
+        shell: bash
+        working-directory: ${{ env.NATIVE_DIR }}
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: ${{ matrix.ios_deploy }}
+        run: cargo build --release --target ${{ matrix.triple }}
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.ext }}" = "dll" ]; then
+            src="${NATIVE_DIR}/target/${{ matrix.triple }}/release/${LIB_NAME}.dll"
+          else
+            src="${NATIVE_DIR}/target/${{ matrix.triple }}/release/lib${LIB_NAME}.${{ matrix.ext }}"
+          fi
+          dest="dist/${LIB_NAME}-${{ matrix.triple }}.${{ matrix.ext }}"
+          cp "$src" "$dest"
+          ls -l "$dest"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.triple }}
+          path: dist/${{ env.LIB_NAME }}-${{ matrix.triple }}.${{ matrix.ext }}
+          if-no-files-found: error
+
+  # The web target cannot use the code-asset matrix above (no dart:ffi on
+  # the web); it loads a WebAssembly build of the shim instead. Build and
+  # size-optimize it here so the artifact is available for shipping.
+  build-wasm:
+    name: Build wasm32
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install binaryen
+        run: sudo apt-get update && sudo apt-get install -y binaryen
+      - name: Build
+        working-directory: ${{ env.NATIVE_DIR }}
+        run: cargo build --release --target wasm32-unknown-unknown
+      - name: Optimize
+        shell: bash
+        run: |
+          mkdir -p dist
+          wasm-opt -Oz \
+            "${NATIVE_DIR}/target/wasm32-unknown-unknown/release/${LIB_NAME}.wasm" \
+            -o "dist/${LIB_NAME}.wasm"
+          ls -l "dist/${LIB_NAME}.wasm"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: wasm32-unknown-unknown
+          path: dist/${{ env.LIB_NAME }}.wasm
+          if-no-files-found: error
+
+  release:
+    name: Assemble manifest and release
+    needs: [build, build-wasm]
+    # Validation runs push a tag containing "citest" to exercise the full
+    # build matrix on the runners without publishing a release.
+    if: ${{ !contains(github.ref_name, 'citest') && !contains(inputs.tag, 'citest') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download all binaries
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Generate manifest and collect binaries
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p dist
+          python3 - <<'PY'
+          import hashlib, json, os, shutil
+
+          tag = os.environ["RELEASE_TAG"]
+          repo = os.environ["REPOSITORY"]
+          prefix = "flutter_scene_rapier-"
+          version = tag[len(prefix):] if tag.startswith(prefix) else tag
+
+          binaries = {}
+          for triple in sorted(os.listdir("artifacts")):
+              triple_dir = os.path.join("artifacts", triple)
+              if not os.path.isdir(triple_dir):
+                  continue
+              files = os.listdir(triple_dir)
+              assert len(files) == 1, f"{triple_dir} should hold one file, got {files}"
+              name = files[0]
+              src = os.path.join(triple_dir, name)
+              shutil.copy(src, os.path.join("dist", name))
+              digest = hashlib.sha256(open(src, "rb").read()).hexdigest()
+              binaries[triple] = {"file": name, "sha256": digest}
+
+          manifest = {
+              "version": version,
+              "base_url": f"https://github.com/{repo}/releases/download",
+              "tag": tag,
+              "binaries": binaries,
+          }
+          with open("dist/native_binaries.json", "w") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")
+          print(json.dumps(manifest, indent=2))
+          PY
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: dist/*
+          fail_on_unmatched_files: true

@@ -214,7 +214,7 @@ packages:
   flutter_scene:
     dependency: transitive
     description:
-      path: "../../flutter_scene/packages/flutter_scene"
+      path: "../engine/third_party/flutter_scene/packages/flutter_scene"
       relative: true
     source: path
     version: "0.20.0"

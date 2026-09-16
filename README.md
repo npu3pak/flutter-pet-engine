@@ -16,12 +16,14 @@ API в стиле Flutter — виджет `SceneViewport` плюс контро
 | `demo/` | приложение-пример: все возможности движка, документация кодом | фаза 3 |
 | `scene_editor/` | редактор сцен на API v2 | фаза 4 |
 | `docs/` | единая база знаний | ведётся с фазы 0 |
+| `engine/third_party/flutter_scene` | общий форк `flutter_scene` | вложен в движок, без своего git |
 | `projects/` | проекты сцен и ресурсы (Pet, биомы) | скопированы из v1 |
 | `scripts/` | staging ассетов, perf, служебные скрипты | перенесены из v1 |
 | `temp/` | временные файлы (в git не попадают) | — |
 
-Общий форк `flutter_scene` живёт отдельно: `../flutter_scene` (собственный
-git-репозиторий, общий для движка и проектов).
+Общий форк `flutter_scene` лежит внутри движка:
+`engine/third_party/flutter_scene` — обычный каталог, без вложенного
+git-репозитория (общий для движка и проектов через path-зависимость).
 
 ## Команды
 
@@ -36,7 +38,7 @@ fvm flutter analyze
 fvm flutter test
 
 # форк (после правок)
-cd ../flutter_scene/packages/flutter_scene
+cd third_party/flutter_scene/packages/flutter_scene
 fvm flutter test
 
 # staging ресурсов demo (из корня репозитория, когда появится demo)

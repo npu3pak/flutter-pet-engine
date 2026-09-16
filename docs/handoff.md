@@ -33,7 +33,7 @@
   `demo/visual_tests.json`).
 - `scene_editor`: `analyze` чист, **349 тестов** зелёные; визуальные
   проверки вьюпорта — `scene_editor/visual_tests.json` (bug_1–bug_10).
-- Форк (`../flutter_scene`) с пиксельным режимом `LineSegmentsGeometry` и
+- Форк (`engine/third_party/flutter_scene`) с пиксельным режимом `LineSegmentsGeometry` и
   `expandLineSegments` (analyze/тесты зелёные).
 - Коммиты — по явной просьбе владельца; текущая работа закоммичена
   (c78edee и ранее).

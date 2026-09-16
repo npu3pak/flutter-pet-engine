@@ -4,9 +4,9 @@
 `SceneViewport` (widget) + `SceneController` (controller) + `SceneNode`
 (live nodes). It superseded the old engine (v1), which no longer exists in
 this workspace (its history lives on in `npu3pak/flutter-pet-engine`). The
-shared `flutter_scene` fork is a separate repository at `../flutter_scene`.
-Documentation and commit messages are written in Russian; code identifiers
-are English.
+shared `flutter_scene` fork lives inside the engine checkout at
+`engine/third_party/flutter_scene`. Documentation and commit messages are
+written in Russian; code identifiers are English.
 
 ## Layout
 
@@ -25,6 +25,8 @@ are English.
   `api.md`, `migration.md`, `conventions.md`, `visual_testing.md`, `tz.md`
   (the implementation brief), `handoff.md` (transfer context and the state
   of the phases).
+- `engine/third_party/flutter_scene` — the shared `flutter_scene` fork (a
+  plain folder, no nested repository).
 - `projects/` — scene projects and resources (copied from v1).
 - `scripts/` — asset staging (`stage_app_assets.dart`), perf scripts.
 - `temp/` — the only place for scratch files (not tracked by git).
@@ -46,14 +48,15 @@ fvm dart run scripts/stage_app_assets.dart
 cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 
 # fork — the shared path dependency; helpers and bug fixes are allowed
-cd ../flutter_scene/packages/flutter_scene && fvm flutter analyze && fvm flutter test
+cd engine/third_party/flutter_scene/packages/flutter_scene
+fvm flutter analyze && fvm flutter test
 ```
 
 ## Working-directory boundaries
 
 - The workspace is `pet_games`. `pet_engine` may be read and changed
   freely (add, change, delete).
-- `../flutter_scene` (the shared fork) may be read, and may receive helper
+- `engine/third_party/flutter_scene` (the shared fork) may receive helper
   additions and bug fixes. Keep fork analyze and tests green; do not change
   its formats or sacred conventions.
 - Other sibling directories (`../math_quest`, `../mypet-game`) may be read
@@ -156,7 +159,9 @@ Same branch (September 16, 2026): sprite atlases wrap into rows beyond
 texture-width limit), `SpriteFieldLayer` shares composed atlases process-wide
 through a bounded LRU cache (`clearSharedAtlasCache`), and unlit
 `SceneMaterial` honours `alphaCutoff` (now also a parameter of
-`SceneMaterial.unlit` and preserved by `copy()`).
+`SceneMaterial.unlit` and preserved by `copy()`). Also on September 16 the
+shared `flutter_scene` fork was moved back into the engine checkout —
+`engine/third_party/flutter_scene` (a plain folder, no nested repository).
 
 Next: final owner acceptance of the whole v2 (engine, docs, demo,
 scene_editor).

@@ -1,0 +1,23 @@
+version: 2
+enable-beta-ecosystems: true
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "pub"
+    versioning-strategy: "increase-if-necessary"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "pub"
+    versioning-strategy: "increase-if-necessary"
+    directory: "/packages/flutter_scene_importer/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "pub"
+    versioning-strategy: "increase-if-necessary"
+    directory: "/examples/flutter_app/"
+    schedule:
+      interval: "daily"
+    

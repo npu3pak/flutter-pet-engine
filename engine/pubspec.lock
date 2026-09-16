@@ -126,7 +126,7 @@ packages:
   flutter_scene:
     dependency: "direct main"
     description:
-      path: "../../flutter_scene/packages/flutter_scene"
+      path: "third_party/flutter_scene/packages/flutter_scene"
       relative: true
     source: path
     version: "0.20.0"

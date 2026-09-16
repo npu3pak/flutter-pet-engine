@@ -1,0 +1,36 @@
+name: smoke_render
+description: "Deterministic render smoke tests for flutter_scene (dev-only, not published)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+resolution: workspace
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_gpu_shaders: ^0.5.1
+  flutter_scene: ^0.20.0
+  hooks: ^2.0.0
+  vector_math: ^2.1.4
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    # Custom material bundle + parameter sidecar, produced by buildMaterials in
+    # hook/build.dart.
+    - build/shaderbundles/materials.shaderbundle
+    - build/shaderbundles/materials.fmat.json
+    # Skinned animated test model (assets_src is a symlink into
+    # examples/assets_src), for the skinned_animation scene.
+    - assets_src/two_triangles.glb
