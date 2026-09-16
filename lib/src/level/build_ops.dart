@@ -6,16 +6,16 @@ import '../models/model_scene.dart';
 import '../scene/face_snap.dart';
 import '../scene/model_renderer.dart' show objectRotation;
 
-/// The exact + convenient operation set of the level layer (migration plan
-/// §3.7): everything the in-game builder and the editor need to place and
-/// snap primitives without hand-rolling coordinate math.
+/// The exact + convenient operation set of the level layer: everything the
+/// in-game builder and the editor need to place and snap primitives without
+/// hand-rolling coordinate math.
 ///
 /// Two levels, one implementation: the exact operations ([objectBounds],
 /// [objectCenter], [translateObject], [setSizeAlong]) are public and complete;
 /// the convenient ones ([snapToFace], [alignTo], [fillGap], [cover], [inset],
 /// [outset], [stretchTo]) are thin compositions of them. All operations work
 /// in model-local coordinates and resolve immediately — no live dependency
-/// graph (plan §3.8).
+/// graph.
 ///
 /// The mirrored-X convention is sacred: positions here are model-local; the
 /// world mirror happens only in the renderer (`cellWorld`/`chunkWorld`).

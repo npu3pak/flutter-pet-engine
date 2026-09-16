@@ -755,7 +755,7 @@ const metaKindComment = 'comment';
 const metaKindMarker = 'marker';
 const metaKindBox = 'box';
 
-/// Conventional meta-box names of the level layer (migration plan §3.14):
+/// Conventional meta-box names of the level layer:
 /// occupied cells are marked by boxes named [metaNameUnpassable], doors and
 /// windows by [metaNameDoor]/[metaNameWindow]. The engine does not interpret
 /// the names — the level tools use these as defaults, games may use their
@@ -1153,7 +1153,7 @@ class ModelData {
 
   /// Entry sides of the scene (`entries`): the sides the level may connect
   /// through. The source of truth for connectivity — the level validator
-  /// compares it against the door boxes (plan §3.14).
+  /// compares it against the door boxes.
   Set<ModelSide> entries;
 
   /// Facade side of the scene (`front`), e.g. the side with the door. Null

@@ -7,7 +7,7 @@ import 'build_ops.dart';
 /// Normalizes a rotation to one of 0/90/180/270.
 int normalizeRotY(int rotY) => ((rotY % 360) + 360) % 360 ~/ 90 * 90;
 
-/// Whether a meta object takes part in meta queries (plan §3.25.2): only
+/// Whether a meta object takes part in meta queries: only
 /// boxes and markers; comments never participate.
 bool isQueryMeta(ModelMeta meta) =>
     meta.kind == metaKindBox || meta.kind == metaKindMarker;
@@ -18,7 +18,7 @@ typedef PlacedMeta = ({ScenePlacement placement, ModelMeta meta});
 
 /// A scene placed on a level grid: the engine port of the game's
 /// `PlacedChunk` + `chunkLocalToMaze`/`chunkWorldOffset`/`chunkMapCellValue`
-/// (migration plan §3.2). Placement is grid-exact; the mirrored-X convention
+///. Placement is grid-exact; the mirrored-X convention
 /// is sacred — world mapping always goes through `cellWorld`.
 ///
 /// Cell semantics (both legacy styles, matching the game):
@@ -27,7 +27,7 @@ typedef PlacedMeta = ({ScenePlacement placement, ModelMeta meta});
 ///   passable, border cells are blocked except the doors;
 /// - a scene without doors uses the legacy rule: border cells are passable
 ///   only on its entry sides, interior cells follow the `unpassable` boxes;
-/// - window boxes are geometry only and never map to cells (plan §3.2);
+/// - window boxes are geometry only and never map to cells;
 /// - an explicit `unpassable` box always blocks, even under the modern rule
 ///   (the game's passage-marked chunks ignored authored `blockedCells`; in
 ///   the engine an explicit box is authoritative — review note 5).
@@ -139,13 +139,13 @@ class ScenePlacement {
   /// even when an `unpassable` box would cover it).
   late final Set<(int, int)> doorCells = cellsUnderBoxes(metaNameDoor);
 
-  /// Window cells — geometry only, never mapped to passability (plan §3.2).
+  /// Window cells — geometry only, never mapped to passability.
   late final Set<(int, int)> windowCells = cellsUnderBoxes(metaNameWindow);
 
   /// Whether the scene uses the modern frame rule (has door boxes).
   bool get hasDoors => doorCells.isNotEmpty;
 
-  // ── meta queries (plan §3.25.2, подшаг 5.1) ──────────────────────────
+  // ── meta queries ─────────────────────────────────────────────────────
   //
   // Only boxes and markers participate in queries; comments never do.
   // A box belongs to a cell when the box rectangle and the cell rectangle
@@ -439,7 +439,7 @@ class SceneLayout {
     return covered ? false : null;
   }
 
-  // ── meta queries (plan §3.25.2, подшаг 5.1) ──────────────────────────
+  // ── meta queries ─────────────────────────────────────────────────────
 
   /// Metas at the level cell across every covering placement («сцена + мета»).
   List<PlacedMeta> metasAt(int row, int col) {

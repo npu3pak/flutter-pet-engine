@@ -1,12 +1,11 @@
 # Публичный API pet_engine
 
-Документ описывает новый API движка целиком: типы, их обязанности и примеры
+Документ описывает API движка целиком: типы, их обязанности и примеры
 использования. API выведен из реестра фич (`docs/features.md`): каждая
-возможность четырёх проектов должна выражаться перечисленными здесь
-средствами.
+возможность потребителей выражается перечисленными здесь средствами.
 
-Статус: согласовано в фазе 1; реализация — фаза 2. Имена типов и сигнатуры
-могут уточняться при реализации, но состав возможностей фиксирован.
+Статус: реализовано (API v2); это контракт публичного экспорта
+`package:pet_engine/pet_engine.dart`.
 
 ## 1. Принципы
 
@@ -22,8 +21,8 @@
 4. **Типизированные ноды.** Закрытый набор примитивов; общий базовый класс
    отвечает за жизнь ноды, наследники — за параметры.
 5. **Никаких типов форка наружу.** Приложения не импортируют
-   `package:flutter_scene/...`. Всё, что было нужно редактору и играм,
-   выражено движковыми типами.
+   `package:flutter_scene/...`. Всё, что нужно приложениям, выражено
+   движковыми типами.
 6. **Шейдеры — рантайм.** `model_v1` не меняется; шейдер назначается ноде
    кодом и не сохраняется в документ.
 7. **Проверяемость без GPU.** Логика отделена от рендера; у вьюпорта есть
@@ -83,8 +82,9 @@ SceneViewport(
 
 ## 3. Виды и слои
 
-Редактору нужны три вида одной сцены с раздельной глубиной: сцена, оверлеи,
-верхний слой гизмо. Остальным потребителям достаточно одного вида.
+Оптимизированному профилю нужны три вида одной сцены с раздельной глубиной:
+сцена, оверлеи, верхний слой гизмо. Остальным потребителям достаточно одного
+вида.
 
 ```dart
 abstract final class SceneLayer {
@@ -113,11 +113,11 @@ class SceneViewSpec {
 (`overlay`, `top`) добавляет сам, когда на этих слоях есть ноды: wireframe
 и гизмо рисуются поверх сцены без ручной настройки видов.
 
-Пример редактора:
+Пример с видами и слоями:
 
 ```dart
 SceneViewport(
-  controller: editor,
+  controller: controller,
   views: [
     SceneViewSpec.main(),
     SceneViewSpec.overlay(),
@@ -125,9 +125,9 @@ SceneViewport(
   ],
 );
 
-final contour = editor.add(LineNode(geometry: contourGeometry, color: Colors.blue))
+final contour = controller.add(LineNode(geometry: contourGeometry, color: Colors.blue))
   ..layer = SceneLayer.overlay;
-final gizmo = editor.add(MeshNode(geometry: arrowGeometry, material: gizmoMaterial))
+final gizmo = controller.add(MeshNode(geometry: arrowGeometry, material: gizmoMaterial))
   ..layer = SceneLayer.top;
 ```
 
@@ -274,9 +274,9 @@ class SceneController extends ChangeNotifier {
   glTF-ресурсы доезжают асинхронно, ноды обновляются сами (см. A6).
 - `addObject`/`removeObject`, `addMeta`/`removeMeta`,
   `addDocumentLight`/`removeDocumentLight`, `addGroup`/`removeGroup` меняют
-  документ и сцену синхронно — на этом редактор строит отмену действий.
+  документ и сцену синхронно — на этом приложения строят отмену действий.
   Остальные поля документа можно править напрямую, затем звать `rebuild()`.
-- `revision` увеличивается при каждой пересборке; редактор по нему решает,
+- `revision` увеличивается при каждой пересборке; приложение по нему решает,
   нужно ли обновлять вьюпорт.
 - `update` вызывает вьюпорт; при `autoTick: false` приложение зовёт само.
 - `raycast` возвращает `SceneHit` без типов форка.
@@ -582,7 +582,7 @@ final lamp = controller.add(
 - Тумблеры `setShadows`/`setSsao` пишут в `QualitySettings` (источник
   истины) и применяют их. Поля `ModelLighting.shadows/ssao` остаются
   художественной подсказкой и используются только для начального
-  заполнения настроек в редакторе.
+  заполнения настроек в интерфейсе.
 
 ### 5.6. Небо
 
@@ -643,7 +643,7 @@ class GltfNode extends SceneNode {
 }
 ```
 
-- `GltfAsset` — runtime-импорт (просмотрщик редактора, динамическая
+- `GltfAsset` — runtime-импорт (просмотрщик моделей, динамическая
   загрузка), не связан с каталогом `3d_models`.
 - `GltfNode` — нода такого ресурса с собственным проигрывателем анимаций.
 - Ссылки на glTF из документа остаются `ModelNode` (`gltfName`,
@@ -780,7 +780,7 @@ enum SceneAlphaMode { opaque, mask, blend }
 ## 7. Шейдеры
 
 Шейдеры — рантайм-возможность. `model_v1` не меняется: сцена, сохранённая
-редактором, шейдер не несёт. Шейдер загружается по пути `.fmat`, схема
+приложением, шейдер не несёт. Шейдер загружается по пути `.fmat`, схема
 параметров объявлена в самом файле; значения задаются по имени.
 
 ```dart
@@ -1226,11 +1226,13 @@ class RaycastOptions {
     this.skipNodeIds = const {},
     this.where,
     this.nearest = true,
+    this.respectCulling = true,
   });
   final bool includeInvisible;
   final Set<String> skipNodeIds;
   final bool Function(SceneNode node)? where;
   final bool nearest;
+  final bool respectCulling;       // учитывать отсечение граней (сторона материала)
 }
 
 class SceneHit {
@@ -1256,15 +1258,22 @@ class FaceRef {
 видят их `ModelNode`-обёртки (они же в `byId`/`nodesOfType`), у примитивов и
 скруглённых кубоидов заполняется `SceneHit.face` с документным ключом грани
 (`+x`…`-z`, `side`, `round`). Результат CSG пикается как объект целиком (без
-`FaceRef`); вставки модели и glTF пикаются по габаритному прокси-боксу
-(точное попадание по контенту — уточнение фазы 6).
+`FaceRef`). Вставки модели пикаются рекурсивно по фактическому содержимому
+(примитивы, CSG и скругления, вложенные ссылки, спрайты по живому yaw); если
+источник не резолвлен или не загружен, используется прокси-бокс
+`modelRefFootprintBox`, центрированный на якоре инстанса. При
+`respectCulling: true` (по умолчанию) луч не перехватывают грани, невидимые
+из-за отсечения (потолок, стены, небо).
+
+Направление луча поворачивается позой камеры (`screenPointToRay`); тапы
+(`SceneTapEvent.ray`) и пикинг используют одну и ту же математику.
 
 Примеры:
 
 ```dart
 // выбрать врага тапом
 final hit = controller.raycast(tap.screenPosition, options: const RaycastOptions(where: isEnemy));
-// выделить грань в редакторе
+// выделить грань
 final faceHit = controller.raycast(position, options: RaycastOptions(skipNodeIds: selectedIds));
 // спроецировать подписи
 final screen = controller.worldToScreen(node.worldPosition);
@@ -1420,7 +1429,7 @@ class ProjectStore {
   Future<void> loadMeta();               // читает project.json
   Future<void> saveMeta({String? lastModelId}); // атомарная запись
 }
-// controller.project — операции над моделями и мета проекта (редактор).
+// controller.project — операции над моделями и мета проекта.
 
 enum SceneLoadPhase { idle, project, models, resources, geometry, bake, ready, error }
 
@@ -1477,6 +1486,24 @@ class SceneLoadError {
 - **Частицы:** `ParticleConfig`, `ParticlePresets`, `ParticleField`.
 - **Координаты:** `chunkWorld`, `cellWorld`, `modelXFromWorld`,
   `modelZFromWorld`, `facingAngle`, `screenParallelYaw`.
+
+Пример: движение по маршруту.
+
+```dart
+final cat = controller.nodesOfType<ModelNode>().firstWhere((n) => n.gltfName == 'cat');
+final navigation = BoxMarkupNavigation.fromModel(controller.model!, radius: 0.2);
+final planner = PathPlanner(navigation, step: 0.1);
+final follower = PathFollower(source: navigation, position: ..., heading: ...);
+
+controller.addFrameListener((elapsed, dt) {
+  follower.update(dt);
+  cat.setWorldPlacement(
+    x: follower.position.x,
+    z: follower.position.y,
+    rotY: ...,   // курс → градусы переводит приложение
+  );
+});
+```
 
 ### 17.1. Определения типов, переносимых из v1
 
@@ -1585,14 +1612,16 @@ class LevelLoadEvent {
 
 ### 17.2. Хелперы документа и геометрии
 
-Переносятся как публичные функции; нужны редактору для привязки к граням,
-контуров выделения, csg и габаритов:
+Публичные функции для привязки к граням, контуров выделения, csg и габаритов:
 
 - `faceNormalAt(object, faceKey)`, `faceCenterAt(object, faceKey)`,
   `parallelToFaceAngles(object, faceKey)`, `faceCorners(object, faceKey)`;
 - `objectRotation(object)`, `sourceAnchor(object)`,
   `unionAabbResolved(...)`, `gltfFootprintBox(...)`,
-  `modelRefCubeProxy(...)`;
+  `modelRefCubeProxy(...)`, `modelRefFootprintBox(...)`;
+- `spriteBillboardMatrix(anchor, yaw)` / `spriteBillboardRotation(...)` —
+  матрица и поворот горизонтального билборда спрайта по священной
+  конвенции; общие для рендера, пикинга и контуров выделения;
 - `facesOf(object)`, `csgLeavesOf(object)`, `moveExpansion(...)`.
 
 Пример загрузки уровня:
@@ -1623,131 +1652,14 @@ if (result.baked != null) {
 - **Build-hook:** `petBuildMaterials` из `package:pet_engine/build_hooks.dart`.
 - **Диплинки:** остаются в приложениях, движок не участвует.
 
-## 19. Примеры для четырёх проектов
-
-### example
-
-```dart
-final controller = SceneController();
-await controller.open(source);
-await controller.loadModelData(feature.build(context), id: feature.id);
-controller.camera = FlyCameraController()..frameModel(controller.model!);
-
-SceneViewport(
-  controller: controller,
-  input: CameraInput(),
-  overlayBuilder: (context, size) => feature.overlay?.call(context),
-  onTap: (tap) => feature.handleTap(tap),
-);
-controller.addFrameListener((elapsed, dt) => feature.tick(dt));
-```
-
-### scene_editor
-
-```dart
-final controller = SceneController(mergeStatic: false);
-await controller.open(projectSource);
-await controller.loadModelData(appState.model!);
-
-SceneViewport(
-  controller: controller,
-  views: [SceneViewSpec.main(), SceneViewSpec.overlay(), SceneViewSpec.top()],
-  input: EditorInput(appState),
-);
-
-final hit = controller.raycast(position, options: RaycastOptions(skipNodeIds: appState.selectedIds));
-if (hit?.face != null) appState.selectFace(hit!.node.id, hit.face!.key);
-```
-
-### pet_demo
-
-```dart
-final cat = controller.nodesOfType<ModelNode>().firstWhere((node) => node.gltfName == 'cat');
-final navigation = BoxMarkupNavigation.fromModel(controller.model!, radius: 0.2);
-final planner = PathPlanner(navigation, step: 0.1);
-final follower = PathFollower(source: navigation, position: ..., heading: ...);
-
-controller.addFrameListener((elapsed, dt) {
-  follower.update(dt);
-  cat.setWorldPlacement(x: follower.position.x, z: follower.position.y, rotY: petRotYFromHeading(follower.heading));
-});
-```
-
-## 20. Что удаляется после миграции
-
-Старые фасады **удалены из публичного экспорта в фазе 5 (13 сентября
-2026)** вместе со старым входом `package:pet_engine/pet_engine.dart`:
-`GameScene`, `GameNode`, `GameSceneView`, `GameCamera`,
-`FreeCameraController`, `GameViewController`, `EngineScene`, `EngineNode`
-(как публичный тип), `EngineMaterial`, `EngineTexture`, `EngineMesh`,
-`EngineGeometry`, `EngineSceneView`, `DynamicWorld`, `DynamicVisual`,
-`ModelRenderer`, `ScreenPicking`, `FmatManager`, `FmatSlot`,
-`BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer`,
-`StaticSkybox`, `GameQualitySettings`, `GameFog`, `GameAntiAliasing`,
-`EngineFog`, `EngineAntiAliasing`.
-
-Полностью удалены из кода (вместе со своими тестами): `GameScene`,
-`GameNode`, `GameSceneView`, `EngineScene`, `EngineSceneView`,
-`FreeCameraController`, `GameViewController`, `DynamicWorld`,
-`DynamicVisual`/`RingVisual`, `ScreenPicking`, `FmatManager`/`FmatSlot`,
-`GameQualitySettings`, `GameFog`, `GameAntiAliasing`, `GamePictureSettings`,
-`EngineFog`, `EngineAntiAliasing` и виджет `StaticSkybox` (функция
-`loadSkyboxImage` сохранена). Их место занимают типы из этого документа:
-
-| Удаляется | Заменяется |
-|---|---|
-| `StaticSkybox` | `SkyboxNode` + `SkyboxImageLayer` |
-| `GameQualitySettings` | `QualitySettings` / `QualityPreset` |
-| `GameFog`, `EngineFog` | `SceneFog` |
-| `GameAntiAliasing`, `EngineAntiAliasing` | `SceneAntiAliasing` |
-| `FreeCameraController`, `GameViewController` | `FlyCameraController`, `FirstPersonCameraController` |
-| `BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer` | `BillboardBatchNode`, `SpriteFieldNode`, `GroundFogNode`, `ParticleNode` |
-| `TextureCache` (не экспортируется) | `LevelBaker.planning()`, ресурсы — `SceneResources` |
-| `GameResourceManager` (не экспортируется) | `SceneResources` |
-
-Часть перечисленного осталась внутренней реализацией v2 без публичного
-экспорта: `EngineNode` (поле `SceneNode.engine`), `EngineMaterial`,
-`EngineTexture`, `EngineMesh`, `EngineGeometry`, `ModelRenderer`
-(рендер документа и уровней), `GameCamera` (математика
-`FlyCameraController`/`FirstPersonCameraController`), `ParticleLayer`,
-`BillboardBatch`, `GroundFogLayer`, `SpriteFieldLayer` (механизмы-ноды),
-`GameResourceManager`, `TextureCache` (ресурсная сессия). Тесты этих
-механизмов импортируют внутренние `src/`-пути пакета.
-
-Таблица соответствий целиком — `docs/migration.md`.
-
-## 21. Детали, уточняемые при реализации
-
-1. Имя ресурсной сессии — `SceneResources`; `GameResourceManager` и
-   `TextureCache` остались внутренними типами (фаза 5).
-2. Точные сигнатуры `GeometryBuilder` (полный набор операций) и
-   `LineGeometry`.
-3. Состав `DeviceCapabilities` (ядра, память, платформа) и способ его
-   определения.
-4. Политика адаптации качества по умолчанию (пороговые значения) —
-   уточняется тестами на реальных устройствах.
-5. Форма `SceneViewSpec` при нескольких камерах (пока одна активная
-   камера на контроллер).
-6. Точные формулы слоёв неба (проекция солнца/луны, покрытие облаков) —
-   уточнены на example (2D-фон под сценой).
-7. Пикинг документных объектов: `raycast`/`raycastAll`/`nearestNode` видят
-   `ModelNode`-обёртки объектов `model_v1` (фаза 4), `FaceRef` заполняется
-   для плоских граней и скруглённых поверхностей. Вставки модели пикаются
-   рекурсивными частями фактического содержимого (примитивы, CSG,
-   вложенные ссылки, glTF-бокс, спрайты с живым yaw); при нерезолвленном
-   источнике — кэшированным гридом или footprint-боксом.
-8. Размеры `SceneTexture.fromGpu`: заполняются для текстур/спрайтов из
-   ресурсной сессии (кэш помнит размер декода, фаза 4); у GPU-обёрток без
-   размера остаются 0.
-
-## 22. Многогранники (`polyhedron`)
+## 19. Многогранники (`polyhedron`)
 
 Произвольная геометрия для переноса сложных карт (в т.ч. 1:1 из WAD, см.
 `conventions.md` §8): индексные вершины, плоские n-угольные грани с дырками,
 явные UV и материалы по граням. Реализация — `src/scene/polyhedron*.dart`,
-нода — `src/api/nodes/polyhedron_node.dart`; ветка `feature/polyhedra`.
+нода — `src/api/nodes/polyhedron_node.dart`.
 
-### 22.1. Документ и данные
+### 19.1. Документ и данные
 
 ```dart
 // Сборка куба: 8 вершин, 6 граней с ключами +x…-z.
@@ -1785,7 +1697,7 @@ final object = ModelObject(
   материалы, чистит `dims` и операнды CSG; `pruneFaceMaterials(object)`
   убирает устаревшие материалы граней.
 
-### 22.2. Runtime-узел `PolyhedronNode`
+### 19.2. Runtime-узел `PolyhedronNode`
 
 ```dart
 final wall = PolyhedronNode(
@@ -1803,7 +1715,7 @@ controller.add(wall);
   грань; `localBounds` из вершин; `wireframeSegments` — контуры граней.
 - `faceMaterials`/`faceMaterial(key)`/`setFaceMaterial(key, null)`.
 
-### 22.3. Сцена и редактор
+### 19.3. Сцена
 
 - `objectWorldMatrix(model, object)` — мировая матрица локальной геометрии
   (якорь · поворот · per-axis масштаб), общая с рендером;
@@ -1818,7 +1730,7 @@ controller.add(wall);
   легаси-сетки), поэтому пересечение карты 1:1 занимает столько же времени,
   сколько легаси-сцены.
 
-### 22.4. Совместимость
+### 19.4. Совместимость
 
 - Формат аддитивен: старые виды и их JSON не меняются; `round3` остаётся,
   `round6` применяется только к вершинам/UV/масштабу многогранника.

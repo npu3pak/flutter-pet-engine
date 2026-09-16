@@ -7,7 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// Visual-test screenshots as an engine feature (migration plan 13.8): games
+/// Visual-test screenshots as an engine feature: games
 /// capture their viewport in-process — no OS screenshot API — write PNG and
 /// a JSON sidecar next to it, and can check the frame for placeholder colors.
 ///

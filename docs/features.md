@@ -13,9 +13,7 @@
   `npu3pak/flutter-pet-engine`);
 - **FS** — общий форк `flutter_scene/packages/flutter_scene`;
 - **EX** — приложение-пример движка v1 (удалён вместе с каталогом v1);
-- **PD** — игра `mypet-game/pet_demo`;
-- **ED** — редактор движка v1 (`tools/scene_editor`, удалён вместе с
-  каталогом v1).
+- **PD** — игра `mypet-game/pet_demo`.
 
 Статус каждой фичи показывает, покрывал ли её черновик API на момент
 составления реестра (до фазы проектирования):
@@ -47,7 +45,6 @@
 | J | Уровневый слой | 10 |
 | K | Навигация | 4 |
 | L | Попадания, проекция, оверлеи | 4 |
-| M | Редакторский профиль | 11 |
 | N | Качество, GPU, перф | 3 |
 | O | Инструменты | 3 |
 
@@ -57,9 +54,7 @@
 
 - **Что делает.** Ожидание статик-ресурсов рендера (шейдерный бандл) до
   создания сцены; без этого построение геометрии падает.
-- **Где.** `EX/lib/main.dart:15`, `PD/lib/main.dart:11`,
-  `ED/lib/src/ui/editor_viewport.dart:85`,
-  `ED/lib/src/ui/resources/model_viewer_screen.dart:216`.
+- **Где.** `EX/lib/main.dart:15`, `PD/lib/main.dart:11`.
 - **API v2.** `initializeEngine()` остаётся публичным; вьюпорт сам ждёт
   готовности до первого кадра, приложению не нужно следить за порядком.
 - **Статус.** Нет.
@@ -68,10 +63,9 @@
 
 - **Что делает.** Байты проекта из папки, ассетов Flutter или собственного
   источника; признак «можно писать»; имя для интерфейса.
-- **Где.** `EN/lib/src/engine/project_source.dart:15` (`ProjectSource`),
-  `:45` (`DirectoryProjectSource`), `:100` (`BundleProjectSource`);
-  (своя реализация:
-  дерево исходников на macOS, иначе `AssetManifest`);
+- **Где.** `EN/lib/src/engine/project_source.dart:15` (`ProjectSource`), `:45`
+  (`DirectoryProjectSource`), `:100` (`BundleProjectSource`); (своя
+  реализация: дерево исходников на macOS, иначе `AssetManifest`);
   `PD/lib/main.dart:40-56` (выбор источника по `dart-define`).
 - **API v2.** Типы остаются публичными; `SceneController.open(source)`.
   Своя реализация `ProjectSource` должна быть явно поддержана.
@@ -84,7 +78,7 @@
   ресурсов и каталога `3d_models/`; ошибки разбора не фатальны и
   перечисляются.
 - **Где.** `EN/lib/src/engine/game_resource_manager.dart:62-110`;
-  `PD/lib/src/game_screen.dart:108-115` (выбор `model_2`),
+  `PD/lib/src/game_screen.dart:108-115` (выбор `model_2`).
 - **API v2.** `SceneController.open/openProject/openModels`, ресурсная
   сессия с `projectName`, `modelIds`, `models`, `loadErrors`.
 - **Статус.** Частично.
@@ -161,7 +155,7 @@
 
 - **Что делает.** До показа уровня загружаются атласы травы, тумана и
   погоды, чтобы первый кадр не был с заглушками.
-- **Где.** `EN/lib/src/level/level_loader.dart:89` (`LevelExtraResource`);
+- **Где.** `EN/lib/src/level/level_loader.dart:89` (`LevelExtraResource`).
 - **API v2.** `LevelExtraResource` и его подключение через
   `SceneController.loadLevel(...)`.
 - **Статус.** Нет.
@@ -171,8 +165,7 @@
 - **Что делает.** Устаревшие результаты асинхронных загрузок отбрасываются:
   счётчики поколений при пересборке этажа, при смене сцены, при загрузке
   текстур и неба.
-- **Где.**
-  (небо).
+- **Где.** (небо).
 - **API v2.** Контроллер сам управляет поколениями; приложение не пишет
   счётчики и не сравнивает пути вручную.
 - **Статус.** Частично.
@@ -193,8 +186,7 @@
   обёртка, компилирующая `.fmat` в шейдерный бандл (или инициализирующая
   пайплайн, если `.fmat` нет).
 - **Где.** `EN/lib/build_hooks.dart:25` (`petBuildMaterials`);
-  `PD/hook/build.dart:8`;
-  `ED/hook/build.dart:15`.
+  `PD/hook/build.dart:8`.
 - **API v2.** Контракт сохраняется; в документации API должен быть явно
   описан.
 - **Статус.** Нет.
@@ -205,8 +197,8 @@
 
 - **Что делает.** Сцена как сериализуемый документ: объекты, мета-объекты,
   свет, материалы, группы, размеры; сериализация без потерь.
-- **Где.** `EN/lib/src/models/model_scene.dart`;
-  `EN/lib/models.dart` (чистый экспорт документа).
+- **Где.** `EN/lib/src/models/model_scene.dart`; `EN/lib/models.dart` (чистый
+  экспорт документа).
 - **API v2.** Публичные типы без изменений.
 - **Статус.** Покрыто.
 
@@ -227,7 +219,6 @@
 - **Что делает.** Появление объекта = добавление ноды, исчезновение =
   удаление; документ меняется синхронно, что позволяет редактору снимать
   снимки для отмены.
-- **Где.** `ED/lib/src/state/app_state.dart:855-905,1154-1194,1332-1447`.
 - **API v2.** `SceneController.addObject/removeObject`,
   `ModelNode.remove()`.
 - **Статус.** Частично.
@@ -237,7 +228,6 @@
 - **Что делает.** Размеры, флаги, скругление (`roundR`, `roundSegments`),
   имя, повороты по трём осям, масштаб, позиция.
 - **Где.** `EN/lib/src/models/model_scene.dart`;
-  `ED/lib/src/state/app_state.dart:697-759`;
   `EX/lib/src/features/primitives_all.dart`, `rounded_box.dart`.
 - **API v2.** Поля `ModelNode`; углы — в градусах на уровне документа и в
   радианах на уровне трансформа, преобразование внутри.
@@ -247,8 +237,6 @@
 
 - **Что делает.** Именованные группы, дерево, перенос объектов между
   группами, групповые операции.
-- **Где.** `ED/lib/src/state/app_state.dart:1564-1824`;
-  `ED/lib/src/ui/left_panel.dart:743-915`.
 - **API v2.** `ModelGroup` в документе и `GroupNode` в сцене.
 - **Статус.** Нет.
 
@@ -257,8 +245,7 @@
 - **Что делает.** Объединение, вычитание, пересечение твёрдых объектов,
   вложенные операции, каскадное удаление, смена порядка операндов.
 - **Где.** `EN/lib/src/scene/csg.dart`;
-  `EX/lib/src/features/csg_ops.dart:67-150`;
-  `ED/lib/src/state/app_state.dart:1196-1447`.
+  `EX/lib/src/features/csg_ops.dart:67-150`.
 - **API v2.** Документ хранит csg; нода представляет результат целиком.
 - **Статус.** Частично.
 
@@ -268,8 +255,7 @@
   поворот, масштаб, анимация, защита от циклов, кэш габаритов, замена
   источника, заглушка при потере ресурса.
 - **Где.** `EN/lib/src/scene/model_renderer.dart`;
-  `EX/lib/src/features/model_refs.dart`, `gltf_models.dart`;
-  `ED/lib/src/state/app_state.dart:907-1152`.
+  `EX/lib/src/features/model_refs.dart`, `gltf_models.dart`.
 - **API v2.** `ModelNode` + `SceneController.insertModel/insertGltf`,
   защита от циклов, заглушка.
 - **Статус.** Частично.
@@ -279,7 +265,6 @@
 - **Что делает.** Материал на объект или на отдельную грань; параметры UV:
   направление, отражение, растяжение/тайлинг, масштаб тайлов, сторона.
 - **Где.** `EN/lib/src/models/model_scene.dart:158-265`;
-  `ED/lib/src/ui/right_panel.dart:1392-1604`;
   `EX/lib/src/features/primitives_textured.dart`.
 - **API v2.** `ModelNode.setFaceMaterial`, `SceneMaterial` с UV-полями.
 - **Статус.** Частично.
@@ -288,19 +273,15 @@
 
 - **Что делает.** Комментарии, маркеры, боксы: размеры, z-порядок,
   схлопывание, имена; используются правилами проходимости и запросами.
-- **Где.** `EX/lib/src/features/meta_objects.dart`;
-  `ED/lib/src/scene/meta_renderer.dart`;
-  `ED/lib/src/state/app_state.dart:570-646,1878-2089`.
-- **API v2.** Документ без изменений; рендер мет — редакторский профиль
-  (см. M5).
+- **Где.** `EX/lib/src/features/meta_objects.dart`.
+- **API v2.** Документ без изменений; рендер мет — редакторский профиль.
 - **Статус.** Нет (в API v2 не описан).
 
 ### B10. Поля сцены
 
 - **Что делает.** Входные стороны (`entries`) и лицевая сторона (`front`),
   участвуют в размещении и валидации.
-- **Где.** `EN/lib/src/models/model_scene.dart` (`ModelSide`);
-  `ED/lib/src/state/app_state.dart:536-568`;
+- **Где.** `EN/lib/src/models/model_scene.dart` (`ModelSide`).
 - **API v2.** Остаются в документе; редактор и игра читают через
   `ScenePlacement`.
 - **Статус.** Покрыто (документом).
@@ -311,9 +292,7 @@
   конфигурация освещения: ambient, SSAO, тени, показ гизмо; дефолтный риг
   «солнце + лампа на камере».
 - **Где.** `EN/lib/src/engine/game_scene.dart:244-322,392-441`;
-  `EX/lib/src/features/lights_sources.dart`;
-  `ED/lib/src/scene/light_renderer.dart`;
-  `ED/lib/src/scene/editor_scene.dart:1425-1515`.
+  `EX/lib/src/features/lights_sources.dart`.
 - **API v2.** `LightNode` (точечный/направленный), `applyLighting`,
   `QualitySettings` (SSAO/тени).
 - **Статус.** Частично.
@@ -322,8 +301,6 @@
 
 - **Что делает.** Генерация типовых сцен: дом (прямоугольный, П-, Н-образный)
   и комната с проёмами и мебелью.
-- **Где.** `ED/lib/src/services/house_template.dart`,
-  `room_template.dart`; `ED/lib/src/ui/house_template_dialog.dart`.
 - **API v2.** Остаётся в редакторе, строится на документе и `BuildOps`.
 - **Статус.** Вне API движка.
 
@@ -334,8 +311,7 @@
 - **Что делает.** Идентификатор, имя, слой, признак «на сцене», ссылка на
   контроллер, родитель и дети, видимость, прозрачность, трансформация
   (матрица и отдельно позиция/поворот/масштаб).
-- **Где.** `EN/lib/src/render/engine_node.dart`;
-  `ED/lib/src/scene/editor_scene.dart:1440,1663-1718`;
+- **Где.** `EN/lib/src/render/engine_node.dart`.
 - **API v2.** `SceneNode` с `parent`, `children`, `layer`, `transform`.
 - **Статус.** Частично.
 
@@ -354,7 +330,7 @@
 
 - **Что делает.** Один объект с несколькими частями и материалами
   (например, ядро стены и наружная «кожа»).
-- **Где.** `EN/lib/src/render/engine_mesh.dart:47-68`;
+- **Где.** `EN/lib/src/render/engine_mesh.dart:47-68`.
 - **API v2.** `MeshNode` с частями: `geometry` + `material` на каждую часть.
 - **Статус.** Нет.
 
@@ -363,7 +339,7 @@
 - **Что делает.** Вертикальная карточка с текстурой: билборд или
   фиксированная; ширина, высота, поворот, цвет, прозрачность, подсветка;
   настенные, напольные и потолочные декали.
-- **Где.** `EN/lib/src/render/engine_scene.dart:195-276`;
+- **Где.** `EN/lib/src/render/engine_scene.dart:195-276`.
 - **API v2.** `SpriteNode` с ориентациями.
 - **Статус.** Частично.
 
@@ -371,8 +347,7 @@
 
 - **Что делает.** Сетка, рамки, контуры выделения, кольца гизмо, рёбра
   боксов разметки — всё рисуется линиями.
-- **Где.** `FS/lib/src/geometry_builder.dart` (`LineSegmentsGeometry`);
-  `ED/lib/src/scene/geometry_utils.dart:94-102`.
+- **Где.** `FS/lib/src/geometry_builder.dart` (`LineSegmentsGeometry`).
 - **API v2.** `LineGeometry`/`LineNode` без типов форка.
 - **Статус.** Нет.
 
@@ -381,8 +356,7 @@
 - **Что делает.** Точечный и направленный свет: цвет, интенсивность,
   радиус, направление, тени; включение/снятие источников; изменение на
   лету; лампа, привязанная к камере.
-- **Где.** `EN/lib/src/render/engine_node.dart:101-137`;
-  `ED/lib/src/scene/editor_scene.dart:1447-1513`.
+- **Где.** `EN/lib/src/render/engine_node.dart:101-137`.
 - **API v2.** `LightNode.point/directional` с `castsShadow`, `range`,
   `direction` и мутацией на лету.
 - **Статус.** Частично.
@@ -391,7 +365,6 @@
 
 - **Что делает.** Эффект атаки и лампа игрока висят на узле камеры и
   движутся вместе с ней.
-- **Где.**
 - **API v2.** `SceneController.cameraNode` или `node.attachToCamera()`.
 - **Статус.** Нет.
 
@@ -399,7 +372,6 @@
 
 - **Что делает.** Секретные стены: при раскрытии у существующей ноды
   подменяется меш (убирается «кожа») и материал, иногда каждый кадр.
-- **Где.**
 - **API v2.** `MeshNode.geometry = ...` без пересоздания ноды.
 - **Статус.** Нет.
 
@@ -419,7 +391,6 @@
 - **Что делает.** Игра каждый кадр обновляет набор объектов (враги,
   предметы, сундуки), не пересоздавая неизменившиеся: сравнение по
   сигнатуре, подмена только материала, удаление исчезнувших.
-- **Где.**
 - **API v2.** `controller.dynamics.sync(key, entries)` — обновление по
   ключу без пересоздания.
 - **Статус.** Нет.
@@ -440,7 +411,7 @@
 
 - **Что делает.** Плоский материал без освещения: растворение секретных
   стен, tint-подложки, декали.
-- **Где.** `EN/lib/src/render/engine_material.dart:49-62`;
+- **Где.** `EN/lib/src/render/engine_material.dart:49-62`.
 - **API v2.** `SceneMaterial.unlit(...)`.
 - **Статус.** Частично.
 
@@ -450,7 +421,6 @@
   (пиксельная/линейная), кэш; отдельно — текстуры из готового
   `ui.Image` (подписи редактора).
 - **Где.** `EN/lib/src/render/engine_texture.dart`;
-  `ED/lib/src/scene/meta_renderer.dart:534-537,699-704`;
   `EX/lib/src/features/sprite_atlas.dart:46-96`.
 - **API v2.** `SceneTexture.fromAsset/fromBytes/fromImage` +
   `SceneTextureFilter`.
@@ -473,9 +443,8 @@
   render-state; параметры задаются по имени; независимые экземпляры
   параметров на объект; горячая перезагрузка.
 - **Где.** `EN/lib/src/materials/fmat_manager.dart`;
-  `EX/lib/src/features/fmat_effects.dart:127-222`;
-  `FS/lib/src/fmat/*`, `material/preprocessed_material.dart`,
-  `material/material_parameters.dart`.
+  `EX/lib/src/features/fmat_effects.dart:127-222`; `FS/lib/src/fmat/*`,
+  `material/preprocessed_material.dart`, `material/material_parameters.dart`.
 - **API v2.** `ShaderMaterial` (схема), `ShaderMaterialInstance`
   (параметры), `SceneMaterial.shader(...)`. Подробно — раздел 4
   `docs/api.md`.
@@ -486,7 +455,7 @@
 - **Что делает.** При запекании уровня игра получает каждый уникальный
   материал с тегами элементов и признаком спрайта и настраивает рецепт
   (например, «мокрый» вид стен).
-- **Где.** `EN/lib/src/level/level_baker.dart:83-92,330-353`;
+- **Где.** `EN/lib/src/level/level_baker.dart:83-92,330-353`.
 - **API v2.** `LevelBakeOptions.onMaterial`.
 - **Статус.** Нет.
 
@@ -494,7 +463,6 @@
 
 - **Что делает.** Если материал не изменился, движок не пересобирает
   ноду; сравнение выполняет движок, а не игра.
-- **Где.**
 - **API v2.** Внутреннее поведение `SceneNode.material` и `sync`.
 - **Статус.** Нет.
 
@@ -528,9 +496,7 @@
 - **Что делает.** Вращение вокруг точки, зум к выделению, панорама,
   кадрирование по габаритам, старт без рывка; используется редактором и
   просмотрщиком моделей.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:772-896`;
-  `ED/lib/src/ui/resources/model_viewer_screen.dart:60-136`;
-  `EN/lib/src/engine/game_camera.dart:146-247`.
+- **Где.** `EN/lib/src/engine/game_camera.dart:146-247`.
 - **API v2.** `OrbitCameraController` (pivot, distance, yaw, pitch,
   frameBounds, startFromCurrent).
 - **Статус.** Частично.
@@ -540,7 +506,6 @@
 - **Что делает.** Игра сама считает матрицу камеры каждый кадр (свой FOV,
   near/far, зеркальный X, наклон головы, покачивание) и отдаёт движку;
   отдельно нужно горизонтальное направление для билбордов.
-- **Где.**
 - **API v2.** `MatrixCameraController` (матрица на кадр) либо
   `camera.setMatrix(...)`.
 - **Статус.** Нет.
@@ -549,8 +514,7 @@
 
 - **Что делает.** Показать всю модель, навести камеру на объект, мету,
   источник света; расстояние кадрирования по габаритам.
-- **Где.** `PD/lib/src/game_screen.dart:313,325,495`;
-  `ED/lib/src/scene/editor_scene.dart:537-563,821-839,1284-1296,1401-1409`.
+- **Где.** `PD/lib/src/game_screen.dart:313,325,495`.
 - **API v2.** `frameModel`, `lookAt`, `focusBounds`, `focusNode`.
 - **Статус.** Нет.
 
@@ -558,8 +522,7 @@
 
 - **Что делает.** Приближение/удаление колесом к точке фокуса с пределом
   по габаритам сцены.
-- **Где.** `PD/lib/src/game_screen.dart:276-286`;
-  `ED/lib/src/ui/editor_viewport.dart:582-586`.
+- **Где.** `PD/lib/src/game_screen.dart:276-286`.
 - **API v2.** `scrollZoom(delta, {focus, maxDistance})`,
   `zoomMaxDistance(w,l,h)`.
 - **Статус.** Частично.
@@ -572,8 +535,7 @@
   (левая, правая, средняя); несколько одновременных указателей; позиция,
   смещение, время.
 - **Где.** `PD/lib/src/game_screen.dart:207-256`;
-  `EX/lib/src/app_shell.dart:948-968`;
-  `ED/lib/src/ui/editor_viewport.dart:170-580`.
+  `EX/lib/src/app_shell.dart:948-968`.
 - **API v2.** Методы `SceneInput` + сырые колбэки вьюпорта.
 - **Статус.** Частично (нет `onPointerCancel`).
 
@@ -582,8 +544,7 @@
 - **Что делает.** Первый палец — обзор, второй — полёт или панорама;
   счётчик указателей решает роль.
 - **Где.** `PD/lib/src/game_screen.dart:216-237`;
-  `EX/lib/src/navigation/free_nav.dart:87-115`;
-  `ED/lib/src/ui/editor_viewport.dart:389-477`.
+  `EX/lib/src/navigation/free_nav.dart:87-115`.
 - **API v2.** `CameraInput`: роли кнопок мыши настраиваются; на тач-
   устройствах один палец — обзор, два пальца — полёт (драг второго пальца,
   `touchFlyDistance`).
@@ -596,8 +557,7 @@
   больше 8 px, длительность не больше 300 мс, основная кнопка; позиция в
   локальных координатах; двойной клик для фокуса.
 - **Где.** `PD/lib/src/game_screen.dart:83-87,209-247`;
-  `EX/lib/src/app_shell.dart:1129-1135`;
-  `ED/lib/src/ui/editor_viewport.dart:363-375`.
+  `EX/lib/src/app_shell.dart:1129-1135`.
 - **API v2.** `SceneTapEvent` (позиция, размер вьюпорта, кнопка, луч),
   `onTap`, `onDoubleTap`.
 - **Статус.** Частично (`SceneTapEvent` не определён).
@@ -607,7 +567,6 @@
 - **Что делает.** Прокрутка колеса для зума; жесты трекпада
   (pan-zoom) — форк их уже обрабатывает, приложения пока нет.
 - **Где.** `PD/lib/src/game_screen.dart:276-286`;
-  `ED/lib/src/ui/editor_viewport.dart:582-586`;
   `FS/lib/src/widgets/scene_view.dart:564-579`.
 - **API v2.** `onPointerSignal`, `onPanZoomStart/Update/End`.
 - **Статус.** Частично.
@@ -616,7 +575,6 @@
 
 - **Что делает.** Курсор над сценой: подсветка клетки под кистью,
   курсор-перекрестие.
-- **Где.** `ED/lib/src/ui/editor_viewport.dart:742-749`.
 - **API v2.** `onHover`.
 - **Статус.** Нет.
 
@@ -626,8 +584,7 @@
   Ctrl, Cmd, Alt; фокус и автозахват; события не потребляются, чтобы
   работали шорткаты интерфейса.
 - **Где.** `PD/lib/src/game_screen.dart:165-196,593-595`;
-  `EX/lib/src/navigation/free_nav.dart:43-68`;
-  `ED/lib/src/ui/editor_viewport.dart:595-692`.
+  `EX/lib/src/navigation/free_nav.dart:43-68`.
 - **API v2.** `SceneInput.onKey`, вьюпорт владеет `FocusNode` с
   настраиваемым автозахватом, `KeyEventResult`.
 - **Статус.** Частично.
@@ -637,8 +594,6 @@
 - **Что делает.** Cmd+S — сохранить, Cmd+Z/Shift+Z/Y — отмена/повтор,
   Cmd+D — дублировать, Delete/Backspace — удалить, Esc — снять выделение,
   Alt — режим вращения.
-- **Где.** `ED/lib/src/ui/editor_viewport.dart:613-679`;
-  `ED/lib/src/ui/main_screen.dart:63-97`.
 - **API v2.** Вьюпорт не перехватывает эти клавиши; приложение вешает
   `Shortcuts`/`Actions` выше.
 - **Статус.** Нет (нужно описать правило).
@@ -647,8 +602,7 @@
 
 - **Что делает.** Сначала обрабатывается наведение и выделение, затем
   навигация; оверлеи получают события раньше сцены.
-- **Где.** `ED/lib/src/ui/editor_viewport.dart:199-360`;
-  `EX/lib/src/app_shell.dart:948-976`.
+- **Где.** `EX/lib/src/app_shell.dart:948-976`.
 - **API v2.** Явный порядок: 2D-оверлеи → `SceneInput` → камера; хук
   «обработать до камеры».
 - **Статус.** Нет.
@@ -661,8 +615,7 @@
   динамики, разворот билбордов, логика фичи, счётчик кадров; подписчики
   вызываются в известном порядке.
 - **Где.** `EX/lib/src/scene_host.dart:420-433`;
-  `PD/lib/src/game_screen.dart:610-618`;
-  (сейчас тик снаружи).
+  `PD/lib/src/game_screen.dart:610-618`; (сейчас тик снаружи).
 - **API v2.** Вьюпорт владеет кадром; `addFrameListener`; при
   `autoTick: false` приложение зовёт `update(dt)` само.
 - **Статус.** Частично.
@@ -671,8 +624,7 @@
 
 - **Что делает.** Вьюпорт сообщает размер до первого кадра; пиксельное
   соотношение; прогрев пайплайнов до показа.
-- **Где.** `EN/lib/src/render/engine_view.dart:12-88`;
-  (размер нужен для
+- **Где.** `EN/lib/src/render/engine_view.dart:12-88`; (размер нужен для
   эффекта атаки).
 - **API v2.** `viewportSize`, `pixelRatio`, `warmUp`.
 - **Статус.** Частично.
@@ -711,7 +663,6 @@
 
 - **Что делает.** Обновление набора динамических объектов без пересоздания
   (см. C10).
-- **Где.**
 - **API v2.** `controller.dynamics.sync(key, entries)`.
 - **Статус.** Нет.
 
@@ -732,7 +683,7 @@
 - **Что делает.** Инстанс-поле спрайтов: ёмкость, предзагрузка атласа,
   разворот по камере, непрозрачный alpha-test, кадр по ключу спрайта,
   сброс с сохранением атласа.
-- **Где.** `EN/lib/src/render/sprite_field_layer.dart`;
+- **Где.** `EN/lib/src/render/sprite_field_layer.dart`.
 - **API v2.** `SpriteFieldNode` с полным набором; `atlasMaxWidth` —
   предел ширины атласа (ячейки переносятся в строки по лимиту GPU).
 - **Статус.** Частично.
@@ -741,7 +692,7 @@
 
 - **Что делает.** Облака тумана: ёмкость, порядок прозрачности, оттенок,
   предзагрузка и сброс атласа.
-- **Где.** `EN/lib/src/render/ground_fog_layer.dart`;
+- **Где.** `EN/lib/src/render/ground_fog_layer.dart`.
 - **API v2.** `GroundFogNode`.
 - **Статус.** Частично.
 
@@ -752,8 +703,7 @@
   параллельно экрану), режимы смешивания, порядок, растяжение по скорости,
   цвет экземпляра.
 - **Где.** `EN/lib/src/render/billboard_batch.dart`;
-  `EX/lib/src/features/billboard_batch.dart`,
-  `transparency_order.dart`.
+  `EX/lib/src/features/billboard_batch.dart`, `transparency_order.dart`.
 - **API v2.** `BillboardBatchNode`.
 - **Статус.** Нет.
 
@@ -803,9 +753,9 @@
 - **Что делает.** Привязка к грани, параллельность грани (с точкой нажатия
   для цилиндра), выравнивание, заполнение промежутка, накрытие, отступ,
   растяжение, изменение размера вдоль оси; математика граней.
-- **Где.** `EN/lib/src/level/build_ops.dart`, `EN/lib/src/scene/face_snap.dart`;
-  `EX/lib/src/features/placement.dart:101-626`;
-  `ED/lib/src/state/app_state.dart:764-852`.
+- **Где.** `EN/lib/src/level/build_ops.dart`,
+  `EN/lib/src/scene/face_snap.dart`;
+  `EX/lib/src/features/placement.dart:101-626`.
 - **API v2.** Публично.
 - **Статус.** Покрыто.
 
@@ -832,7 +782,7 @@
 - **Что делает.** Пять стадий, события прогресса, дополнительные ресурсы,
   режим «проект уже открыт», ошибки, время; тестовый шов для запекателя.
 - **Где.** `EN/lib/src/level/level_loader.dart`;
-  `EX/lib/src/features/level_loading.dart`;
+  `EX/lib/src/features/level_loading.dart`.
 - **API v2.** `SceneController.loadLevel(...)` со статусом.
 - **Статус.** Частично.
 
@@ -911,9 +861,7 @@
 - **Что делает.** Пересечение луча с нодами: первая/все, с невидимыми
   нодами, с фильтром, с пропуском выделенных, с подъёмом к объекту-предку,
   с ключом грани, точка и расстояние, нормаль.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:261-313,972-1023`;
-  `ED/lib/src/scene/meta_renderer.dart:380-410`;
-  `EX/lib/src/features/picking_hit.dart:99-100`.
+- **Где.** `EX/lib/src/features/picking_hit.dart:99-100`.
 - **API v2.** `SceneController.raycast(ray, options)` → `SceneHit`.
 - **Статус.** Частично.
 
@@ -940,115 +888,10 @@
 
 - **Что делает.** Положение центра и высота объекта в пикселях для
   полосок здоровья, цифр урона, подписей.
-- **Где.**
 - **API v2.** Строится из `worldToScreen` + `worldBounds`; нужен пример в
   документации.
 - **Статус.** Частично.
 
-## M. Редакторский профиль
-
-### M1. Виды и слои
-
-- **Что делает.** Три вида одной сцены с раздельной глубиной: основная
-  сцена, оверлеи, верхний слой гизмо; битовые маски слоёв на нодах.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:249-254`;
-  `ED/lib/src/ui/editor_viewport.dart:784-804`;
-  `FS/lib/src/render_view.dart`.
-- **API v2.** `SceneViewport.views`, `SceneViewSpec`, `SceneLayer`,
-  `SceneNode.layer`. Решение: декларативный список видов (вариант A).
-- **Статус.** Нет.
-
-### M2. Грани
-
-- **Что делает.** Выбор грани объекта, её материал, подсветка, контуры.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:1981-2064`;
-  `ED/lib/src/state/app_state.dart:2419-2529`.
-- **API v2.** `ModelNode.faces`, `FaceRef`, `SceneHit.face`.
-- **Статус.** Частично.
-
-### M3. Гизмо
-
-- **Что делает.** Оси перемещения, кольца вращения, скрытые зоны захвата,
-  снапы, групповой перенос; сам гизмо — редакторский код.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:1830-1962`;
-  `ED/lib/src/scene/geometry_utils.dart`.
-- **API v2.** Покрывается C5 (линейная геометрия), M1 (слои) и L1
-  (пикинг с невидимыми нодами); сам гизмо остаётся в редакторе.
-- **Статус.** Частично.
-
-### M4. Текстуры из изображения
-
-- **Что делает.** Подписи-пузыри мет растеризуются и становятся
-  текстурами GPU.
-- **Где.** `ED/lib/src/scene/meta_renderer.dart:534-537,699-704`.
-- **API v2.** `SceneTexture.fromImage`.
-- **Статус.** Нет.
-
-### M5. Рендер мет
-
-- **Что делает.** Боксы, маркеры, комментарии, подписи, окклюзия
-  (полупрозрачность перекрытых), z-порядок, схлопывание, перестройка при
-  перетаскивании.
-- **Где.** `ED/lib/src/scene/meta_renderer.dart`.
-- **API v2.** Покрывается C5/M4/L1 и `SceneMaterial.blendOrder`; рендер
-  остаётся в редакторе.
-- **Статус.** Частично.
-
-### M6. Гизмо света
-
-- **Что делает.** Маркеры источников, стрелки направления, перевод
-  sRGB→linear, якорь света.
-- **Где.** `ED/lib/src/scene/light_renderer.dart:36-163`.
-- **API v2.** Покрывается C6 и C5; рендер — редактор.
-- **Статус.** Частично.
-
-### M7. Отмена действий
-
-- **Что делает.** Команды, стеки на модель, слияние быстрых правок,
-  признак «есть несохранённые изменения», пересборка по ревизии.
-- **Где.** `ED/lib/src/state/app_state.dart:16-24,159-166,2626-2689`.
-- **API v2.** Документ меняется синхронно; стек отмены — редактор;
-  контроллер предоставляет ревизию и уведомления.
-- **Статус.** Частично.
-
-### M8. Просмотрщик моделей
-
-- **Что делает.** Отдельная сцена, орбитальная камера, импорт glTF из
-  байтов, список клипов, воспроизведение, пауза, перемотка, цикл, скорость,
-  кроссфейд, кадрирование по габаритам, направленный свет, свой тик.
-- **Где.** `ED/lib/src/ui/resources/model_viewer_screen.dart:131-450,650`.
-- **API v2.** Второй `SceneController`, `OrbitCameraController`,
-  `ModelNode`, `AnimationController`, `SceneTexture`.
-- **Статус.** Частично.
-
-### M9. Проектный слой редактора
-
-- **Что делает.** `project_v1`: список моделей, создание, переименование,
-  удаление, сохранение, недавние проекты, открытие на macOS и iPad.
-- **Где.** `ED/lib/src/start_screen.dart`;
-  `ED/lib/src/state/app_state.dart:258-525`.
-- **API v2.** `ProjectSource`, `SceneController.open/saveModel`;
-  остальное — редактор.
-- **Статус.** Частично.
-
-### M10. Редактор изображений
-
-- **Что делает.** Импорт PNG/JPEG/WebP, камера и фото на iPad, удаление
-  фона, масштабирование, выравнивание, обрезка, история, семейства
-  ресурсов.
-- **Где.** `ED/lib/src/ui/resources/resource_editor_panel.dart`;
-  `ED/lib/src/services/resource_store.dart`.
-- **API v2.** Не движок; редактор использует файловый ввод-вывод.
-- **Статус.** Вне API.
-
-### M11. Настройки среды
-
-- **Что делает.** Яркость окружения, SSAO, тени, показ гизмо, дефолтный
-  риг света, переключение WYSIWYG.
-- **Где.** `ED/lib/src/scene/editor_scene.dart:1425-1515`;
-  `EX/lib/src/features/ssao_ambient.dart`.
-- **API v2.** `QualitySettings` и `SceneController` (get/set).
-- **Статус.** Частично.
 
 ## N. Качество, GPU, перф
 
@@ -1059,8 +902,7 @@
   производительности; определение бэкенда (Metal/Vulkan/OpenGL ES).
 - **Где.** `EN/lib/src/engine/game_quality.dart:9-69`,
   `EN/lib/src/engine/gpu_backend.dart:6-49`;
-  `PD/lib/src/game_screen.dart:118-124`;
-  `EX/lib/src/scene_host.dart:457-460`.
+  `PD/lib/src/game_screen.dart:118-124`; `EX/lib/src/scene_host.dart:457-460`.
 - **API v2.** `QualityController`, `QualityPreset`, `GpuBackend`,
   `DeviceCapabilities`; `sustainedPerformance` — подсказка для приложения.
 - **Статус.** Частично.
@@ -1092,7 +934,7 @@
 - **Где.** Сейчас разбросано: `EX/lib/src/perf/fps_meter.dart:3-24`,
   `EX/lib/src/perf/frame_stats_logger.dart:18-125`,
   `PD/lib/src/game_screen.dart:339-487,1005-1027`,
-  `PD/lib/src/perf/device_performance.dart:8-43`,
+  `PD/lib/src/perf/device_performance.dart:8-43`.
 - **API v2.** `QualityController` с `QualityPolicy`, `QualitySettings`,
   `FrameStats`, `QualityChange`; `SceneViewport` сообщает кадры;
   `SceneController.applySettings`.
@@ -1112,8 +954,7 @@
 
 - **Что делает.** Открытие фичи/сцены по ссылке, снимок, настройки,
   повтор загрузки; в debug — канал управления для автоматизации.
-- **Где.** `EX/lib/src/deeplink.dart`;
-  `PD` — без диплинков.
+- **Где.** `EX/lib/src/deeplink.dart`; `PD` — без диплинков.
 - **API v2.** Остаётся в приложениях; движок не участвует.
 - **Статус.** Вне API.
 
@@ -1122,15 +963,14 @@
 На момент инвентаризации полностью покрывались черновиком документ и
 уровневый слой (J1–J9) и часть фич базовых нод. Частично: сессия и
 загрузка, материалы, камеры, ввод, динамика, механизмы. Отсутствовали:
-навигация (K1–K3), текстуры из изображений (M4), линейная геометрия (C5),
-батч (I4), виды и слои (M1), скриншоты (A12), контроллер качества (N3).
+навигация (K1–K3), текстуры из изображений, линейная геометрия (C5),
+батч (I4), виды и слои, скриншоты (A12), контроллер качества (N3).
 Все эти пункты вошли в итоговый публичный API — `docs/api.md`.
 
 ## Валидация API (11 сентября 2026)
 
 Реестр сверен с `docs/api.md` пункт за пунктом. Найдено и закрыто
-24 пробела; решения по развилкам — в `docs/plan.md`, раздел 7. Куда
-смотреть в `api.md`:
+24 пробела. Куда смотреть в `api.md`:
 
 | Пробел | Где закрыт |
 |---|---|
@@ -1142,7 +982,7 @@
 | Управление анимациями | `AnimationPlayer`, раздел 5.7 |
 | Runtime-импорт glTF | `GltfAsset`/`GltfNode`, раздел 5.8 |
 | Проектный CRUD | `ProjectStore`, раздел 16 |
-| Хелперы редактора | раздел 17.2 |
+| Хелперы документа и геометрии | раздел 17.2 |
 | Небо | `SkyboxNode` и слои, разделы 5.4/5.6 |
 | Свет и бюджет ламп | `applyLighting`/`clearLighting`, `LightNode.importance`, `QualitySettings.maxPointLights`, разделы 5.5 и 15 |
 | Определения типов v1 | раздел 17.1 |
@@ -1153,9 +993,9 @@
 | Геттеры настроек | `SceneController`, раздел 4 |
 | Связка качества с вьюпортом | `QualityController.attach`, раздел 15 |
 | Снимок вьюпорта | `SceneViewport.capture`, разделы 2 и 18 |
-| Переименования | `SceneFog`, `SceneAntiAliasing`, `AnimationPlayer`, `docs/migration.md` |
+| Переименования | `SceneFog`, `SceneAntiAliasing`, `AnimationPlayer`, разделы 6/7/15/17.1 |
 
-## 22. Многогранники (ветка `feature/polyhedra`)
+## 22. Многогранники
 
 Добавлено 14 сентября 2026 как подготовка к переносу карт из WAD (будущий
 конвертер — отдельная задача) и для правки произвольной геометрии в
@@ -1206,15 +1046,3 @@
   девяти группах; журнал `example/visual_tests.json` (bug_61).
 - **Статус.** Покрыто (182 теста example).
 
-### ED1. Режим многогранника в редакторе
-
-- **Что делает.** Кнопка «Многогранник» (куб), конверсия любого примитива
-  и CSG, режимы «Объект/Грани/Вершины» с выбором лучом/экранной проекцией,
-  Shift-группой, гизмо по центроиду, armed-добавлением вершины, удалением,
-  масштабом по осям, 1-px выделением и оранжевой рамкой уровня, адаптивной
-  сеткой и камерой крупных карт.
-- **Код.** `scene_editor/lib/src/state/app_state.dart`,
-  `scene_editor/lib/src/scene/editor_scene.dart`,
-  `scene_editor/lib/src/ui/{right_panel,editor_viewport,main_screen,form_fields}.dart`.
-- **Статус.** Покрыто (381 тест; журнал `scene_editor/visual_tests.json`,
-  bug_11).

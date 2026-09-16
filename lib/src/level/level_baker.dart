@@ -143,7 +143,7 @@ class LevelBakeResult {
 }
 
 /// Turns a construction model into render content by the element's bake mode
-/// (plan §3.10):
+///:
 /// - [BakeMode.merge] — one shared static mesh per material;
 /// - [BakeMode.batch] — one shared mesh per shape+material (CPU grouping;
 ///   true GPU instancing is phase 6);

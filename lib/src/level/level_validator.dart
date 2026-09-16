@@ -7,7 +7,7 @@ import 'scene_placement.dart';
 /// Severity of a [LevelIssue].
 enum LevelIssueSeverity { warning, error }
 
-/// What a [LevelIssue] reports (migration plan §3.3).
+/// What a [LevelIssue] reports.
 enum LevelIssueKind {
   /// A cell references a region id the grid does not define.
   unknownRegion,
@@ -130,7 +130,7 @@ class LevelValidator {
         ));
         continue;
       }
-      // Windows are geometry only (plan §3.2) — only doors must connect two
+      // Windows are geometry only — only doors must connect two
       // passable cells. A door on the outer border leads outside the level
       // and is not checked.
       if (opening.kind != LevelOpeningKind.door) continue;

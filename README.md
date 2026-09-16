@@ -25,9 +25,6 @@ API в стиле Flutter — виджет `SceneViewport`, контроллер
 `third_party/flutter_scene` — обычный каталог, без вложенного
 git-репозитория (общий для движка и проектов через path-зависимость).
 
-Редактор сцен вынесен из репозитория в `../pet_engine_scene_editor`
-(фаза 4, API v2); его история осталась в этом репозитории.
-
 Публичные входы пакета:
 
 - `package:pet_engine/pet_engine.dart` — движок целиком;
@@ -55,12 +52,15 @@ cd example && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 
 ## Документы
 
-- [docs/plan.md](docs/plan.md) — идея, интерпретация, фазы.
-- [docs/features.md](docs/features.md) — реестр фич с примерами и ссылками.
+- [docs/api.md](docs/api.md) — публичный API: `SceneViewport`,
+  `SceneController`, `SceneNode` и механизмы.
 - [docs/architecture.md](docs/architecture.md) — устройство движка.
-- [docs/api.md](docs/api.md) — публичный API.
-- [docs/migration.md](docs/migration.md) — переход с v1.
+- [docs/features.md](docs/features.md) — реестр фич с примерами и ссылками.
 - [docs/conventions.md](docs/conventions.md) — священные конвенции.
+- [docs/visual_testing.md](docs/visual_testing.md) — методика визуальных
+  проверок.
+- [docs/perf_journal.md](docs/perf_journal.md) — замеры производительности.
+- [CHANGELOG.md](CHANGELOG.md) — история версий и фич.
 
 ## Правила
 

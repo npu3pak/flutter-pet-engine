@@ -1,8 +1,7 @@
 # История изменений pet_engine
 
 Краткий список версий пакета `pet_engine`. Версия записывается в журналы
-визуальных проверок приложений. Подробные планы и фазы — в
-`../docs/plan.md`.
+визуальных проверок приложений. API и форматы — в `docs/`.
 
 ## 0.1.0-dev.3
 
@@ -21,6 +20,15 @@
   - `PolyBakeResult.applyTo` — применить конверсию к объекту одним вызовом;
     `pruneFaceMaterials` — чистка устаревших материалов граней;
   - многогранник в уровневом слое всегда печётся как `BakeMode.node`.
+- **Атласы спрайтов и unlit-обрезание (16 сентября 2026):**
+  - `buildSpriteAtlas`/`composeSpriteAtlas` принимают `maxWidth`: ячейки
+    переносятся в строки и не упираются в лимит ширины текстуры GPU
+    (`SpriteAtlas.columns`/`rows`, `SpriteFieldNode.atlasMaxWidth`; `<= 0` —
+    прежний однорядный режим);
+  - собранные атласы разделяются процессом через ограниченный LRU-кэш
+    (`SpriteFieldLayer.clearSharedAtlasCache()`);
+  - unlit `SceneMaterial` учитывает `alphaCutoff` — параметр добавлен в
+    `SceneMaterial.unlit` и сохраняется `copy()`.
 
 ## 0.1.0-dev.2
 
@@ -46,10 +54,40 @@
 
 - Пакет переименован в `pet_engine_v2` (16.09.2026 — обратно в `pet_engine`);
   код перенесён из `pet_engine` 0.5.0 (v1) в новый репозиторий (фаза 0).
-  Публичный API нового поколения (`SceneViewport`/`SceneController`/
-  `SceneNode`) проектируется в фазе 1.
+- **Публичный API v2** (`SceneViewport`/`SceneController`/`SceneNode`):
+  материалы, текстуры и шейдеры, геометрия, камеры, ввод, попадания,
+  динамика и ноды-механизмы, документ `ModelNode`, `QualityController`,
+  уровневый слой и навигация, частицы, небо; экспорт — ровно API
+  `docs/api.md`.
+- **Удаление фасадов v1 (фаза 5).** Старый вход
+  `package:pet_engine/pet_engine.dart` и фасады (`GameScene`,
+  `GameSceneView`, `EngineSceneView`, `GameNode`, публичный `EngineNode`,
+  `EngineMaterial`, `EngineTexture`, `EngineMesh`, `EngineGeometry`,
+  `DynamicWorld`, `ScreenPicking`, `FmatManager`/`FmatSlot`,
+  `GameQualitySettings`, `GamePictureSettings`, `GameFog`,
+  `GameAntiAliasing`, `StaticSkybox` и другие) удалены; внутренние
+  механизмы (`ModelRenderer`, `GameCamera`, слои-механизмы, ресурсный
+  менеджер, `TextureCache`) остались неэкспортированными. Замены:
+
+  | Было | Стало |
+  |---|---|
+  | `StaticSkybox` | `SkyboxNode` + `SkyboxImageLayer` |
+  | `GameQualitySettings` | `QualitySettings` / `QualityPreset` |
+  | `GameFog`, `EngineFog` | `SceneFog` |
+  | `GameAntiAliasing`, `EngineAntiAliasing` | `SceneAntiAliasing` |
+  | `FreeCameraController`, `GameViewController` | `FlyCameraController`, `FirstPersonCameraController` |
+  | `BillboardBatch`, `SpriteFieldLayer`, `GroundFogLayer`, `ParticleLayer` | `BillboardBatchNode`, `SpriteFieldNode`, `GroundFogNode`, `ParticleNode` |
+  | `TextureCache` (не экспортируется) | `LevelBaker.planning()`, `SceneResources` |
+  | `GameResourceManager` (не экспортируется) | `SceneResources` |
+
+  Полная карта v1 → v2 осталась в истории репозитория.
+- Камера: `CameraInput` летает двумя пальцами на тач-устройствах (драг
+  второго пальца, `touchFlyDistance`), у `FlyCameraController` публичный
+  `rightH`; `SpriteFieldNode.screenParallelYaw` отдаёт общий разворот
+  screen-parallel полей.
 - Общий форк `flutter_scene` вынесен в отдельный репозиторий
-  `pet_games/flutter_scene`; path-зависимости v1 и v2 указывают на него.
+  `pet_games/flutter_scene` (позже возвращён в `third_party/flutter_scene`);
+  path-зависимости v1 и v2 указывают на него.
 
 ## 0.5.0
 

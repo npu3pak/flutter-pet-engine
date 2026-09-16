@@ -7,7 +7,7 @@ import '../models/scene_loader.dart';
 import 'build_ops.dart';
 
 /// How a construction element is turned into render content by the level
-/// baker (migration plan §3.10):
+/// baker:
 /// - [merge] — baked into the shared per-material static mesh (the default);
 /// - [batch] — grouped with identical elements (same shape + material) into
 ///   one batch, transforms baked in (true GPU instancing is phase 6);
@@ -42,7 +42,7 @@ void setBakeMode(ModelObject obj, BakeMode mode) {
   obj.bake = mode == BakeMode.merge ? null : mode.name;
 }
 
-/// The level layer's construction model (migration plan §3.9): a thin
+/// The level layer's construction model: a thin
 /// wrapper over the `model_v1` document whose elements carry the optional
 /// `bake`/`tag` hints. Statics are built here and baked into the scene;
 /// dynamic objects never pass through it.
