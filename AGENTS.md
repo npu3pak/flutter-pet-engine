@@ -99,8 +99,9 @@ unexported and is tested via `src/` imports.
 Repository restructure (September 16, 2026): the `engine/` package directory
 was moved to the repository root — the root is the `pet_engine` package;
 `demo/` was renamed to `example/` (Dart package `example`, bundle id
-`com.npu3pak.petengine.example`); dependent projects point at
-`../pet_engine`.
+`com.npu3pak.petengine.example`). The engine is published to GitHub
+(`npu3pak/flutter-pet-engine`, branch `main`); dependent projects consume it
+as a git dependency (`ref: main`).
 
 Feature chronology and release history — `CHANGELOG.md`. Next: final owner
 acceptance of the whole v2 (engine, docs, example).
