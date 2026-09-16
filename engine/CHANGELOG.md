@@ -77,10 +77,10 @@
     `cameraForward`, `applyCameraController()`, `screenPointToRay()`.
   - `lib/build_hooks.dart` — `petBuildMaterials` для hook-ов игр
     (dataAssetsIfAvailable).
-- Обе игры переведены на фасад: `math_quest` и `mypet-game/pet_demo`
-  импортируют только `package:pet_engine/…`, `flutter_scene` у них —
-  транзитивная зависимость. Проверки: analyze/тесты всех пакетов, автотест
-  сцен macOS по всем биомам (`missing=0`, фуксия=0), смоук `/fxlab`.
+- Игры переведены на фасад: приложения импортируют только
+  `package:pet_engine/…`, `flutter_scene` у них — транзитивная зависимость.
+  Проверки: analyze/тесты всех пакетов, автотест сцен macOS (`missing=0`,
+  фуксия=0), смоук `/fxlab`.
 
 ## 0.4.0
 
@@ -156,10 +156,8 @@
 
 ## 0.1.0+3
 
-- Фаза 4: биомные проекты движка — `Dungeon`, `Forest`, `AbandonedBuilding`
-  (все 17 чанков игры перенесены в сцены `model_v1`, разметка — боксы
-  `unpassable`/`door`, поля `entries`/`front`); импорт биома одной командой —
-  `engine/tool/import_biome.dart`.
+- Сцены проекта собираются в ряд через `ScenePlacement` (разметка — боксы
+  `unpassable`/`door`, поля `entries`/`front`).
 - `GameCamera.frameModel` учитывает ширину модели: широкие ряды сцен
   помещаются в кадр целиком.
 
@@ -191,5 +189,5 @@
 - Фаза 3: уровневый слой — клетки и регионы (`LevelGrid`), модель построения
   (`ConstructionModel`), операции размещения (`BuildOps`), размещение сцен
   (`ScenePlacement`), проверки уровня (`LevelValidator`), запекание
-  (`LevelBaker`), перенос старых чанков (`convertLegacyChunk`).
+  (`LevelBaker`).
 - Добавлена константа версии `kPetEngineVersion`.

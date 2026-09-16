@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_engine/pet_engine.dart';
 
@@ -353,50 +351,5 @@ void main() {
       expect(layout.allMetas, isEmpty);
       expect(layout.metaNames, isEmpty);
     });
-  });
-
-  group('биомные проекты: боксы совпадают с правилом центра', () {
-    for (final project in const [
-      'Streets',
-      'Dungeon',
-      'Forest',
-      'AbandonedBuilding',
-    ]) {
-      test(project, () {
-        final dir = Directory('../projects/$project/models');
-        expect(dir.existsSync(), isTrue, reason: 'нет ${dir.path}');
-        final files = dir.listSync().whereType<File>().where(
-              (f) => f.path.endsWith('.json'),
-            );
-        expect(files, isNotEmpty);
-        for (final file in files) {
-          final id = file.uri.pathSegments.last.replaceAll('.json', '');
-          final model = ModelData.fromJson(file.readAsStringSync(), id: id);
-          final p = ScenePlacement(scene: model, originRow: 0, originCol: 0);
-          for (final meta in model.metas.where((m) => m.isBox)) {
-            final hw = meta.dim('w', 1) / 2;
-            final hd = meta.dim('d', 1) / 2;
-            final byCenter = <(int, int)>{};
-            for (var z = 0; z < model.size.l; z++) {
-              for (var x = 0; x < model.size.w; x++) {
-                final dx = x - meta.x;
-                final dz = z - meta.z;
-                if (dx > -hw && dx < hw && dz > -hd && dz < hd) {
-                  byCenter.add((x, z));
-                }
-              }
-            }
-            final byQuery = <(int, int)>{};
-            for (var z = 0; z < model.size.l; z++) {
-              for (var x = 0; x < model.size.w; x++) {
-                if (p.metasAtCell(x, z).contains(meta)) byQuery.add((x, z));
-              }
-            }
-            expect(byQuery, byCenter,
-                reason: '$id/${meta.id}: правила клеток разошлись');
-          }
-        }
-      });
-    }
   });
 }

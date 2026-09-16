@@ -8,6 +8,7 @@ build/
 
 # Staging-бандлы ресурсов приложений (генерируются scripts/stage_app_assets.dart)
 demo/assets/pet_project/
+demo/assets/house_project/
 
 .DS_Store
 *.iml

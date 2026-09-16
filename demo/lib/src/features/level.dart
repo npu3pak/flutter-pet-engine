@@ -1,8 +1,5 @@
-import 'biome_scenes.dart';
 import 'feature_registry.dart';
-import 'legacy_chunks.dart';
 import 'level_baking.dart';
-import 'level_docking.dart';
 import 'level_loading.dart';
 import 'level_meta_cells.dart';
 import 'level_meta_query.dart';
@@ -15,13 +12,8 @@ final List<FeatureSpec> levelFeatures = [
   levelShellFeature,
   levelMetaCellsFeature,
   levelMetaQueryFeature,
-  levelDockingFeature,
   levelValidationFeature,
   levelBakingFeature,
   levelLoadingFeature,
-  legacyChunksFeature,
-  biomeDungeonFeature,
-  biomeForestFeature,
-  biomeAbandonedBuildingFeature,
   levelStressFeature,
 ];

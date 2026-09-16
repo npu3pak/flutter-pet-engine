@@ -2,7 +2,7 @@
 # Снимает perf-сессию с подключённого Android-устройства (любая игра).
 #
 #   scripts/perf/capture.sh <tag> [seconds]
-#   PERF_PKG=com.mathquest.math_quest scripts/perf/capture.sh <tag> [seconds]
+#   PERF_PKG=com.example.game scripts/perf/capture.sh <tag> [seconds]
 #
 # Пакет по умолчанию — com.mypet.example; переопределяется PERF_PKG.
 # Каталог вывода — temp/perf/<tag>/ относительно текущего каталога.

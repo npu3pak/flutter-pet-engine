@@ -57,8 +57,8 @@ fvm flutter analyze && fvm flutter test
 - `engine/third_party/flutter_scene` (the shared fork) may receive helper
   additions and bug fixes. Keep fork analyze and tests green; do not change
   its formats or sacred conventions.
-- Other sibling directories (`../math_quest`, `../mypet-game`) may be read
-  as references, but never modified.
+- Other sibling directories (`../mypet-game`) may be read as references,
+  but never modified.
 - Scratch files go only to `pet_engine/temp/`; `/tmp`, the home directory,
   and files outside `pet_games` are forbidden.
 - Information about plugins, dependencies, and third-party libraries comes
@@ -76,7 +76,7 @@ fvm flutter analyze && fvm flutter test
 
 ## Things to remember
 
-- Formats: `project_v1`, `model_v1`; legacy chunks are import-only.
+- Formats: `project_v1`, `model_v1`.
 - Mirrored X is a sacred convention: never "fix" the lookAt and never strip
   the billboard mirror. Details in `docs/conventions.md`.
 - Engine tests read the real `../projects/Pet` project by relative path — run
@@ -138,9 +138,8 @@ consumer is the `mypet-game/pet_demo` migration (branch
 Post-acceptance addition (branch `feature/sprite-field-yaw`):
 `SpriteFieldNode.screenParallelYaw` exposes the shared yaw of
 `SpriteFieldFacing.screenParallel` fields (the v1 `SpriteFieldLayer.update`
-capability) so math_quest's grass keeps its one-instanced-batch
-camera-facing; the consumer migration is the `math_quest` branch
-`feature/engine-v2` (September 13, 2026).
+capability) so instanced grass fields keep their one-instanced-batch
+camera-facing (September 13, 2026).
 
 Post-acceptance addition (branch `feature/polyhedra`, September 14, 2026):
 the engine is ready for lossless arbitrary geometry — the `polyhedron`
@@ -148,8 +147,8 @@ document kind (`PolyMesh`/`PolyFace`/`PolyLoop` with holes and explicit UVs,
 `bakePolyhedron`, mesh edit operations, `refreshObjectGeometry`,
 `objectWorldMatrix`, `faceLoops`), the runtime `PolyhedronNode`, and the
 large-map camera (`configureForExtent`); engine version `0.1.0-dev.3`.
-The demo has a ninth group «Многогранники» (54 features, 184 tests) and the
-scene editor a full Object/Faces/Vertices editing mode (381 tests); the
+The demo has a ninth group «Многогранники» (50 features, 182 tests) and the
+scene editor a full Object/Faces/Vertices editing mode (386 tests); the
 WAD converter itself is a separate future task. Backward-compat goldens live
 in `engine/test/fixtures/backward_compat/`.
 Same branch (September 16, 2026): sprite atlases wrap into rows beyond

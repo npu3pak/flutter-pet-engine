@@ -84,7 +84,7 @@
 | `FreeCameraController` | `FlyCameraController` | То же |
 | `GameViewController` | `FirstPersonCameraController` | Клетка, анимация шага |
 | `EditorScene`-камера | `OrbitCameraController` | Орбита без рывка |
-| ручная `Matrix4` (math_quest) | `MatrixCameraController` | Матрица на кадр |
+| ручная `Matrix4` | `MatrixCameraController` | Матрица на кадр |
 | `NodeCamera`, `PerspectiveProjection` | `CameraProjection` внутри контроллера | Наружу не выходит |
 | `GameScene.applyCameraController` | не нужен | Контроллер применяет сам |
 | `kFovY`, `zoomMaxDistance` | в `FlyCameraController` | Публично |
@@ -111,7 +111,7 @@
 | `DynamicVisual`, `SpriteVisual` | `SceneNode`-визуалы | Любая нода |
 | `RingVisual` | `RingNode` | Готовый визуал |
 | `spawn/despawn/byId/clear` | те же | — |
-| keyed-пул вручную (math_quest) | `dynamics.sync(key, entries)` | Без пересоздания |
+| keyed-пул вручную | `dynamics.sync(key, entries)` | Без пересоздания |
 | `BillboardBatch` | `BillboardBatchNode` | — |
 | `SpriteFieldLayer` | `SpriteFieldNode` | — |
 | `GroundFogLayer` | `GroundFogNode` | — |
@@ -173,16 +173,11 @@
 2. **scene_editor** — переписывается после demo; проверяет редакторский
    профиль (виды, слои, picking, гизмо, отмена).
 3. **mypet-game** — выполнено (ветвь `feature/engine-v2` в `mypet-game`).
-4. **math_quest** — выполнено (ветвь `feature/engine-v2` в `math_quest`,
-   13 сентября 2026): рендер-слой переведён на публичный API, для травы
-   добавлен `SpriteFieldNode.screenParallelYaw`; визуальная приёмка —
-   снимки 9 биомов против эталона v1 (7 совпадают попиксельно, остальные
-   отличаются только фазой анимированного тумана/осадков).
 
 ## 4. Судьба старых фасадов
 
 **Решение: удаляем после миграции — выполнено в фазе 5.** Реестр фич
-показал, что все возможности четырёх проектов выражаются API v2; отдельный
+показал, что все возможности проектов выражаются API v2; отдельный
 публичный низкоуровневый доступ не нужен. Список удаляемых типов — раздел 20
 `docs/api.md`.
 
@@ -212,7 +207,7 @@
 
 | Что проверяем | Откуда тесты | Куда переезжают |
 |---|---|---|
-| Документ `model_v1`, легаси-чанки | `EN/test/model_*`, `legacy_*` | без изменений |
+| Документ `model_v1` | `EN/test/model_*` | без изменений |
 | Уровневый слой | `EN/test/level_*`, `construction_*`, `meta_queries_*` | без изменений |
 | Навигация | `PD/test/pet_move_test.dart` | в `engine/test` (публичный API) |
 | Материалы и шейдеры | `EN/test/engine_material_test.dart`, `fmat_manager_test.dart` | новые тесты `SceneMaterial`/`ShaderMaterial`; внутренние `EngineMaterial`/`FmatManager` — через `src/`-импорты (`FmatManager` удалён) |

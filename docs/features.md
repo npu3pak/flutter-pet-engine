@@ -1,7 +1,7 @@
 # Реестр фич pet_engine
 
 Документ перечисляет всё, что обязано быть в API нового движка, чтобы при
-переходе на v2 ни один из четырёх проектов не потерял возможностей. Реестр
+переходе на v2 ни один из проектов не потерял возможностей. Реестр
 собран из фактического кода: каждый пункт подтверждён ссылками
 `файл:строка`.
 
@@ -13,7 +13,6 @@
   `npu3pak/flutter-pet-engine`);
 - **FS** — общий форк `flutter_scene/packages/flutter_scene`;
 - **EX** — приложение-пример движка v1 (удалён вместе с каталогом v1);
-- **MQ** — игра `math_quest`;
 - **PD** — игра `mypet-game/pet_demo`;
 - **ED** — редактор движка v1 (`tools/scene_editor`, удалён вместе с
   каталогом v1).
@@ -59,7 +58,6 @@
 - **Что делает.** Ожидание статик-ресурсов рендера (шейдерный бандл) до
   создания сцены; без этого построение геометрии падает.
 - **Где.** `EX/lib/main.dart:15`, `PD/lib/main.dart:11`,
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:115`,
   `ED/lib/src/ui/editor_viewport.dart:85`,
   `ED/lib/src/ui/resources/model_viewer_screen.dart:216`.
 - **API v2.** `initializeEngine()` остаётся публичным; вьюпорт сам ждёт
@@ -72,7 +70,7 @@
   источника; признак «можно писать»; имя для интерфейса.
 - **Где.** `EN/lib/src/engine/project_source.dart:15` (`ProjectSource`),
   `:45` (`DirectoryProjectSource`), `:100` (`BundleProjectSource`);
-  `MQ/lib/engine/impl/biome_project_source.dart:15-119` (своя реализация:
+  (своя реализация:
   дерево исходников на macOS, иначе `AssetManifest`);
   `PD/lib/main.dart:40-56` (выбор источника по `dart-define`).
 - **API v2.** Типы остаются публичными; `SceneController.open(source)`.
@@ -87,7 +85,6 @@
   перечисляются.
 - **Где.** `EN/lib/src/engine/game_resource_manager.dart:62-110`;
   `PD/lib/src/game_screen.dart:108-115` (выбор `model_2`),
-  `MQ/lib/engine/impl/biome_project_source.dart:124-131`.
 - **API v2.** `SceneController.open/openProject/openModels`, ресурсная
   сессия с `projectName`, `modelIds`, `models`, `loadErrors`.
 - **Статус.** Частично.
@@ -155,8 +152,6 @@
   ошибок «ресурс + причина», время загрузки. Интерфейс показывает прогресс
   и ошибки, пока играет предыдущее состояние.
 - **Где.** `EN/lib/src/level/level_loader.dart:8-53`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:462-499`;
-  `MQ/lib/engine/core/level_load_state.dart:1-67`;
   `EX/lib/src/features/level_loading.dart`.
 - **API v2.** `SceneLoadStatus` со стадиями, долей, подписью, ошибками;
   `SceneViewport.loadingBuilder`.
@@ -167,7 +162,6 @@
 - **Что делает.** До показа уровня загружаются атласы травы, тумана и
   погоды, чтобы первый кадр не был с заглушками.
 - **Где.** `EN/lib/src/level/level_loader.dart:89` (`LevelExtraResource`);
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:416-419`.
 - **API v2.** `LevelExtraResource` и его подключение через
   `SceneController.loadLevel(...)`.
 - **Статус.** Нет.
@@ -175,11 +169,10 @@
 ### A11. Защита от гонок при смене сцены и проекта
 
 - **Что делает.** Устаревшие результаты асинхронных загрузок отбрасываются:
-  счётчики поколений при пересборке этажа, при смене биома, при загрузке
+  счётчики поколений при пересборке этажа, при смене сцены, при загрузке
   текстур и неба.
-- **Где.** `MQ/lib/engine/impl/scene_dungeon_renderer.dart:381-460,501-524`;
-  `MQ/lib/engine/impl/texture_store.dart:29-37`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:131-150` (небо).
+- **Где.**
+  (небо).
 - **API v2.** Контроллер сам управляет поколениями; приложение не пишет
   счётчики и не сравнивает пути вручную.
 - **Статус.** Частично.
@@ -189,7 +182,6 @@
 - **Что делает.** Снимок вьюпорта в PNG + JSON-карточка, анализ
   заглушек (фуксия/серый) и наполненности кадра; работает при скрытом окне.
 - **Где.** `EN/lib/src/visual/screenshot.dart:21-257`;
-  `MQ/lib/debug/scene_capture.dart:1-39`;
   `EX/lib/src/screenshot_saver.dart:10-48`.
 - **API v2.** `SceneViewport.capture` (PNG-снимок вьюпорта),
   `saveScreenshot`, `analyzePlaceholders`, `analyzeFrameContent`.
@@ -201,7 +193,7 @@
   обёртка, компилирующая `.fmat` в шейдерный бандл (или инициализирующая
   пайплайн, если `.fmat` нет).
 - **Где.** `EN/lib/build_hooks.dart:25` (`petBuildMaterials`);
-  `PD/hook/build.dart:8`; `MQ/hook/build.dart:11`;
+  `PD/hook/build.dart:8`;
   `ED/hook/build.dart:15`.
 - **API v2.** Контракт сохраняется; в документации API должен быть явно
   описан.
@@ -309,7 +301,6 @@
   участвуют в размещении и валидации.
 - **Где.** `EN/lib/src/models/model_scene.dart` (`ModelSide`);
   `ED/lib/src/state/app_state.dart:536-568`;
-  `MQ/lib/mechanics/model_passages.dart:10,31-42`.
 - **API v2.** Остаются в документе; редактор и игра читают через
   `ScenePlacement`.
 - **Статус.** Покрыто (документом).
@@ -345,7 +336,6 @@
   (матрица и отдельно позиция/поворот/масштаб).
 - **Где.** `EN/lib/src/render/engine_node.dart`;
   `ED/lib/src/scene/editor_scene.dart:1440,1663-1718`;
-  `MQ/lib/engine/impl/scene_builder.dart:299-300,3132`.
 - **API v2.** `SceneNode` с `parent`, `children`, `layer`, `transform`.
 - **Статус.** Частично.
 
@@ -355,7 +345,6 @@
   плоскость (вертикальная и горизонтальная), кольцо; мировые UV, тайлинг,
   совмещение углов, намотка граней.
 - **Где.** `EN/lib/src/render/engine_mesh.dart`, `primitive_batch.dart`;
-  `MQ/lib/engine/impl/scene_builder.dart:1592-2529`;
   `EX/lib/src/features/primitives_all.dart`, `rounded_box.dart`.
 - **API v2.** `BoxNode`, `PlaneNode`, `MeshNode`, `SceneGeometry`,
   `GeometryBuilder`.
@@ -366,7 +355,6 @@
 - **Что делает.** Один объект с несколькими частями и материалами
   (например, ядро стены и наружная «кожа»).
 - **Где.** `EN/lib/src/render/engine_mesh.dart:47-68`;
-  `MQ/lib/engine/impl/scene_builder.dart:2186-2230`.
 - **API v2.** `MeshNode` с частями: `geometry` + `material` на каждую часть.
 - **Статус.** Нет.
 
@@ -376,7 +364,6 @@
   фиксированная; ширина, высота, поворот, цвет, прозрачность, подсветка;
   настенные, напольные и потолочные декали.
 - **Где.** `EN/lib/src/render/engine_scene.dart:195-276`;
-  `MQ/lib/engine/impl/scene_graph.dart:36-137`.
 - **API v2.** `SpriteNode` с ориентациями.
 - **Статус.** Частично.
 
@@ -395,7 +382,6 @@
   радиус, направление, тени; включение/снятие источников; изменение на
   лету; лампа, привязанная к камере.
 - **Где.** `EN/lib/src/render/engine_node.dart:101-137`;
-  `MQ/lib/engine/impl/scene_builder.dart:200-207,2643-2673,3186-3193`;
   `ED/lib/src/scene/editor_scene.dart:1447-1513`.
 - **API v2.** `LightNode.point/directional` с `castsShadow`, `range`,
   `direction` и мутацией на лету.
@@ -405,7 +391,7 @@
 
 - **Что делает.** Эффект атаки и лампа игрока висят на узле камеры и
   движутся вместе с ней.
-- **Где.** `MQ/lib/engine/impl/scene_builder.dart:206-207`.
+- **Где.**
 - **API v2.** `SceneController.cameraNode` или `node.attachToCamera()`.
 - **Статус.** Нет.
 
@@ -413,7 +399,7 @@
 
 - **Что делает.** Секретные стены: при раскрытии у существующей ноды
   подменяется меш (убирается «кожа») и материал, иногда каждый кадр.
-- **Где.** `MQ/lib/engine/impl/scene_builder.dart:2977-3156`.
+- **Где.**
 - **API v2.** `MeshNode.geometry = ...` без пересоздания ноды.
 - **Статус.** Нет.
 
@@ -423,7 +409,6 @@
   камере по горизонтальному направлению; реестр билбордов; принудительный
   разворот на первом кадре и при смене направления.
 - **Где.** `EN/lib/src/render/engine_scene.dart:294-313`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:309-315`;
   `EN/lib/src/level/level_baker.dart`.
 - **API v2.** Автоматический разворот в кадре; `reorientBillboards()` для
   ручного режима.
@@ -434,7 +419,7 @@
 - **Что делает.** Игра каждый кадр обновляет набор объектов (враги,
   предметы, сундуки), не пересоздавая неизменившиеся: сравнение по
   сигнатуре, подмена только материала, удаление исчезнувших.
-- **Где.** `MQ/lib/engine/impl/scene_builder.dart:2677-2808`.
+- **Где.**
 - **API v2.** `controller.dynamics.sync(key, entries)` — обновление по
   ключу без пересоздания.
 - **Статус.** Нет.
@@ -447,7 +432,6 @@
   прозрачности (opaque/mask/blend), порог отсечения, двусторонность,
   свечение, дальность тумана, порядок прозрачности.
 - **Где.** `EN/lib/src/render/engine_material.dart:22-205`;
-  `MQ/lib/engine/impl/scene_builder.dart:263-291,337-402`;
   `PD/lib/src/game_screen.dart` (через документ).
 - **API v2.** `SceneMaterial.pbr(...)` со всеми полями.
 - **Статус.** Частично.
@@ -457,7 +441,6 @@
 - **Что делает.** Плоский материал без освещения: растворение секретных
   стен, tint-подложки, декали.
 - **Где.** `EN/lib/src/render/engine_material.dart:49-62`;
-  `MQ/lib/engine/impl/scene_builder.dart:1997-2000,2539-2564,3053-3057`.
 - **API v2.** `SceneMaterial.unlit(...)`.
 - **Статус.** Частично.
 
@@ -490,7 +473,6 @@
   render-state; параметры задаются по имени; независимые экземпляры
   параметров на объект; горячая перезагрузка.
 - **Где.** `EN/lib/src/materials/fmat_manager.dart`;
-  `MQ/lib/engine/impl/material_manager.dart:14-84`;
   `EX/lib/src/features/fmat_effects.dart:127-222`;
   `FS/lib/src/fmat/*`, `material/preprocessed_material.dart`,
   `material/material_parameters.dart`.
@@ -505,7 +487,6 @@
   материал с тегами элементов и признаком спрайта и настраивает рецепт
   (например, «мокрый» вид стен).
 - **Где.** `EN/lib/src/level/level_baker.dart:83-92,330-353`;
-  `MQ/lib/engine/impl/floor_model_builder.dart:420-493`.
 - **API v2.** `LevelBakeOptions.onMaterial`.
 - **Статус.** Нет.
 
@@ -513,7 +494,7 @@
 
 - **Что делает.** Если материал не изменился, движок не пересобирает
   ноду; сравнение выполняет движок, а не игра.
-- **Где.** `MQ/lib/engine/impl/scene_builder.dart:2706-2719`.
+- **Где.**
 - **API v2.** Внутреннее поведение `SceneNode.material` и `sync`.
 - **Статус.** Нет.
 
@@ -559,8 +540,7 @@
 - **Что делает.** Игра сама считает матрицу камеры каждый кадр (свой FOV,
   near/far, зеркальный X, наклон головы, покачивание) и отдаёт движку;
   отдельно нужно горизонтальное направление для билбордов.
-- **Где.** `MQ/lib/shared/camera_math.dart:53-151`;
-  `MQ/lib/engine/impl/scene_builder.dart:2749-2765`.
+- **Где.**
 - **API v2.** `MatrixCameraController` (матрица на кадр) либо
   `camera.setMatrix(...)`.
 - **Статус.** Нет.
@@ -682,7 +662,7 @@
   вызываются в известном порядке.
 - **Где.** `EX/lib/src/scene_host.dart:420-433`;
   `PD/lib/src/game_screen.dart:610-618`;
-  `MQ/lib/src/ui/game_state.dart:277-283` (сейчас тик снаружи).
+  (сейчас тик снаружи).
 - **API v2.** Вьюпорт владеет кадром; `addFrameListener`; при
   `autoTick: false` приложение зовёт `update(dt)` само.
 - **Статус.** Частично.
@@ -692,7 +672,7 @@
 - **Что делает.** Вьюпорт сообщает размер до первого кадра; пиксельное
   соотношение; прогрев пайплайнов до показа.
 - **Где.** `EN/lib/src/render/engine_view.dart:12-88`;
-  `MQ/lib/engine/impl/scene_builder.dart:3171-3175` (размер нужен для
+  (размер нужен для
   эффекта атаки).
 - **API v2.** `viewportSize`, `pixelRatio`, `warmUp`.
 - **Статус.** Частично.
@@ -731,7 +711,7 @@
 
 - **Что делает.** Обновление набора динамических объектов без пересоздания
   (см. C10).
-- **Где.** `MQ/lib/engine/impl/scene_builder.dart:2677-2808`.
+- **Где.**
 - **API v2.** `controller.dynamics.sync(key, entries)`.
 - **Статус.** Нет.
 
@@ -743,7 +723,6 @@
   сквозняк, блики), плотность, ветер, фильтр клеток, асинхронная сборка
   атласа, обновление по времени и позиции игрока, включение/выключение.
 - **Где.** `EN/lib/src/particles/*`;
-  `MQ/lib/engine/impl/scene_builder.dart:2885-2959`;
   `EX/lib/src/features/weather_common.dart:101-235`.
 - **API v2.** `ParticleNode` + пресеты + параметры.
 - **Статус.** Частично.
@@ -754,7 +733,6 @@
   разворот по камере, непрозрачный alpha-test, кадр по ключу спрайта,
   сброс с сохранением атласа.
 - **Где.** `EN/lib/src/render/sprite_field_layer.dart`;
-  `MQ/lib/engine/impl/grass_renderer.dart:33-119`.
 - **API v2.** `SpriteFieldNode` с полным набором; `atlasMaxWidth` —
   предел ширины атласа (ячейки переносятся в строки по лимиту GPU).
 - **Статус.** Частично.
@@ -764,7 +742,6 @@
 - **Что делает.** Облака тумана: ёмкость, порядок прозрачности, оттенок,
   предзагрузка и сброс атласа.
 - **Где.** `EN/lib/src/render/ground_fog_layer.dart`;
-  `MQ/lib/engine/impl/ground_fog_renderer.dart:34-97`.
 - **API v2.** `GroundFogNode`.
 - **Статус.** Частично.
 
@@ -796,7 +773,6 @@
 - **Что делает.** Панорама за сценой: загрузка изображения, прокрутка при
   повороте камеры, дымка горизонта, тайлинг, освобождение картинки.
 - **Где.** `EN/lib/src/skybox/static_skybox.dart`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:96-228`;
   `EX/lib/src/features/skybox_static.dart`.
 - **API v2.** `SkyboxNode` со слоями (фон, градиент, панорама, облака,
   звёзды, солнце/луна) + фон вьюпорта (`backgroundBuilder`).
@@ -857,7 +833,6 @@
   режим «проект уже открыт», ошибки, время; тестовый шов для запекателя.
 - **Где.** `EN/lib/src/level/level_loader.dart`;
   `EX/lib/src/features/level_loading.dart`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:408-422`.
 - **API v2.** `SceneController.loadLevel(...)` со статусом.
 - **Статус.** Частично.
 
@@ -867,7 +842,6 @@
   мировые координаты игры), размонтируется, отдельные элементы доступны по
   идентификатору; запечённые спрайты разворачиваются к камере.
 - **Где.** `EN/lib/src/engine/game_scene.dart:143-201`;
-  `MQ/lib/engine/impl/scene_builder.dart:332-335`;
   `EX/lib/src/features/level_loading.dart:168-203`.
 - **API v2.** `SceneController.mountLevel(baked, offset:)` → `LevelNode`.
 - **Статус.** Частично.
@@ -880,7 +854,7 @@
   пересечения, стыковка, общая сторона.
 - **Где.** `EN/lib/src/level/scene_placement.dart`;
   `EX/lib/src/features/level_docking.dart`, `level_meta_query.dart`;
-  `MQ/lib/mechanics/scene_map.dart`, `building_floor.dart`.
+  `building_floor.dart`.
 - **API v2.** Публично.
 - **Статус.** Покрыто.
 
@@ -890,14 +864,6 @@
   (`unpassable`, `door`, `window`); правило «центр клетки внутри бокса».
 - **Где.** `EN/lib/src/models/model_scene.dart:651-653`;
   `EX/lib/src/features/level_meta_cells.dart`.
-- **API v2.** Публично.
-- **Статус.** Покрыто.
-
-### J10. Легаси-чанки
-
-- **Что делает.** Чтение `chunk_v1/v2/v3` и конвертация в `model_v1`.
-- **Где.** `EN/lib/src/models/legacy_chunk_converter.dart`,
-  `scene_loader.dart`; `EX/lib/src/features/legacy_chunks.dart`.
 - **API v2.** Публично.
 - **Статус.** Покрыто.
 
@@ -957,7 +923,6 @@
   экранных координатах, ближайшая точка к тапу, пакетный хит-тест списка
   точек с пиксельным радиусом и глубиной.
 - **Где.** `EN/lib/src/engine/picking.dart:21-46`;
-  `MQ/lib/engine/impl/scene_dungeon_renderer.dart:41-75`;
   `EX/lib/src/features/screen_projection.dart`.
 - **API v2.** `worldToScreen`, `screenRect`, `nearest`, `projectAll`.
 - **Статус.** Частично.
@@ -975,8 +940,7 @@
 
 - **Что делает.** Положение центра и высота объекта в пикселях для
   полосок здоровья, цифр урона, подписей.
-- **Где.** `MQ/lib/engine/impl/projection_impl.dart:22-46`;
-  `MQ/lib/ui/widgets/target_frame_overlay.dart:44-49`.
+- **Где.**
 - **API v2.** Строится из `worldToScreen` + `worldBounds`; нужен пример в
   документации.
 - **Статус.** Частично.
@@ -1109,7 +1073,6 @@
   границами непрозрачности.
 - **Где.** `EN/lib/src/engine/game_scene.dart:244-390`;
   `PD/lib/src/game_screen.dart:363-414,795-842`;
-  `MQ/lib/src/ui/game_screen.dart:926-1008`;
   `EX/lib/src/scene_host.dart:386-414`.
 - **API v2.** `QualitySettings` (get/set) + `SceneController.setFog`.
 - **Статус.** Частично.
@@ -1130,7 +1093,6 @@
   `EX/lib/src/perf/frame_stats_logger.dart:18-125`,
   `PD/lib/src/game_screen.dart:339-487,1005-1027`,
   `PD/lib/src/perf/device_performance.dart:8-43`,
-  `MQ/lib/src/ui/game_screen.dart:926-1107`.
 - **API v2.** `QualityController` с `QualityPolicy`, `QualitySettings`,
   `FrameStats`, `QualityChange`; `SceneViewport` сообщает кадры;
   `SceneController.applySettings`.
@@ -1151,14 +1113,14 @@
 - **Что делает.** Открытие фичи/сцены по ссылке, снимок, настройки,
   повтор загрузки; в debug — канал управления для автоматизации.
 - **Где.** `EX/lib/src/deeplink.dart`;
-  `MQ/lib/src/deeplinks.dart`; `PD` — без диплинков.
+  `PD` — без диплинков.
 - **API v2.** Остаётся в приложениях; движок не участвует.
 - **Статус.** Вне API.
 
 ## Итог
 
 На момент инвентаризации полностью покрывались черновиком документ и
-уровневый слой (J1–J10) и часть фич базовых нод. Частично: сессия и
+уровневый слой (J1–J9) и часть фич базовых нод. Частично: сессия и
 загрузка, материалы, камеры, ввод, динамика, механизмы. Отсутствовали:
 навигация (K1–K3), текстуры из изображений (M4), линейная геометрия (C5),
 батч (I4), виды и слои (M1), скриншоты (A12), контроллер качества (N3).
@@ -1240,9 +1202,9 @@
   (`polyhedra_bake`), фрагмент карты с явными UV (`polyhedra_map`),
   runtime-узел (`polyhedra_runtime`), выделение граней/вершин
   (`polyhedra_select`).
-- **Код.** `demo/lib/src/features/polyhedra*.dart`; каталог — 54 фичи в
+- **Код.** `demo/lib/src/features/polyhedra*.dart`; каталог — 50 фич в
   девяти группах; журнал `demo/visual_tests.json` (bug_61).
-- **Статус.** Покрыто (184 теста demo).
+- **Статус.** Покрыто (182 теста demo).
 
 ### ED1. Режим многогранника в редакторе
 

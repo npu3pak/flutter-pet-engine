@@ -30,9 +30,9 @@ ModelData scene({
       objects: List.of(objects),
     );
 
-ModelData streets(String id) => ModelData.fromJson(
-      File('../projects/Streets/models/$id.json').readAsStringSync(),
-      id: id,
+ModelData houseModel() => ModelData.fromJson(
+      File('../projects/House/models/house.json').readAsStringSync(),
+      id: 'house',
     );
 
 void main() {
@@ -345,22 +345,12 @@ void main() {
     });
   });
 
-  group('ряд домов streets', () {
+  group('ряд домов', () {
     test('houses stand in a row with matching passages', () {
-      const ids = [
-        'chunk_2',
-        'chunk_3',
-        'chunk_4',
-        'chunk_5',
-        'chunk_6',
-        'chunk_7',
-        'chunk_8',
-      ];
       final placements = <ScenePlacement>[];
       var col = 0;
-      for (final id in ids) {
-        final house = streets(id);
-        final p = ScenePlacement(scene: house, originRow: 0, originCol: col);
+      for (var i = 0; i < 7; i++) {
+        final p = ScenePlacement(scene: houseModel(), originRow: 0, originCol: col);
         placements.add(p);
         col += p.footprintCols;
       }
@@ -387,7 +377,7 @@ void main() {
 
     test('a rotated house faces its entry the other way', () {
       final p = ScenePlacement(
-          scene: streets('chunk_2'), originRow: 4, originCol: 0, rotY: 180);
+          scene: houseModel(), originRow: 4, originCol: 0, rotY: 180);
       final north = p.openBorderCells(ModelSide.north);
       expect(north, hasLength(3));
       expect(north.every((cell) => cell.$1 == 4), isTrue);

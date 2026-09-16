@@ -14,34 +14,23 @@ void main() {
     );
   });
 
-  test('Streets читается из папки projects/Streets', () {
-    final source = sourceForProject('Streets');
+  test('House читается из папки projects/House', () {
+    final source = sourceForProject('House');
     expect(source, isA<DirectoryProjectSource>());
     expect(
       (source as DirectoryProjectSource).root.path,
-      endsWith('projects/Streets'),
+      endsWith('projects/House'),
     );
   });
 
-  test('биомные проекты читаются из папок projects/<Имя>', () {
-    for (final name in const ['Dungeon', 'Forest', 'AbandonedBuilding']) {
-      final source = sourceForProject(name);
-      expect(source, isA<DirectoryProjectSource>(), reason: name);
-      expect(
-        (source as DirectoryProjectSource).root.path,
-        endsWith('projects/$name'),
-        reason: name,
-      );
-    }
-  });
-
-  test('биомные проекты открываются и содержат сцены', () async {
-    for (final name in const ['Dungeon', 'Forest', 'AbandonedBuilding']) {
-      final controller = SceneController();
-      await controller.open(sourceForProject(name));
-      expect(controller.resources?.modelIds, isNotEmpty, reason: name);
-      controller.dispose();
-    }
+  test('House открывается и содержит модель house', () async {
+    final controller = SceneController();
+    await controller.open(sourceForProject('House'));
+    final resources = controller.resources!;
+    expect(resources.modelIds, contains('house'));
+    expect(resources.textureKeys, isNotEmpty);
+    expect(resources.spriteKeys, isNotEmpty);
+    controller.dispose();
   });
 
   test('сцена из кода использует пустой источник', () {

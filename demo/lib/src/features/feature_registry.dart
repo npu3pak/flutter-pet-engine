@@ -67,8 +67,7 @@ class FeatureSpec {
   /// Название для человека.
   final String title;
 
-  /// Имя проекта ресурсов: `'Pet'`, `'Streets'`, `'Dungeon'`, `'Forest'`,
-  /// `'AbandonedBuilding'` или `null` — сцена из кода.
+  /// Имя проекта ресурсов: `'Pet'` или `'House'`; `null` — сцена из кода.
   final String? project;
 
   /// Фаза проекта, к которой относится возможность (для группировки

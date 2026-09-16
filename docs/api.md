@@ -1201,7 +1201,7 @@ final marker = controller.dynamics.spawn(
 );
 ```
 
-Пример (пул врагов из math_quest: `builder` переиспользует ноды,
+Пример (пул врагов: `builder` переиспользует ноды,
 `onUpdate` меняет материал у существующих, не пересоздавая их):
 
 ```dart
@@ -1595,7 +1595,7 @@ class LevelLoadEvent {
   `modelRefCubeProxy(...)`;
 - `facesOf(object)`, `csgLeavesOf(object)`, `moveExpansion(...)`.
 
-Пример загрузки уровня (math_quest):
+Пример загрузки уровня:
 
 ```dart
 final result = await controller.loadLevel(
@@ -1671,18 +1671,6 @@ controller.addFrameListener((elapsed, dt) {
   follower.update(dt);
   cat.setWorldPlacement(x: follower.position.x, z: follower.position.y, rotY: petRotYFromHeading(follower.heading));
 });
-```
-
-### math_quest
-
-```dart
-final controller = SceneController(mergeStatic: true);
-final custom = MatrixCameraController(fovY: 75 * pi / 180, near: 0.05, far: 50);
-controller.camera = custom;
-controller.addFrameListener((elapsed, dt) {
-  custom.matrix = cameraNodeTransformAnimated(...);
-});
-controller.dynamics.sync('enemies', ...);
 ```
 
 ## 20. Что удаляется после миграции

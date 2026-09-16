@@ -2,10 +2,8 @@ import 'dart:convert';
 
 import '../scene/polyhedron.dart';
 
-/// Model scene model — the JSON format `model_v1`. Legacy chunk formats
-/// (`chunk_v1/v2/v3`) are not handled here: read files through
-/// `loadModelData` (`scene_loader.dart`), which converts them (see
-/// `legacy_chunk_converter.dart`).
+/// Model scene model — the JSON format `model_v1`. Read files through
+/// `loadModelData` (`scene_loader.dart`).
 ///
 /// Coordinates are model-local with the origin at the CENTER OF THE
 /// BOTTOM-LEFT CELL — a fixed anchor: enlarging the model extends the grid
@@ -17,9 +15,6 @@ import '../scene/polyhedron.dart';
 /// `cellWorld`/`chunkWorld` in `engine_compat/coords.dart`.
 
 const modelFormatV1 = 'model_v1';
-const chunkFormatV3 = 'chunk_v3'; // legacy, accepted on load as-is
-const chunkFormatV2 = 'chunk_v2'; // legacy, accepted on load as-is
-const chunkFormatV1 = 'chunk_v1'; // legacy, accepted on load as-is
 
 /// Boolean-operation result object kind: a derived «live» solid computed by
 /// a CSG operation over two operand objects (referenced by id, hidden while
@@ -63,11 +58,11 @@ const csgOps = [csgOpUnion, csgOpDifference, csgOpIntersect];
 const faceKeys = ['+x', '-x', '+y', '-y', '+z', '-z'];
 
 /// Compass sides of a scene: entry sides (`entries`), the facade (`front`)
-/// and cell openings of the level layer. Stored in JSON as the legacy chunk
-/// strings `north`/`east`/`south`/`west`.
+/// and cell openings of the level layer. Stored in JSON as
+/// `north`/`east`/`south`/`west`.
 enum ModelSide { north, east, south, west }
 
-/// Parses a legacy side string; null for unknown/absent values.
+/// Parses a side string; null for unknown/absent values.
 ModelSide? modelSideFrom(Object? value) {
   if (value is! String) return null;
   for (final s in ModelSide.values) {
@@ -174,7 +169,7 @@ class ModelSize {
   factory ModelSize.fromJson(Object? json) {
     final m = (json as Map?) ?? {};
     int asInt(Object? v, int fallback) => v is num ? v.toInt() : fallback;
-    // The legacy limits (64×64×32) stay valid; the range is extended so
+    // The v1 limits (64×64×32) stay valid; the range is extended so
     // imported 1:1 maps (e.g. Doom) fit without clamping.
     return ModelSize(
       w: asInt(m['w'], 3).clamp(1, 16384),
@@ -360,7 +355,7 @@ class ModelObject {
   double x, y, z; // anchor: center of base at height y
 
   /// Euler rotations (degrees), applied around the anchor as
-  /// Rz(rotZ)·Rx(rotX)·Ry(rotY) — rotY keeps the legacy semantics.
+  /// Rz(rotZ)·Rx(rotX)·Ry(rotY) — rotY keeps its historical semantics.
   double rotX, rotY, rotZ;
 
   /// Kind-specific dimensions. Keys:
@@ -553,7 +548,7 @@ class ModelObject {
     if (rotX != 0) m['rotX'] = round3(rotX);
     if (rotZ != 0) m['rotZ'] = round3(rotZ);
     if (kind == 'cuboid') {
-      // A plain cuboid keeps the compact legacy list [w, h, d]; a rounded
+      // A plain cuboid keeps the compact list form [w, h, d]; a rounded
       // one needs the extra dims, so it switches to the map form (read back
       // by fromJson into the same w/h/d keys).
       final r = dims['roundR'];
@@ -1156,13 +1151,13 @@ class ModelData {
   List<ModelGroup> groups;
   List<ModelMeta> metas;
 
-  /// Entry sides of the scene (legacy chunk `entries`): the sides the level
-  /// may connect through. The source of truth for connectivity — the level
-  /// validator compares it against the door boxes (plan §3.14).
+  /// Entry sides of the scene (`entries`): the sides the level may connect
+  /// through. The source of truth for connectivity — the level validator
+  /// compares it against the door boxes (plan §3.14).
   Set<ModelSide> entries;
 
-  /// Facade side of the scene (legacy chunk `front`), e.g. the side with the
-  /// door. Null when the scene has no facade.
+  /// Facade side of the scene (`front`), e.g. the side with the door. Null
+  /// when the scene has no facade.
   ModelSide? front;
 
   /// The model's lighting configuration («Освещение»): scene knobs + the

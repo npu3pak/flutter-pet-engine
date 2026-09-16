@@ -28,9 +28,9 @@ ModelData scene({
       metas: List.of(metas),
     );
 
-ModelData streets(String id) => ModelData.fromJson(
-      File('../projects/Streets/models/$id.json').readAsStringSync(),
-      id: id,
+ModelData houseModel() => ModelData.fromJson(
+      File('../projects/House/models/house.json').readAsStringSync(),
+      id: 'house',
     );
 
 void main() {
@@ -177,12 +177,12 @@ void main() {
       expect(issues.any((i) => i.kind == LevelIssueKind.dockingMismatch), isTrue);
     });
 
-    test('the streets row is connected and docked', () {
-      const ids = ['chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'];
+    test('the houses row is connected and docked', () {
       final placements = <ScenePlacement>[];
       var col = 0;
-      for (final id in ids) {
-        final p = ScenePlacement(scene: streets(id), originRow: 0, originCol: col);
+      for (var i = 0; i < 4; i++) {
+        final p =
+            ScenePlacement(scene: houseModel(), originRow: 0, originCol: col);
         placements.add(p);
         col += p.footprintCols;
       }
@@ -197,11 +197,11 @@ void main() {
           isEmpty);
     });
 
-    test('an entry facing a neighbor wall is reported (legacy scenes)', () {
+    test('an entry facing a neighbor wall is reported', () {
       final a =
-          ScenePlacement(scene: streets('chunk_2'), originRow: 0, originCol: 0);
+          ScenePlacement(scene: houseModel(), originRow: 0, originCol: 0);
       final b =
-          ScenePlacement(scene: streets('chunk_2'), originRow: 4, originCol: 0);
+          ScenePlacement(scene: houseModel(), originRow: 4, originCol: 0);
       final issues = validator.checkPlacements([a, b]);
       expect(
           issues.any((i) => i.kind == LevelIssueKind.entryFacesWall), isTrue);
@@ -209,9 +209,9 @@ void main() {
 
     test('an entry facing a neighbor entry is clean', () {
       final a =
-          ScenePlacement(scene: streets('chunk_2'), originRow: 0, originCol: 0);
+          ScenePlacement(scene: houseModel(), originRow: 0, originCol: 0);
       final b = ScenePlacement(
-          scene: streets('chunk_2'), originRow: 4, originCol: 0, rotY: 180);
+          scene: houseModel(), originRow: 4, originCol: 0, rotY: 180);
       final issues = validator.checkPlacements([a, b]);
       expect(
           issues.any((i) => i.kind == LevelIssueKind.entryFacesWall), isFalse);

@@ -1,4 +1,5 @@
 import 'package:demo/src/features/feature_registry.dart';
+import 'package:demo/src/features/ready_house.dart';
 import 'package:demo/src/features/ready_scene.dart';
 import 'package:demo/src/features/ready_scenes.dart';
 import 'package:demo/src/project_sources.dart';
@@ -18,10 +19,19 @@ void main() {
     return controller.resources!;
   }
 
-  test('каталог группы 6.7 содержит готовую сцену', () {
-    expect(readySceneFeatures, hasLength(1));
+  Future<SceneResources> openHouse() async {
+    final controller = SceneController();
+    await controller.open(sourceForProject('House'));
+    return controller.resources!;
+  }
+
+  test('каталог группы 6.7 содержит готовые сцены', () {
+    expect(readySceneFeatures, hasLength(2));
     expect(validateFeatureCatalog(readySceneFeatures), isEmpty);
-    expect(readySceneFeatures.first.id, 'ready_scene');
+    expect(
+      readySceneFeatures.map((f) => f.id),
+      containsAll(const ['ready_scene', 'ready_house']),
+    );
   });
 
   test('готовая сцена берёт эталонную модель Pet', () async {
@@ -40,6 +50,29 @@ void main() {
 
   test('без проекта готовая сцена даёт запасную оболочку', () {
     final model = buildReadyScene(
+      FeatureBuildContext(project: null, paths: testPaths()),
+    );
+    expect(model.id, 'level_shell');
+  });
+
+  test('сцена дома берёт модель house с её материалами', () async {
+    final manager = await openHouse();
+    final model = buildHouseScene(
+      FeatureBuildContext(project: manager, paths: testPaths()),
+    );
+    expect(model.id, 'house');
+    expect(model.objects, isNotEmpty);
+    final keys = {
+      for (final object in model.objects)
+        if (object.material?.key != null && object.material!.key.isNotEmpty)
+          object.material!.key,
+    };
+    expect(keys, contains('house_wall_brick_red.png'));
+    expect(keys, contains('house_roof_4.png'));
+  });
+
+  test('без проекта сцена дома даёт запасную оболочку', () {
+    final model = buildHouseScene(
       FeatureBuildContext(project: null, paths: testPaths()),
     );
     expect(model.id, 'level_shell');
@@ -71,6 +104,10 @@ void main() {
     final host = FakeSceneHost(paths: testPaths());
     await pumpShell(tester, features: readySceneFeatures, host: host);
     await tester.tap(find.byKey(const Key('feature-ready_scene')));
+    await tester.pumpAndSettle();
+    expect(host.error, isNull);
+    expect(host.ready, isTrue);
+    await tester.tap(find.byKey(const Key('feature-ready_house')));
     await tester.pumpAndSettle();
     expect(host.error, isNull);
     expect(host.ready, isTrue);

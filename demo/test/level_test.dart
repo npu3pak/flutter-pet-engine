@@ -1,20 +1,13 @@
-import 'dart:convert';
-
-import 'package:demo/src/features/biome_scenes.dart';
 import 'package:demo/src/features/feature_registry.dart';
-import 'package:demo/src/features/legacy_chunks.dart';
 import 'package:demo/src/features/level.dart';
 import 'package:demo/src/features/level_baking.dart';
 import 'package:demo/src/features/level_common.dart';
-import 'package:demo/src/features/level_docking.dart';
 import 'package:demo/src/features/level_loading.dart';
 import 'package:demo/src/features/level_meta_cells.dart';
 import 'package:demo/src/features/level_meta_query.dart';
 import 'package:demo/src/features/level_validation.dart';
-import 'package:demo/src/project_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pet_engine/models.dart' as doc;
 import 'package:pet_engine/pet_engine.dart';
 
 import 'test_helpers/test_app.dart';
@@ -28,14 +21,8 @@ void main() {
   }) =>
       FeatureBuildContext(project: project, paths: testPaths(), params: params);
 
-  Future<SceneResources> openProject(String name) async {
-    final controller = SceneController();
-    await controller.open(sourceForProject(name));
-    return controller.resources!;
-  }
-
-  test('каталог группы 6.6 содержит двенадцать фич и проходит проверку', () {
-    expect(levelFeatures, hasLength(12));
+  test('каталог группы 6.6 содержит семь фич и проходит проверку', () {
+    expect(levelFeatures, hasLength(7));
     expect(validateFeatureCatalog(levelFeatures), isEmpty);
     expect(
       levelFeatures.map((f) => f.id),
@@ -43,14 +30,9 @@ void main() {
         'level_shell',
         'level_meta_cells',
         'level_meta_query',
-        'level_docking',
         'level_validation',
         'level_baking',
         'level_loading',
-        'legacy_chunks',
-        'biome_dungeon',
-        'biome_forest',
-        'biome_abandoned_building',
         'level_stress',
       ]),
     );
@@ -114,18 +96,6 @@ void main() {
     expect(summary.blockedPassable, isFalse);
   });
 
-  test('стыковка домов Streets проверяется автоматически', () async {
-    final manager = await openProject('Streets');
-    final houses = streetHouses(manager.models.toList());
-    expect(houses, isNotEmpty);
-    final row = buildStreetsRow(houses);
-    expect(row, isNotNull);
-    final summary = summarizeDocking(manager);
-    expect(summary.houses, houses.length);
-    expect(summary.overlaps, 0);
-    expect(summary.dockedPairs, greaterThan(0));
-  });
-
   test('запросы к метам: клетки, фильтр и список уровня', () {
     final s = summarizeMetaQueries();
     expect(s.cellMetas, [metaNameUnpassable]);
@@ -169,35 +139,6 @@ void main() {
     expect(find.text('Загрузить заново'), findsOneWidget);
   });
 
-  test('ряд сцен каждого биома собирается без ошибок структуры', () async {
-    for (final name in const ['Dungeon', 'Forest', 'AbandonedBuilding']) {
-      final manager = await openProject(name);
-      final scenes = biomeScenes(manager);
-      expect(scenes, isNotEmpty, reason: name);
-      final row = buildSceneRow(scenes, id: '${name}_row', name: name);
-      expect(row, isNotNull, reason: name);
-      expect(row!.elements, hasLength(scenes.length), reason: name);
-      expect(
-        row.data.size.w,
-        scenes.fold(0, (w, s) => w + s.size.w),
-        reason: name,
-      );
-      // kind `model` ставит центр сетки источника в `pos`: привязка сцены —
-      // её центр, тогда сцена занимает клетки из ScenePlacement.
-      var col = 0;
-      for (final scene in scenes) {
-        final ref = row.elements.firstWhere((o) => o.refModelId == scene.id);
-        expect(ref.x, col + (scene.size.w - 1) / 2, reason: name);
-        expect(ref.z, (scene.size.l - 1) / 2, reason: name);
-        col += scene.size.w;
-      }
-      final summary = summarizeBiome(manager);
-      expect(summary.scenes, scenes.length, reason: name);
-      expect(summary.objects, greaterThan(0), reason: name);
-      expect(summary.errors, 0, reason: name);
-    }
-  });
-
   test('проверки уровня находят заготовленные ошибки', () {
     final issues = levelValidationIssues();
     final kinds = issues.map((i) => i.kind).toSet();
@@ -218,24 +159,6 @@ void main() {
     expect(merge.mergedMeshes, greaterThan(0));
     expect(batch.batchMeshes, greaterThanOrEqualTo(merge.mergedMeshes));
     expect(merge.separateNodes, lessThan(elements));
-  });
-
-  test('старый чанк Streets преобразуется в сцену model_v1', () async {
-    final manager = await openProject('Streets');
-    final bytes = await manager.readBytes('chunks/chunk_1.json');
-    expect(bytes, isNotNull);
-    final converted = convertLegacyChunk(
-      utf8.decode(bytes!),
-      id: 'legacy_chunk_1',
-    );
-    expect(converted.objects, isNotEmpty);
-    expect(
-      converted.metas.any((m) => m.name == doc.metaNameUnpassable),
-      isTrue,
-    );
-    final summary = await summarizeLegacyChunk(manager, 1);
-    expect(summary, isNotNull);
-    expect(summary!.objects, converted.objects.length);
   });
 
   testWidgets('каждая фича группы открывается в каркасе без ошибок', (

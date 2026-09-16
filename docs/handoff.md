@@ -48,7 +48,7 @@
     редактирования сети, `PolyhedronNode`, `bakePolyhedron`,
     `refreshObjectGeometry`, `objectWorldMatrix`, камера крупных карт;
     версия `0.1.0-dev.3`; золотые эталоны совместимости не сдвинулись;
-  - demo: девятая группа «Многогранники» (54 фичи, 184 теста), журнал
+  - demo: девятая группа «Многогранники» (50 фич, 182 теста), журнал
     `demo/visual_tests.json` (bug_61 — магента карты без проекта);
   - scene_editor: режимы «Объект/Грани/Вершины», конверсия примитивов и
     CSG, 1-px выделение, оранжевая рамка, адаптивная сетка, drag вершин
@@ -82,7 +82,7 @@ fvm flutter test         # 349 тестов
   `AppPaths`/`AppInfo`, `hook/build.dart`, staging `--full`, `tool/deeplink.sh`.
 - Документ и undo: `AppState` на `SceneController(mergeStatic: false)`,
   `ProjectStore`/`ResourceStore`/`Model3dStore`, стеки отмены, шаблоны,
-  обработка изображений, миграция legacy `chunks/`.
+  обработка изображений.
 - Вьюпорт: `EditorScene` на видах `main/overlay/top`; сетка, рамка, курсор,
   контуры и грани, гизмо переноса/вращения, picking с `FaceRef`, камера
   `FlyCameraController`, меты и маркеры света.
@@ -159,7 +159,7 @@ fvm flutter test         # 349 тестов
 1. `pwd`, `git status`; базлайн (§1).
 2. Прочитать `AGENTS.md`, `docs/tz.md` (раздел 5, приёмка), `docs/plan.md`
    §5/§8, `docs/api.md`, этот файл.
-3. Подготовить финальную приёмку владельцем: прогон demo (все 49 фич,
+3. Подготовить финальную приёмку владельцем: прогон demo (все 50 фич,
    визуальные проверки) и scene_editor, сверка документов с фактом.
    Замечания владельца фиксировать в `demo/visual_tests.json` и
    `scene_editor/visual_tests.json`.
