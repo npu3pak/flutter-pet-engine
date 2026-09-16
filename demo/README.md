@@ -14,15 +14,16 @@
 - служить стендом для отладки, визуального тестирования и измерений
   производительности.
 
-Запуск (из корня репозитория):
+Запуск (из каталога demo):
 
 ```bash
-# бандлы проектов (Pet и House) для мобильных сборок и запуска из бандла
-fvm dart run scripts/stage_app_assets.dart
-fvm dart run scripts/stage_app_assets.dart --project projects/House --out demo/assets/house_project
-
-cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
+fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 ```
+
+Исходники проектов лежат в `assets/Pet/` и `assets/House/`, объявлены в
+`pubspec.yaml` по подкаталогам и читаются из бандла через
+`AssetProjectSource` — отдельный staging не нужен. Те же каталоги
+открывает редактор сцен (`../pet_engine_scene_editor`).
 
 Снимки фич на macOS:
 

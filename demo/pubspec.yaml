@@ -28,6 +28,18 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/pet_project/
-    - assets/house_project/
+    # Исходники проектов лежат в demo/assets рядом и объявляются по
+    # подкаталогам: Flutter не включает вложенные каталоги рекурсивно.
+    - assets/Pet/project.json
+    - assets/Pet/models/
+    - assets/Pet/textures/
+    - assets/Pet/sprites/
+    - assets/Pet/3d_models/cat/
+    - assets/Pet/3d_models/cat/textures/
+    - assets/Pet/3d_models/puppy/
+    - assets/Pet/3d_models/puppy/textures/
+    - assets/House/project.json
+    - assets/House/models/
+    - assets/House/textures/
+    - assets/House/sprites/
     - assets/shaders/

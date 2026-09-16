@@ -50,7 +50,7 @@ class _FakeBaker extends LevelBaker {
 
 Future<SceneController> _opened() async {
   final controller = SceneController();
-  await controller.open(DirectoryProjectSource(Directory('../projects/Pet')));
+  await controller.open(DirectoryProjectSource(Directory('../demo/assets/Pet')));
   return controller;
 }
 

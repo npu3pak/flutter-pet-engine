@@ -7,7 +7,7 @@ import 'package:pet_engine/src/engine/game_resource_manager.dart'
 
 /// The real Pet sample project (repo root).
 final Directory petProjectDir =
-    Directory('${Directory.current.path}/../projects/Pet');
+    Directory('${Directory.current.path}/../demo/assets/Pet');
 
 void main() {
   group('GameResourceManager over the directory source', () {

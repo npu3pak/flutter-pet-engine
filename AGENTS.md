@@ -25,8 +25,9 @@ written in Russian; code identifiers are English.
   of the phases).
 - `engine/third_party/flutter_scene` — the shared `flutter_scene` fork (a
   plain folder, no nested repository).
-- `projects/` — scene projects and resources (copied from v1).
-- `scripts/` — asset staging (`stage_app_assets.dart`), perf scripts.
+- `demo/assets/` — the scene projects (`Pet/`, `House/`) plus shaders; the
+  projects are read from the bundle through `AssetProjectSource`.
+- `scripts/` — `clean.sh` and the perf tools (`perf/`).
 - `temp/` — the only place for scratch files (not tracked by git).
 
 ## Commands
@@ -41,8 +42,7 @@ fvm flutter pub get
 fvm flutter analyze
 fvm flutter test            # single file: fvm flutter test test/<name>_test.dart
 
-# demo (phase 3): stage assets from the repository root first
-fvm dart run scripts/stage_app_assets.dart
+# demo: project sources live in demo/assets and are bundled via pubspec
 cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 
 # fork — the shared path dependency; helpers and bug fixes are allowed
@@ -79,8 +79,8 @@ fvm flutter analyze && fvm flutter test
 - Formats: `project_v1`, `model_v1`.
 - Mirrored X is a sacred convention: never "fix" the lookAt and never strip
   the billboard mirror. Details in `docs/conventions.md`.
-- Engine tests read the real `../projects/Pet` project by relative path — run
-  them from `engine/`.
+- Engine tests read the real `../demo/assets/Pet` project by relative
+  path — run them from `engine/`.
 - Rendering requires a GPU: tests never render; the viewport must have a
   swappable backend for headless tests.
 - Billboard shader varyings must keep their fixed order — otherwise the

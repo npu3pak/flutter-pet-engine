@@ -31,7 +31,7 @@ ModelData scene({
     );
 
 ModelData houseModel() => ModelData.fromJson(
-      File('../projects/House/models/house.json').readAsStringSync(),
+      File('../demo/assets/House/models/house.json').readAsStringSync(),
       id: 'house',
     );
 

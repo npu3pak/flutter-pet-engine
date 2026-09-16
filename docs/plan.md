@@ -198,10 +198,10 @@ pet_games/
 │   ├── AGENTS.md  README.md  .fvmrc
 │   ├── docs/                         # единая база знаний v2
 │   ├── engine/                       # пакет pet_engine
-│   ├── demo/                         # приложение-пример (все 48 фич)
+│   ├── demo/                         # приложение-пример (все фичи)
+│   │   └── assets/                   # проекты сцен Pet и House (в git)
 │   ├── scene_editor/                 # редактор сцен на API v2
-│   ├── projects/                     # проекты сцен и ресурсы (копия)
-│   ├── scripts/                      # staging, perf, служебные скрипты
+│   ├── scripts/                      # чистка пакетов, perf-скрипты
 │   └── temp/                         # временные файлы (в git не попадает)
 ├── mypet-game/                        # не трогаем до отдельной миграции
 ```
@@ -637,8 +637,8 @@ pet_games/
 - **Каркас приложения** `demo/`: `flutter create` (macOS/iOS/Android),
   `initializeEngine`, диплинк-мосты macOS/iOS (схема `pet-engine-example`,
   канал `example/deeplink`), GPU-флаги и снятие песочницы macOS,
-  `hook/build.dart` на `petBuildMaterials`, staging в
-  `demo/assets/pet_project`.
+  `hook/build.dart` на `petBuildMaterials`, проекты сцен
+  в `demo/assets` (читаются из бандла).
 - **Инфраструктура**: `AppPaths`/`AppInfo`/`deeplink`/`screenshot_saver`,
   perf-логи, журнал визуальных проверок, `ProjectSource`-источники,
   `app_shell` (три панели, режимы, очередь команд, сервис-расширение),

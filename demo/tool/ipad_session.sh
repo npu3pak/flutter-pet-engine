@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Постоянная debug-сессия приложения-примера на iPad.
 #
-#   tool/ipad_session.sh start   — staging ресурсов и запуск сессии в фоне
+#   tool/ipad_session.sh start   — запуск сессии в фоне
 #   tool/ipad_session.sh wait    — дождаться готовности (app.started)
 #   tool/ipad_session.sh stop    — остановка сессии
 #   tool/ipad_session.sh status  — состояние сессии
@@ -74,8 +74,6 @@ case "$command" in
     stop_session
     mkdir -p "$TEMP_DIR"
     ipad_udid
-    cd "$REPO_ROOT"
-    fvm dart run scripts/stage_app_assets.dart
     cd "$REPO_ROOT/demo"
     rm -f "$FIFO" "$LOG" "$PID_FILE" "$HOLDER_FILE" "$TEMP_DIR/app_id.txt"
     mkfifo "$FIFO"

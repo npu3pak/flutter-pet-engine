@@ -8,35 +8,19 @@ import 'package:pet_engine/pet_engine.dart';
 /// [name] — имя проекта из каталога фич: `'Pet'`, `'House'`; `null` — сцена,
 /// собранная кодом (ресурсы не нужны).
 ///
-/// Правила выбора:
-/// - `--dart-define=pet.source=bundle` — бандл `assets/pet_project/` или
-///   `assets/house_project/` (мобильные сборки);
-/// - `--dart-define=pet.project=<путь>` — произвольная папка;
-/// - по умолчанию (macOS, запуск из `demo`) — папки `../projects/<Имя>`;
-///   если папки нет (мобильная сборка) — бандл, а при его отсутствии
-///   пустой источник: фича покажет запасную сцену из кода.
+/// Исходники проектов лежат в `demo/assets/<Имя>/` и читаются из ассетов
+/// (`AssetProjectSource`) — одинаково в запущенном приложении, на мобильной
+/// сборке и в тестах.
+///
+/// `--dart-define=pet.project=<путь>` подменяет источник на произвольную
+/// папку (отладка отредактированного проекта).
 ProjectSource sourceForProject(String? name) {
-  const mode = String.fromEnvironment('pet.source');
   const customPath = String.fromEnvironment('pet.project');
   if (customPath.isNotEmpty) {
     return DirectoryProjectSource(Directory(customPath));
   }
-  if (name == 'Pet') {
-    if (mode == 'bundle') return BundleProjectSource('assets/pet_project/');
-    final repoProject = Directory('../projects/Pet');
-    if (repoProject.existsSync()) {
-      return DirectoryProjectSource(repoProject);
-    }
-    return BundleProjectSource('assets/pet_project/');
-  }
-  if (name == 'House') {
-    if (mode == 'bundle') return BundleProjectSource('assets/house_project/');
-    final repoProject = Directory('../projects/House');
-    if (repoProject.existsSync()) {
-      return DirectoryProjectSource(repoProject);
-    }
-    return BundleProjectSource('assets/house_project/');
-  }
+  if (name == 'Pet') return AssetProjectSource('assets/Pet/');
+  if (name == 'House') return AssetProjectSource('assets/House/');
   return EmptyProjectSource();
 }
 

@@ -7,7 +7,7 @@ import 'package:pet_engine/pet_engine.dart';
 /// The real Pet sample project (repo root) — the roundtrip/semantics source
 /// of truth the engine must stay compatible with.
 final Directory petProjectDir =
-    Directory('${Directory.current.path}/../projects/Pet');
+    Directory('${Directory.current.path}/../demo/assets/Pet');
 
 String _petModel(String id) =>
     File('${petProjectDir.path}/models/$id.json').readAsStringSync();

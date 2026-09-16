@@ -9,6 +9,7 @@ library;
 export 'models.dart';
 export 'src/engine/project_source.dart'
     show
+        AssetProjectSource,
         BundleProjectSource,
         DirectoryProjectSource,
         MutableProjectSource,

@@ -4,7 +4,7 @@
 macOS-приложение (`fvm flutter run -d macos --enable-flutter-gpu
 --enable-impeller`) и запускается с `--dart-define=pet.perf.drag=true` —
 встроенный харнесс `scene_editor/lib/src/perf_drag.dart` открывает
-`projects/Pet/model_2` и шлёт настоящие pointer-события, протягивая ось X
+`demo/assets/Pet/model_2` и шлёт настоящие pointer-события, протягивая ось X
 гизмо переноса 60 шагов по каждому виду объекта. Печатает sync (обработчик
 события целиком) и frame (до конца кадра) p50/p95; полная пересборка сцены
 видна в строках `renderer: rebuild ... (Nms)`, снимки — в

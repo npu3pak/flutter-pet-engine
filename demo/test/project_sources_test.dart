@@ -5,22 +5,27 @@ import 'package:pet_engine/pet_engine.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Pet по умолчанию читается из папки projects/Pet', () {
+  test('Pet читается из ассетов demo/assets/Pet', () {
     final source = sourceForProject('Pet');
-    expect(source, isA<DirectoryProjectSource>());
-    expect(
-      (source as DirectoryProjectSource).root.path,
-      endsWith('projects/Pet'),
-    );
+    expect(source, isA<AssetProjectSource>());
+    expect((source as AssetProjectSource).assetPrefix, 'assets/Pet/');
   });
 
-  test('House читается из папки projects/House', () {
+  test('House читается из ассетов demo/assets/House', () {
     final source = sourceForProject('House');
-    expect(source, isA<DirectoryProjectSource>());
-    expect(
-      (source as DirectoryProjectSource).root.path,
-      endsWith('projects/House'),
-    );
+    expect(source, isA<AssetProjectSource>());
+    expect((source as AssetProjectSource).assetPrefix, 'assets/House/');
+  });
+
+  test('Pet открывается: модели, glTF-кот, текстуры и спрайты', () async {
+    final controller = SceneController();
+    await controller.open(sourceForProject('Pet'));
+    final resources = controller.resources!;
+    expect(resources.modelIds, containsAll(['model_1', 'model_2']));
+    expect(resources.gltfEntry('cat'), isNotNull);
+    expect(resources.textureKeys, isNotEmpty);
+    expect(resources.spriteKeys, isNotEmpty);
+    controller.dispose();
   });
 
   test('House открывается и содержит модель house', () async {
@@ -35,15 +40,5 @@ void main() {
 
   test('сцена из кода использует пустой источник', () {
     expect(sourceForProject(null), isA<EmptyProjectSource>());
-  });
-
-  test('эталонная сцена Pet читается и содержит кота', () async {
-    final controller = SceneController();
-    await controller.open(sourceForProject('Pet'));
-    final resources = controller.resources!;
-    expect(resources.modelIds, contains('model_2'));
-    expect(resources.gltfEntry('cat'), isNotNull);
-    expect(resources.textureKeys, isNotEmpty);
-    controller.dispose();
   });
 }

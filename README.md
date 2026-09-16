@@ -16,8 +16,8 @@ API в стиле Flutter — виджет `SceneViewport` плюс контро
 | `demo/` | приложение-пример: все возможности движка, документация кодом | фаза 3 |
 | `docs/` | единая база знаний | ведётся с фазы 0 |
 | `engine/third_party/flutter_scene` | общий форк `flutter_scene` | вложен в движок, без своего git |
-| `projects/` | проекты сцен и ресурсы (Pet, House) | свои, самодостаточные |
-| `scripts/` | staging ассетов, perf, служебные скрипты | перенесены из v1 |
+| `demo/assets/` | проекты сцен (Pet, House) и шейдеры; читаются из бандла | в git, самостоятельные |
+| `scripts/` | чистка пакетов, perf-скрипты | — |
 | `temp/` | временные файлы (в git не попадают) | — |
 
 Общий форк `flutter_scene` лежит внутри движка:
@@ -43,8 +43,8 @@ fvm flutter test
 cd third_party/flutter_scene/packages/flutter_scene
 fvm flutter test
 
-# staging ресурсов demo (из корня репозитория, когда появится demo)
-fvm dart run scripts/stage_app_assets.dart
+# demo (исходники проектов — в demo/assets, отдельный staging не нужен)
+cd demo && fvm flutter run -d macos --enable-flutter-gpu --enable-impeller
 ```
 
 ## Документы

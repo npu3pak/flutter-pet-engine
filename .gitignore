@@ -6,9 +6,8 @@ build/
 .dart_tool/
 .fvm/
 
-# Staging-бандлы ресурсов приложений (генерируются scripts/stage_app_assets.dart)
-demo/assets/pet_project/
-demo/assets/house_project/
+# Бэкапы ресурсов, которые создаёт редактор сцен
+demo/assets/**/*_original*
 
 .DS_Store
 *.iml

@@ -18,7 +18,7 @@ const bool _update = bool.fromEnvironment('UPDATE_BACKWARD_COMPAT');
 
 final Directory _dir = Directory('test/fixtures/backward_compat');
 final Directory petProjectDir =
-    Directory('${Directory.current.path}/../projects/Pet');
+    Directory('${Directory.current.path}/../demo/assets/Pet');
 
 String _petModel(String id) =>
     File('${petProjectDir.path}/models/$id.json').readAsStringSync();

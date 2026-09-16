@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:path/path.dart' as p;
 
 /// A container of a project folder: `project.json`, `models/*.json`,
@@ -120,10 +120,9 @@ class DirectoryProjectSource extends ProjectSource
 /// Asset-bundle backing: files staged under a fixed asset prefix (a
 /// `manifest.json` inside the prefix lists every staged file). Read-only.
 ///
-/// Flutter asset directory entries are not recursive, so the staging script
-/// FLATTENS the project: a file `models/model_1.json` is stored as the asset
-/// `<prefix>models__model_1.json` (slashes encoded as `__`). The manifest
-/// keeps the original root-relative paths.
+/// Flutter asset directory entries are not recursive, so a flattened bundle
+/// lays the files out with slashes encoded as `__` and keeps a
+/// `manifest.json` of the original root-relative paths.
 class BundleProjectSource extends ProjectSource {
   /// Asset key prefix of the staged project root (e.g.
   /// `'assets/pet_project/'`). The manifest lives at
@@ -184,4 +183,60 @@ class BundleProjectSource extends ProjectSource {
   @override
   Future<void> writeBytes(String relPath, Uint8List bytes) =>
       throw UnsupportedError('BundleProjectSource is read-only');
+}
+
+/// Asset-bundle backing for a project stored as PLAIN Flutter assets: the
+/// original folder layout (`project.json`, `models/…`, `textures/…`,
+/// `sprites/…`, `3d_models/…`) is declared directory-by-directory in the
+/// application's pubspec, so files keep their root-relative paths — unlike
+/// the flattened [BundleProjectSource]. Read-only.
+class AssetProjectSource extends ProjectSource {
+  /// Asset key prefix of the project root (e.g. `'assets/Pet/'`), with a
+  /// trailing slash.
+  final String assetPrefix;
+
+  AssetProjectSource(this.assetPrefix);
+
+  /// All asset keys of the application, cached per instance.
+  Future<List<String>>? _assets;
+
+  @override
+  String get label => assetPrefix;
+
+  @override
+  bool get writable => false;
+
+  Future<List<String>> _allAssets() => _assets ??= _loadAssets();
+
+  Future<List<String>> _loadAssets() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    return manifest.listAssets();
+  }
+
+  @override
+  Future<Uint8List?> readBytes(String relPath) async {
+    try {
+      final data = await rootBundle.load('$assetPrefix$relPath');
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    } on Exception {
+      return null;
+    }
+  }
+
+  @override
+  Future<List<String>> listFiles(String relDir) async {
+    final prefix = relDir.isEmpty ? assetPrefix : '$assetPrefix$relDir/';
+    final assets = await _allAssets();
+    final files = [
+      for (final key in assets)
+        if (key.startsWith(prefix) && key.length > prefix.length)
+          key.substring(assetPrefix.length),
+    ];
+    files.sort();
+    return files;
+  }
+
+  @override
+  Future<void> writeBytes(String relPath, Uint8List bytes) =>
+      throw UnsupportedError('AssetProjectSource is read-only');
 }

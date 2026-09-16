@@ -128,10 +128,9 @@ scene_editor, поддерживать документацию.
 
 Агент проверяет demo сам, не дожидаясь владельца:
 
-1. Staging из корня репозитория:
-   `fvm dart run scripts/stage_app_assets.dart`; затем запуск:
-   `cd demo && fvm flutter run -d macos --enable-flutter-gpu
-   --enable-impeller`.
+1. Запуск из каталога demo: `cd demo && fvm flutter run -d macos
+   --enable-flutter-gpu --enable-impeller` (исходники проектов —
+   в `demo/assets`, отдельный staging не нужен).
 2. Сценарий: открыть фичу (диплинк или интерфейс), сделать **встроенный**
    снимок движковым механизмом (`SceneViewport.capture` + `saveScreenshot`);
    системный `screencapture` в агентской среде не работает и не нужен.
