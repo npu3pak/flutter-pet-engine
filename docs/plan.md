@@ -1204,7 +1204,9 @@ analyze чист, 164; `scene_editor` — analyze чист, 349. Смоук-ви
   слоя — общий LRU-кэш атласов (6 записей, ключ — пути + ширина +
   фильтрация, `SpriteFieldLayer.clearSharedAtlasCache()`); `SceneMaterial`
   пробрасывает `alphaCutoff` в unlit при сборке и применении, параметр
-  добавлен в `SceneMaterial.unlit` и в `copy()`.
+  добавлен в `SceneMaterial.unlit` и в `copy()`. Публичные сигнатуры
+  сборщиков не ссылаются на типы форка: `AtlasSampling` и
+  `AtlasImageLoader` экспортируются из `pet_engine_v2.dart`.
 - **Проверки.** `engine` — analyze чист, 605 тестов (перенос строк,
   однорядный legacy-режим, cutoff у unlit при сборке, мутации и copy);
   `demo` и `scene_editor` — analyze чист; golden-эталоны совместимости не

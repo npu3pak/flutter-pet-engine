@@ -103,8 +103,9 @@ class ParticleLayer {
         if (path != null && !paths.contains(path)) paths.add(path);
       }
       if (paths.isEmpty) return;
-      final sampling =
-          config.crisp ? kAtlasNearestSampling : kAtlasLinearSampling;
+      final sampling = config.crisp
+          ? AtlasSampling.nearest
+          : AtlasSampling.linear;
       final atlas = await buildSpriteAtlas(
         paths,
         bundle: bundle,
@@ -193,14 +194,10 @@ class ParticleLayer {
             ? SpriteBlendMode.additive
             : SpriteBlendMode.alpha;
     }
-    final frames = spriteFrameMap(
-      [
-        for (final def in config.sprites)
-          if (def.assetPath != null)
-            (key: def.spriteKey, path: def.assetPath!),
-      ],
-      atlas.keys,
-    );
+    final frames = spriteFrameMap([
+      for (final def in config.sprites)
+        if (def.assetPath != null) (key: def.spriteKey, path: def.assetPath!),
+    ], atlas.keys);
     _frames = frames;
     _batch = batch;
     final parent = _parent;
@@ -225,19 +222,22 @@ class ParticleLayer {
 
   String _signatureOf() {
     final sb = StringBuffer(
-        '${config.kind.name}|${field.rows}x${field.columns}@${field.seed}|'
-        '${config.maxPerCell}|${config.fullDensityRings}|${config.viewRadius}|'
-        '${config.spawnChance}|${config.bottomY}-${config.topY}|'
-        '${config.fallSpeedMin}-${config.fallSpeedMax}|'
-        '${config.swayAmp}-${config.swayFreq}|'
-        '${config.windDirection.x},${config.windDirection.z}'
-        '${config.windSpeed}|${config.color.x},${config.color.y},'
-        '${config.color.z}|${config.opacity}|${config.rotationSpin}|'
-        '${config.velocityStretch}|${config.crisp}|${config.additive}|'
-        '${config.blendOrder}');
+      '${config.kind.name}|${field.rows}x${field.columns}@${field.seed}|'
+      '${config.maxPerCell}|${config.fullDensityRings}|${config.viewRadius}|'
+      '${config.spawnChance}|${config.bottomY}-${config.topY}|'
+      '${config.fallSpeedMin}-${config.fallSpeedMax}|'
+      '${config.swayAmp}-${config.swayFreq}|'
+      '${config.windDirection.x},${config.windDirection.z}'
+      '${config.windSpeed}|${config.color.x},${config.color.y},'
+      '${config.color.z}|${config.opacity}|${config.rotationSpin}|'
+      '${config.velocityStretch}|${config.crisp}|${config.additive}|'
+      '${config.blendOrder}',
+    );
     for (final d in config.sprites) {
-      sb.write('|${d.spriteKey}:${d.weight}:${d.width}:${d.height}:'
-          '${d.assetPath}');
+      sb.write(
+        '|${d.spriteKey}:${d.weight}:${d.width}:${d.height}:'
+        '${d.assetPath}',
+      );
     }
     return sb.toString();
   }

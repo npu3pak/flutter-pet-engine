@@ -153,8 +153,8 @@ class SpriteFieldLayer {
         atlas = await buildSpriteAtlas(
           [for (final s in _sprites) s.assetPath],
           sampling: linearSampling
-              ? kAtlasLinearSampling
-              : kAtlasNearestSampling,
+              ? AtlasSampling.linear
+              : AtlasSampling.nearest,
           maxWidth: atlasMaxWidth,
         );
         if (atlas != null) {

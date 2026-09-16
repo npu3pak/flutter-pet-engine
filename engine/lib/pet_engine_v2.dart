@@ -85,7 +85,13 @@ export 'src/particles/particle_placement.dart' show ParticleField;
 export 'src/particles/particle_presets.dart' show ParticlePresets;
 export 'src/render/ground_fog_layer.dart' show FogInstance, GroundFogSprite;
 export 'src/render/sprite_atlas.dart'
-    show SpriteAtlas, buildSpriteAtlas, composeSpriteAtlas, spriteFrameMap;
+    show
+        AtlasImageLoader,
+        AtlasSampling,
+        SpriteAtlas,
+        buildSpriteAtlas,
+        composeSpriteAtlas,
+        spriteFrameMap;
 export 'src/scene/face_snap.dart'
     show faceCenterAt, faceNormalAt, parallelToFaceAngles;
 export 'src/scene/polyhedron.dart'
@@ -98,8 +104,7 @@ export 'src/scene/polyhedron.dart'
         polyFaceNormal,
         triangulateLoops,
         triangulatePolyFace;
-export 'src/scene/polyhedron_bake.dart'
-    show PolyBakeResult, bakePolyhedron;
+export 'src/scene/polyhedron_bake.dart' show PolyBakeResult, bakePolyhedron;
 export 'src/scene/model_renderer.dart'
     show
         faceCorners,

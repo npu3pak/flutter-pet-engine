@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_scene/gpu.dart' as gpu;
 import 'package:flutter_scene/scene.dart';
@@ -8,7 +9,7 @@ import 'package:flutter_scene/scene.dart';
 typedef AtlasImageLoader = Future<ui.Image> Function(String key);
 
 /// Nearest-sampling for pixel-art atlases; no mipmaps so atlas cells never
-/// bleed into each other.
+/// bleed into each other. Mapped from [AtlasSampling.nearest].
 const TextureSampling kAtlasNearestSampling = TextureSampling(
   mipmaps: false,
   minFilter: gpu.MinMagFilter.nearest,
@@ -17,7 +18,7 @@ const TextureSampling kAtlasNearestSampling = TextureSampling(
 );
 
 /// Linear-sampling atlas for soft sprites (fog, wind wisps) — nearest would
-/// look blocky.
+/// look blocky. Mapped from [AtlasSampling.linear].
 const TextureSampling kAtlasLinearSampling = TextureSampling(
   mipmaps: false,
   minFilter: gpu.MinMagFilter.linear,
@@ -25,8 +26,15 @@ const TextureSampling kAtlasLinearSampling = TextureSampling(
   mipFilter: gpu.MipFilter.linear,
 );
 
+/// Sampling preset of a composed atlas. Cell atlases never use mipmaps, so
+/// the presets differ only in min/mag filtering: [nearest] keeps pixel art
+/// crisp, [linear] softens soft sprites (fog, wind wisps).
+enum AtlasSampling { nearest, linear }
+
 /// A composed flipbook atlas texture plus the resolved keys in cell order.
 class SpriteAtlas {
+  /// Plumbing: atlases are built by [buildSpriteAtlas].
+  @internal
   SpriteAtlas({
     required this.texture,
     required this.keys,
@@ -35,6 +43,9 @@ class SpriteAtlas {
   }) : columns = columns ?? keys.length,
        rows = rows ?? 1;
 
+  /// The uploaded GPU texture. Plumbing: the engine's layers pass it straight
+  /// to their batches; applications use `SceneTexture` if they need a public
+  /// texture handle.
   final Texture2D texture;
 
   /// Resolved keys, one per atlas cell (unresolvable keys were skipped).
@@ -139,7 +150,7 @@ composeSpriteAtlas(
 Future<SpriteAtlas?> buildSpriteAtlas(
   List<String> assetPaths, {
   AssetBundle? bundle,
-  TextureSampling sampling = kAtlasNearestSampling,
+  AtlasSampling sampling = AtlasSampling.nearest,
   int cellSize = 256,
   int inset = 1,
   int maxWidth = 0,
@@ -155,7 +166,10 @@ Future<SpriteAtlas?> buildSpriteAtlas(
   try {
     final texture = await Texture2D.fromImage(
       composed.image,
-      sampling: sampling,
+      sampling: switch (sampling) {
+        AtlasSampling.nearest => kAtlasNearestSampling,
+        AtlasSampling.linear => kAtlasLinearSampling,
+      },
     );
     return SpriteAtlas(
       texture: texture,

@@ -1549,7 +1549,9 @@ class FogInstance {
 }
 
 class SpriteAtlas { /* кадры, сетка columns×rows, фильтрация */ }
-Future<SpriteAtlas?> buildSpriteAtlas(List<String> assetPaths, {AssetBundle? bundle, TextureSampling sampling = kAtlasNearestSampling, int cellSize = 256, int inset = 1, int maxWidth = 0});
+enum AtlasSampling { nearest, linear }
+typedef AtlasImageLoader = Future<ui.Image> Function(String key);
+Future<SpriteAtlas?> buildSpriteAtlas(List<String> assetPaths, {AssetBundle? bundle, AtlasSampling sampling = AtlasSampling.nearest, int cellSize = 256, int inset = 1, int maxWidth = 0});
 Future<({ui.Image image, List<String> keys, int columns, int rows})?> composeSpriteAtlas(List<String> keys, AtlasImageLoader load, {int cellSize = 256, int inset = 1, int maxWidth = 0});
 Map<String, int> spriteFrameMap(Iterable<({String key, String path})> sprites, List<String> atlasKeys);
                                     // maxWidth — предел ширины атласа: ячейки переносятся

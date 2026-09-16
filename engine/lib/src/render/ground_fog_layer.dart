@@ -95,14 +95,13 @@ class GroundFogLayer {
       _disposeBatch();
       final atlas = await buildSpriteAtlas(
         [for (final s in _sprites) s.assetPath],
-        sampling: linearSampling ? kAtlasLinearSampling : kAtlasNearestSampling,
+        sampling: linearSampling ? AtlasSampling.linear : AtlasSampling.nearest,
       );
       if (_disposed || atlas == null) return;
       _atlas = atlas;
-      _frames = spriteFrameMap(
-        [for (final s in _sprites) (key: s.key, path: s.assetPath)],
-        atlas.keys,
-      );
+      _frames = spriteFrameMap([
+        for (final s in _sprites) (key: s.key, path: s.assetPath),
+      ], atlas.keys);
     }
     _ensureBatch();
   }
